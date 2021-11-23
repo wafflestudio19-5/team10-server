@@ -1,4 +1,4 @@
-from SoundCloud.settings.common import *
+from soundcloud.settings.common import *
 
 DEBUG = True
 
