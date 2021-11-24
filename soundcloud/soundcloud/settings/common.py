@@ -160,6 +160,6 @@ JWT_AUTH = {
 }
 
 # Custom User Model
-# AUTH_USER_MODEL = 'user.User'
+AUTH_USER_MODEL = 'user.User'
 
 SITE_ID = 1
