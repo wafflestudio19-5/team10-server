@@ -27,7 +27,6 @@ class UserLoginView(APIView):
     permission_classes = (permissions.AllowAny, )
 
     def put(self, request):
-
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         token = serializer.validated_data['token']

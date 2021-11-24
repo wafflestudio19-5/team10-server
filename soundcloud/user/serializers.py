@@ -23,9 +23,8 @@ class UserCreateSerializer(serializers.Serializer):
     display_name = serializers.CharField(max_length=25)
     password = serializers.CharField(max_length=128, write_only=True)
     email = serializers.EmailField(max_length=100)
-    created_at = serializers.DateTimeField(auto_now_add=True)
     age = serializers.IntegerField()
-    gender = serializers.CharField(max_length=20)
+    gender = serializers.CharField(max_length=20, required=False)
 
 
     def validate(self, data):
@@ -46,7 +45,7 @@ class UserCreateSerializer(serializers.Serializer):
         password = validated_data.pop('password')
         email = validated_data.pop('email')
         age = validated_data.pop('age')
-        gender = validated_data.pop('gender')
+        gender = validated_data.pop('gender','')
         user = User.objects.create_user(profile_id=profile_id, display_name=display_name, email=email, age=age,
                                         gender=gender, password=password)
         return user, jwt_token_of(user)
@@ -68,26 +67,6 @@ class UserLoginSerializer(serializers.Serializer):
         update_last_login(None, user)
         return {
             'display_name': user.display_name,
-            'email': user.email,
-            'token': jwt_token_of(user)
-        }
-
-class UserLogoutSerializer(serializers.Serializer):
-
-    email = serializers.CharField(max_length=64, required=True)
-    password = serializers.CharField(max_length=128, write_only=True)
-    token = serializers.CharField(max_length=255, read_only=True)
-
-    def validate(self, data):
-        email = data.get('email')
-        password = data.get('password')
-        user = authenticate(email=email, password=password)
-
-        if user is None:
-            raise serializers.ValidationError("이메일 또는 비밀번호가 잘못되었습니다.")
-
-        update_last_login(None, user)
-        return {
             'email': user.email,
             'token': jwt_token_of(user)
         }
