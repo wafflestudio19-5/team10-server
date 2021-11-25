@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django_extensions',
     'user.apps.UserConfig',
+    'music',
 ]
 
 MIDDLEWARE = [
