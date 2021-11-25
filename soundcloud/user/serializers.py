@@ -40,7 +40,7 @@ class UserCreateSerializer(serializers.Serializer):
         email = validated_data.pop('email')
         age = validated_data.pop('age')
         gender = validated_data.pop('gender', '')
-        birthday = date(date.today().year - age + 1, 1, 1)
+        birthday = date(date.today().year - age, date.today().month, 1)
         user = User.objects.create_user(display_name=display_name, email=email, birthday=birthday, gender=gender,
                                         password=password)
         user.profile_id = user.id
