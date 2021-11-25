@@ -1,7 +1,8 @@
 from django.db import models
 
 # Create your models here.
-from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
+from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
+from datetime import date
 
 
 class CustomUserManager(BaseUserManager):
@@ -24,7 +25,7 @@ class User(AbstractBaseUser):
     display_name = models.CharField(max_length=25)
     email = models.EmailField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    age = models.PositiveIntegerField(null=True)
+    birthday = models.DateField(default=date.today())
     gender = models.CharField(max_length=20, blank=True)
     first_name = models.CharField(max_length=35, blank=True)
     last_name = models.CharField(max_length=35, blank=True)

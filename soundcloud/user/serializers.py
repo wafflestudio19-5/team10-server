@@ -1,10 +1,8 @@
-from abc import ABC
 from django.contrib.auth import get_user_model, authenticate
-from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import update_last_login
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
-from random import randint
+from datetime import date
 
 # 토큰 사용을 위한 기본 세팅
 User = get_user_model()
@@ -37,17 +35,16 @@ class UserCreateSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        profile_id = ''
-        length = randint(3, 25)
-        for i in range(length):
-            profile_id += chr(randint(65, 122))
         display_name = validated_data.pop('display_name')
         password = validated_data.pop('password')
         email = validated_data.pop('email')
         age = validated_data.pop('age')
-        gender = validated_data.pop('gender','')
-        user = User.objects.create_user(profile_id=profile_id, display_name=display_name, email=email, age=age,
-                                        gender=gender, password=password)
+        gender = validated_data.pop('gender', '')
+        birthday = date(date.today().year - age + 1, 1, 1)
+        user = User.objects.create_user(display_name=display_name, email=email, birthday=birthday, gender=gender,
+                                        password=password)
+        user.profile_id = user.id
+        user.save()
         return user, jwt_token_of(user)
 
 
