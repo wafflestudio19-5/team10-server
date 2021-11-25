@@ -8,8 +8,8 @@ cd /home/ec2-user/team10-server/soundcloud
 source venv/bin/activate
 pip3 install -r requirements.txt --quiet
 
-python3 manage.py migrate
-python3 manage.py check --deploy
+python3 manage.py migrate --settings=soundcloud.settings.prod
+python3 manage.py check --deploy --settings=soundcloud.settings.prod
 
 pkill -f gunicorn
 gunicorn soundcloud.wsgi --bind 127.0.0.1:8000 --daemon
