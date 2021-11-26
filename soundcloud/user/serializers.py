@@ -24,7 +24,6 @@ class UserCreateSerializer(serializers.Serializer):
     age = serializers.IntegerField()
     gender = serializers.CharField(max_length=20, required=False)
 
-
     def validate(self, data):
         age = data.get('age', 0)
         password = data.get('password', '')
@@ -68,21 +67,8 @@ class UserLoginSerializer(serializers.Serializer):
             'token': jwt_token_of(user)
         }
 
-class UserSerializer(serializers.ModelSerializer):
 
-    # added
-    profile_id = serializers.CharField()
-    display_name = serializers.CharField()
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True) # password 수정용
-    created_at = serializers.DateTimeField(required=False)
-    birthday = serializers.DateField(required=False)
-    gender = serializers.CharField(required=False)
-    first_name = serializers.CharField(required=False)
-    last_name = serializers.CharField(required=False)
-    city = serializers.CharField(required=False)
-    country = serializers.CharField(required=False)
-    bio = serializers.CharField(required=False)
+class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
@@ -91,6 +77,7 @@ class UserSerializer(serializers.ModelSerializer):
             'display_name',
             'email',
             'created_at',
+            'last_login',
             'birthday',
             'gender',
             'password',
@@ -100,6 +87,5 @@ class UserSerializer(serializers.ModelSerializer):
             'country',
             'bio',
         )
-        extra_kwargs = {'password': {'write_only': True, 'required': False}, 'last_login': {'read_only': True}}
-
-
+        extra_kwargs = {'created_at': {'read_only': True}, 'last_login': {
+            'read_only': True}, 'password': {'write_only': True}}
