@@ -24,7 +24,6 @@ class UserCreateSerializer(serializers.Serializer):
     age = serializers.IntegerField()
     gender = serializers.CharField(max_length=20, required=False)
 
-
     def validate(self, data):
         age = data.get('age', 0)
         password = data.get('password', '')
@@ -35,16 +34,11 @@ class UserCreateSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        display_name = validated_data.pop('display_name')
-        password = validated_data.pop('password')
-        email = validated_data.pop('email')
         age = validated_data.pop('age')
-        gender = validated_data.pop('gender', '')
-        birthday = date(date.today().year - age, date.today().month, 1)
-        user = User.objects.create_user(display_name=display_name, email=email, birthday=birthday, gender=gender,
-                                        password=password)
-        user.profile_id = user.id
-        user.save()
+        validated_data.update(
+            {'birthday': date(date.today().year - age + 1, 1, 1)})
+
+        user = User.objects.create_user(**validated_data)
         return user, jwt_token_of(user)
 
 

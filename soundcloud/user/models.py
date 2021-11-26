@@ -1,6 +1,4 @@
 from django.db import models
-
-# Create your models here.
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from datetime import date
 
@@ -20,8 +18,18 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
+
+def create_unique_profile_id():
+    while True:
+        profile_id = User.objects.make_random_password(
+            length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
+        if not User.objects.filter(profile_id=profile_id).exists():
+            return profile_id
+
+
 class User(AbstractBaseUser):
-    profile_id = models.CharField(max_length=25, unique=True)
+    profile_id = models.CharField(
+        max_length=25, unique=True, default=create_unique_profile_id)
     display_name = models.CharField(max_length=25)
     email = models.EmailField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
