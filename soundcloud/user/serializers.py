@@ -67,3 +67,39 @@ class UserLoginSerializer(serializers.Serializer):
             'email': user.email,
             'token': jwt_token_of(user)
         }
+
+class UserSerializer(serializers.ModelSerializer):
+
+    # added
+    profile_id = serializers.CharField()
+    display_name = serializers.CharField()
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True) # password 수정용
+    created_at = serializers.DateTimeField(required=False)
+    birthday = serializers.DateField(required=False)
+    gender = serializers.CharField(required=False)
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+    city = serializers.CharField(required=False)
+    country = serializers.CharField(required=False)
+    bio = serializers.CharField(required=False)
+
+    class Meta:
+        model = User
+        fields = (
+            'profile_id',
+            'display_name',
+            'email',
+            'created_at',
+            'birthday',
+            'gender',
+            'password',
+            'first_name',
+            'last_name',
+            'city',
+            'country',
+            'bio',
+        )
+        extra_kwargs = {'password': {'write_only': True, 'required': False}, 'last_login': {'read_only': True}}
+
+

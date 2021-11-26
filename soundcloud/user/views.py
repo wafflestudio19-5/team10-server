@@ -1,9 +1,9 @@
 from django.contrib.auth import get_user_model, logout
 from django.db import IntegrityError
-from rest_framework import status, permissions
+from rest_framework import status, permissions, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from user.serializers import UserLoginSerializer, UserCreateSerializer
+from user.serializers import UserLoginSerializer, UserCreateSerializer, UserSerializer
 
 User = get_user_model()
 
@@ -40,3 +40,24 @@ class UserLogoutView(APIView):
     def post(self, request):
         logout(request)
         return Response({'success': True}, status=status.HTTP_200_OK)
+
+
+class UserViewSet(viewsets.GenericViewSet):
+
+    permission_classes = (permissions.AllowAny, )
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+
+    def retrieve(self, request, pk=None):
+
+        if pk == 'me':
+            if request.user.is_authenticated:
+                return Response(self.get_serializer(request.user).data, status=status.HTTP_200_OK)
+            else:
+                return Response(status=status.HTTP_403_FORBIDDEN, data='먼저 로그인 하세요.')
+        else:
+            user = User.objects.get(profile_id=pk)
+            if user is None:
+                return Response(status=status.HTTP_404_NOT_FOUND, data='해당 유저는 존재하지 않습니다.')
+            else:
+                return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
