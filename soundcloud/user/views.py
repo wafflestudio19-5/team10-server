@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model, logout
 from django.db import IntegrityError
 from rest_framework import status, permissions, viewsets
+from rest_framework.generics import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from user.serializers import UserLoginSerializer, UserCreateSerializer, UserSerializer
@@ -49,15 +50,9 @@ class UserViewSet(viewsets.GenericViewSet):
     queryset = User.objects.all()
 
     def retrieve(self, request, pk=None):
+        if pk == 'me' and not request.user.is_authenticated:
+            return Response(status=status.HTTP_403_FORBIDDEN, data='먼저 로그인 하세요.')
 
-        if pk == 'me':
-            if request.user.is_authenticated:
-                return Response(self.get_serializer(request.user).data, status=status.HTTP_200_OK)
-            else:
-                return Response(status=status.HTTP_403_FORBIDDEN, data='먼저 로그인 하세요.')
-        else:
-            user = User.objects.get(profile_id=pk)
-            if user is None:
-                return Response(status=status.HTTP_404_NOT_FOUND, data='해당 유저는 존재하지 않습니다.')
-            else:
-                return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
+        user = request.user if pk == 'me' else get_object_or_404(User, pk=pk)
+
+        return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
