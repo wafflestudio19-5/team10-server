@@ -36,7 +36,9 @@ class UserCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         age = validated_data.pop('age')
         validated_data.update(
-            {'birthday': date(date.today().year - age + 1, 1, 1)})
+            {'birthday': date(date.today().year-age,
+                              date.today().month, date.today().day)}
+        )
 
         user = User.objects.create_user(**validated_data)
         return user, jwt_token_of(user)
