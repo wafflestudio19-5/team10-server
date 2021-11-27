@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth import get_user_model
 
 # Create your models here.
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
@@ -38,3 +39,9 @@ class User(AbstractBaseUser):
 
     USERNAME_FIELD = 'email'
     EMAIL_FIELD = 'email'
+
+
+class Follow(models.Model):
+    follower = models.ForeignKey(get_user_model(), related_name="follows", on_delete=models.CASCADE)
+    followee = models.ForeignKey(get_user_model(), related_name="followed_by", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True) 
