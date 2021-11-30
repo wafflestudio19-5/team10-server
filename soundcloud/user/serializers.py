@@ -36,7 +36,7 @@ class UserCreateSerializer(serializers.Serializer):
 
         data.update(
             {'birthday': date(date.today().year-age,
-                              date.today().month, date.today().day)}
+                              date.today().month, 1)}
         )
 
         return data
