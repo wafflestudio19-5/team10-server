@@ -26,6 +26,7 @@ class Set(models.Model):
     title = models.CharField(max_length=100)
     creator = models.ForeignKey(get_user_model(), related_name="owned_sets", on_delete=models.CASCADE)
     type = models.CharField(max_length=15, choices=SET_TYPE_CHOICES, db_index=True) ## choices
+    permalink = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True)
     tags = models.ManyToManyField(Tag, related_name="sets")
