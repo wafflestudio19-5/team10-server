@@ -19,17 +19,17 @@ class CustomUserManager(BaseUserManager):
         return user
 
 
-def create_unique_profile_id():
+def create_permalink():
     while True:
-        profile_id = User.objects.make_random_password(
+        permalink = User.objects.make_random_password(
             length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
-        if not User.objects.filter(profile_id=profile_id).exists():
-            return profile_id
+        if not User.objects.filter(permalink=permalink).exists():
+            return permalink
 
 
 class User(AbstractBaseUser):
-    profile_id = models.CharField(
-        max_length=25, unique=True, default=create_unique_profile_id)
+    permalink = models.CharField(
+        max_length=25, unique=True, default=create_permalink)
     display_name = models.CharField(max_length=25)
     email = models.EmailField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -41,6 +41,7 @@ class User(AbstractBaseUser):
     country = models.CharField(max_length=20, blank=True)
     bio = models.TextField(blank=True)
     # profile_image = models.ImageField(null=True, blank=True)
+    # header_image = models.ImageField(null=True, blank=True)
 
     objects = CustomUserManager()
 
