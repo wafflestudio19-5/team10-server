@@ -52,14 +52,10 @@ class UserViewSet(viewsets.GenericViewSet):
     queryset = User.objects.all()
 
     def retrieve(self, request, pk=None):
-        id_type = request.query_params.get('id_type', None)
 
-        if id_type == 'profile':
-            user = get_object_or_404(User, profile_id=pk)
-        else:
-            if pk == 'me' and not request.user.is_authenticated:
-                raise NotAuthenticated("먼저 로그인 하세요.")
-            user = request.user if pk == 'me' else get_object_or_404(
-                User, id=pk)
+        if pk == 'me' and not request.user.is_authenticated:
+            raise NotAuthenticated("먼저 로그인 하세요.")
+        user = request.user if pk == 'me' else get_object_or_404(
+            User, id=pk)
 
         return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
