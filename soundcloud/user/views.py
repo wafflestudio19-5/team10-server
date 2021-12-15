@@ -19,9 +19,9 @@ class UserSignUpView(APIView):
 
         serializer = UserCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user, token = serializer.save()
+        data = serializer.save()
 
-        return Response({'profile_id': user.profile_id, 'token': token}, status=status.HTTP_201_CREATED)
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 class UserLoginView(APIView):
