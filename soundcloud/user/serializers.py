@@ -61,11 +61,32 @@ class UserLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("이메일 또는 비밀번호가 잘못되었습니다.")
 
         update_last_login(None, user)
-        data.update(
-            {
-                'profile_id': user.profile_id,
-                'token': jwt_token_of(user)
-            }
-        )
+        
+        return {
+            'display_name': user.display_name,
+            'email': user.email,
+            'token': jwt_token_of(user)
+        }
 
-        return data
+
+class UserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = (
+            'profile_id',
+            'display_name',
+            'email',
+            'created_at',
+            'last_login',
+            'birthday',
+            'gender',
+            'password',
+            'first_name',
+            'last_name',
+            'city',
+            'country',
+            'bio',
+        )
+        extra_kwargs = {'created_at': {'read_only': True}, 'last_login': {
+            'read_only': True}, 'password': {'write_only': True}}
