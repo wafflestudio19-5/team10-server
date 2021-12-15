@@ -1,6 +1,4 @@
 from django.db import models
-
-# Create your models here.
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from datetime import date
 
@@ -20,8 +18,18 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
+
+def create_permalink():
+    while True:
+        permalink = User.objects.make_random_password(
+            length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
+        if not User.objects.filter(permalink=permalink).exists():
+            return permalink
+
+
 class User(AbstractBaseUser):
-    profile_id = models.CharField(max_length=25, unique=True)
+    permalink = models.CharField(
+        max_length=25, unique=True, default=create_permalink)
     display_name = models.CharField(max_length=25)
     email = models.EmailField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -33,6 +41,7 @@ class User(AbstractBaseUser):
     country = models.CharField(max_length=20, blank=True)
     bio = models.TextField(blank=True)
     # profile_image = models.ImageField(null=True, blank=True)
+    # header_image = models.ImageField(null=True, blank=True)
 
     objects = CustomUserManager()
 
