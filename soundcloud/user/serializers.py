@@ -24,7 +24,6 @@ class UserCreateSerializer(serializers.Serializer):
     age = serializers.IntegerField()
     gender = serializers.CharField(max_length=20, required=False)
 
-
     def validate(self, data):
         age = data.get('age', 0)
         password = data.get('password', '')
@@ -67,3 +66,26 @@ class UserLoginSerializer(serializers.Serializer):
             'email': user.email,
             'token': jwt_token_of(user)
         }
+
+
+class UserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = (
+            'profile_id',
+            'display_name',
+            'email',
+            'created_at',
+            'last_login',
+            'birthday',
+            'gender',
+            'password',
+            'first_name',
+            'last_name',
+            'city',
+            'country',
+            'bio',
+        )
+        extra_kwargs = {'created_at': {'read_only': True}, 'last_login': {
+            'read_only': True}, 'password': {'write_only': True}}
