@@ -44,7 +44,10 @@ class UserCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
 
-        return user, jwt_token_of(user)
+        return {
+            'permalink': user.permalink,
+            'token': jwt_token_of(user)
+        }
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -63,8 +66,7 @@ class UserLoginSerializer(serializers.Serializer):
         update_last_login(None, user)
         
         return {
-            'display_name': user.display_name,
-            'email': user.email,
+            'permalink': user.permalink,
             'token': jwt_token_of(user)
         }
 
@@ -74,7 +76,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'profile_id',
+            'permalink',
             'display_name',
             'email',
             'created_at',
