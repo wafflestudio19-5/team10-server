@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
+from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from datetime import date
 
 
@@ -10,25 +10,42 @@ class CustomUserManager(BaseUserManager):
 
     use_in_migrations = True
 
-    def create_user(self, email, password, **extra_fields):
+    def _create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError('이메일을 설정해주세요.')
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
+
         return user
+
+    def create_user(self, email, password, **extra_fields):
+        extra_fields.setdefault('is_superuser', False)
+
+        return self._create_user(email, password, **extra_fields)
+
+    def create_superuser(self, email, password, **extra_fields):
+        extra_fields.setdefault('is_superuser', True)
+
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('권한 설정이 잘못되었습니다.')
+
+        return self._create_user(email, password, **extra_fields)
 
 
 def create_permalink():
-    while True:
-        permalink = User.objects.make_random_password(
-            length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
-        if not User.objects.filter(permalink=permalink).exists():
-            return permalink
+    try:
+        while True:
+            permalink = User.objects.make_random_password(
+                length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
+            if not User.objects.filter(permalink=permalink).exists():
+                return permalink
+    except:
+        pass
 
 
-class User(AbstractBaseUser):
+class User(AbstractBaseUser, PermissionsMixin):
     permalink = models.CharField(
         max_length=25, unique=True, default=create_permalink)
     display_name = models.CharField(max_length=25)
@@ -41,8 +58,13 @@ class User(AbstractBaseUser):
     city = models.CharField(max_length=20, blank=True)
     country = models.CharField(max_length=20, blank=True)
     bio = models.TextField(blank=True)
+    profile_image = models.FilePathField(path="/home/joonw/images")
     # profile_image = models.ImageField(null=True, blank=True)
     # header_image = models.ImageField(null=True, blank=True)
+
+    @property
+    def is_staff(self):
+        return self.is_superuser
 
     objects = CustomUserManager()
 
@@ -51,6 +73,8 @@ class User(AbstractBaseUser):
 
 
 class Follow(models.Model):
-    follower = models.ForeignKey(get_user_model(), related_name="follows", on_delete=models.CASCADE)
-    followee = models.ForeignKey(get_user_model(), related_name="followed_by", on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True) 
+    follower = models.ForeignKey(
+        get_user_model(), related_name="follows", on_delete=models.CASCADE)
+    followee = models.ForeignKey(
+        get_user_model(), related_name="followed_by", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
