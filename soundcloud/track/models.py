@@ -10,11 +10,14 @@ class Track(models.Model):
     artist = models.ForeignKey(
         get_user_model(), related_name="owned_tracks", on_delete=models.CASCADE)
     permalink = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
+    audio = models.URLField()
+    image = models.URLField(null=True)
     description = models.TextField(blank=True)
-    # image = models.ImageField(null=True, blank=True, upload_to=?)
+    created_at = models.DateTimeField(auto_now_add=True)
     count = models.PositiveIntegerField(default=0)
-    tags = models.ManyToManyField(Tag, related_name="tracks")
+    genre = models.ForeignKey(
+        Tag, related_name="genre_tracks", null=True, on_delete=models.SET_NULL)
+    tags = models.ManyToManyField(Tag, related_name="tag_tracks")
     is_private = models.BooleanField(default=False)
-    likes = GenericRelation(Like, related_query_name="track")  # 추가
-    reposts = GenericRelation(Repost, related_query_name="track")  # 추가
+    likes = GenericRelation(Like, related_query_name="track")
+    reposts = GenericRelation(Repost, related_query_name="track")
