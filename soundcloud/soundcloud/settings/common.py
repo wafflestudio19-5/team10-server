@@ -13,7 +13,7 @@ Quick-start development settings - unsuitable for production
 See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 """
 
-import os
+import os, sys
 from pathlib import Path
 import json
 import datetime
@@ -29,6 +29,8 @@ SECRET_FILE = os.path.join(BASE_DIR, "secrets.json")
 
 with open(SECRET_FILE) as f:
     secrets = json.loads(f.read())
+    for key, value in secrets.items():
+        setattr(sys.modules[__name__], key, value)
 
 
 def get_secret(setting, secrets=secrets):
@@ -92,7 +94,7 @@ ROOT_URLCONF = 'soundcloud.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -187,7 +189,6 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Custom User Model
 AUTH_USER_MODEL = 'user.User'
-#AUTH_USER_MODEL = 'accounts.User'
 
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None # username 필드 사용 x
 ACCOUNT_EMAIL_REQUIRED = True            # email 필드 사용 o
@@ -195,3 +196,7 @@ ACCOUNT_USERNAME_REQUIRED = False        # username 필드 사용 x
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 
 SITE_ID = 1
+SOCIALACCOUNT_ADAPTER = "soundcloud.utils.SocialAccountAdapter"
+
+SESSION_COOKIE_SAMESITE = None
+CSRF_COOKIE_SAMESITE = None
