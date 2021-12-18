@@ -52,15 +52,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     birthday = models.DateField(default=date.today)
+    is_active = models.Booleanfield(default=True)
     gender = models.CharField(max_length=20, blank=True)
     first_name = models.CharField(max_length=35, blank=True)
     last_name = models.CharField(max_length=35, blank=True)
     city = models.CharField(max_length=20, blank=True)
     country = models.CharField(max_length=20, blank=True)
     bio = models.TextField(blank=True)
-    profile_image = models.FilePathField(path="/home/joonw/images")
-    # profile_image = models.ImageField(null=True, blank=True)
-    # header_image = models.ImageField(null=True, blank=True)
 
     @property
     def is_staff(self):
