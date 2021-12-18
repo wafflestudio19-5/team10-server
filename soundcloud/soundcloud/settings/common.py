@@ -57,11 +57,23 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django_extensions',
     'user.apps.UserConfig',
+    # my app
     'track',
     'set',
     'comment',
     'tag',
     'reaction',
+    'accounts',
+
+    #dj-rest-auth
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
+
+    #django-allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
 ]
 
 MIDDLEWARE = [
@@ -175,5 +187,11 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Custom User Model
 AUTH_USER_MODEL = 'user.User'
+#AUTH_USER_MODEL = 'accounts.User'
+
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None # username 필드 사용 x
+ACCOUNT_EMAIL_REQUIRED = True            # email 필드 사용 o
+ACCOUNT_USERNAME_REQUIRED = False        # username 필드 사용 x
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
 
 SITE_ID = 1

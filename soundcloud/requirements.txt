@@ -10,3 +10,5 @@ djangorestframework-jwt
 django-rest-authtoken
 django-extensions
 gunicorn
+dj-rest-auth
+django-allauth
