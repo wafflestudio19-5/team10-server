@@ -27,8 +27,9 @@ class CustomUserManager(BaseUserManager):
             email,
             password=password,
         )
-        user.staff = True
-        user.admin = True
+        user.is_active = True
+        user.is_superuser = True
+        user.is_staff = True
         user.save(using=self._db)
         return user
 
@@ -39,15 +40,15 @@ class CustomUserManager(BaseUserManager):
 #         if not User.objects.filter(permalink=permalink).exists():
 #             return permalink
 
-    def create_permalink():
-        try:
-            while True:
-                permalink = User.objects.make_random_password(
-                    length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
-                if not User.objects.filter(permalink=permalink).exists():
-                    return permalink
-        except:
-            pass
+def create_permalink():
+    try:
+        while True:
+            permalink = User.objects.make_random_password(
+                length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
+            if not User.objects.filter(permalink=permalink).exists():
+                return permalink
+    except:
+        pass
 
 
 class User(AbstractBaseUser):
@@ -65,11 +66,19 @@ class User(AbstractBaseUser):
     bio = models.TextField(blank=True)
     # profile_image = models.ImageField(null=True, blank=True)
     # header_image = models.ImageField(null=True, blank=True)
-
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
     EMAIL_FIELD = 'email'
+    
+    def has_perm(self, perm, obj=None):
+        return self.is_superuser
+
+    def has_module_perms(self, app_label):
+        return self.is_superuser
 
 
 class Follow(models.Model):
