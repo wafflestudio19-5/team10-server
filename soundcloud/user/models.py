@@ -58,9 +58,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     city = models.CharField(max_length=20, blank=True)
     country = models.CharField(max_length=20, blank=True)
     bio = models.TextField(blank=True)
-    profile_image = models.FilePathField(path="/home/joonw/images")
-    # profile_image = models.ImageField(null=True, blank=True)
-    # header_image = models.ImageField(null=True, blank=True)
 
     @property
     def is_staff(self):
