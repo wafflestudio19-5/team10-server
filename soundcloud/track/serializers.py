@@ -97,20 +97,24 @@ class TrackSerializer(serializers.ModelSerializer):
         if detail:
             raise ValidationError(detail)
 
-
         # Check if the same filename (url) already exists in database.
+        detail = dict()
+
         audio_url = S3_BASE_URL + S3_MUSIC_TRACK_DIR + audio_filename
         if Track.objects.filter(audio=audio_url).exists():
-            raise FilenameConflictError("Already existing audio file name.")
-        
+            detail['audio_filename'] = "Already existing audio file name."
+
         if image_filename is not None:
             image_url = S3_BASE_URL + S3_IMAGES_TRACK_DIR + image_filename
             if Track.objects.filter(image=image_url).exists():
-                raise FilenameConflictError("Already existing image file name.")
+                detail['image_filename'] = "Already existing image file name."
 
         # Check if the same permalink already exists in database.
         if user.owned_tracks.filter(permalink=permalink).exists():
-            raise PermalinkConflictError()
+            detail['permalink'] = "Already existing permalink."
+
+        if detail:
+            raise ConflictError(detail)
 
         return data
 
@@ -119,14 +123,14 @@ class TrackSerializer(serializers.ModelSerializer):
         audio_filename = validated_data.pop('audio_filename')
         image_filename = validated_data.pop('image_filename', None)
         audio_url = S3_BASE_URL + S3_MUSIC_TRACK_DIR + audio_filename
-        image_url = S3_BASE_URL + S3_IMAGES_TRACK_DIR + image_filename if image_filename is not None else None
+        image_url = S3_BASE_URL + S3_IMAGES_TRACK_DIR + \
+            image_filename if image_filename is not None else None
 
         # Update validated_data and create track object.
         validated_data.update(
             {'artist': user, 'audio': audio_url, 'image': image_url}
         )
         track = super().create(validated_data)
-        data = SimpleTrackSerializer(track).data
 
         # Generate presigned url for audio file.
         audio_presigned_url = boto3.client(
@@ -157,6 +161,7 @@ class TrackSerializer(serializers.ModelSerializer):
         else:
             image_presigned_url = None
 
+        data = TrackSerializer(track).data
         data.update(
             {'audio_presigned_url': audio_presigned_url,
                 'image_presigned_url': image_presigned_url}
@@ -196,13 +201,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
         return track.comment_set.count()
 
 
-class FilenameConflictError(APIException):
+class ConflictError(APIException):
     status_code = status.HTTP_409_CONFLICT
-    default_detail = ('Already existing filename.')
-    default_code = 'filename_conflict'
-
-
-class PermalinkConflictError(APIException):
-    status_code = status.HTTP_409_CONFLICT
-    default_detail = ('Already existing permalink')
-    default_code = "permalink_conflict"
+    default_detail = ('Already existing name.')
+    default_code = 'conflict'
