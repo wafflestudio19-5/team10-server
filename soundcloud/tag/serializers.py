@@ -6,7 +6,7 @@ class TagSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tag
-        field = '__all__'
+        fields = '__all__'
 
     def validate(self, data):
         

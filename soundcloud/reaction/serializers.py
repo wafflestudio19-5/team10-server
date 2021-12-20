@@ -6,7 +6,7 @@ class LikeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Like
-        field = '__all__'
+        fields = '__all__'
 
     def validate(self, data):
         
@@ -16,7 +16,7 @@ class RepostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Repost
-        field = '__all__'
+        fields = '__all__'
 
     def validate(self, data):
         

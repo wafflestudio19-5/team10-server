@@ -1,4 +1,3 @@
-from django.utils.translation import override
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from track.models import Track
