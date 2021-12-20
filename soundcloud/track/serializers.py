@@ -5,7 +5,7 @@ from track.models import Track
 from user.serializers import UserSerializer
 from tag.serializers import TagSerializer
 from reaction.serializers import LikeSerializer, RepostSerializer
-from soundcloud.settings.common import *
+from django.conf import settings
 import boto3
 import re
 
@@ -100,12 +100,12 @@ class TrackSerializer(serializers.ModelSerializer):
         # Check if the same filename (url) already exists in database.
         detail = dict()
 
-        audio_url = S3_BASE_URL + S3_MUSIC_TRACK_DIR + audio_filename
+        audio_url = settings.S3_BASE_URL + settings.S3_MUSIC_TRACK_DIR + audio_filename
         if Track.objects.filter(audio=audio_url).exists():
             detail['audio_filename'] = "Already existing audio file name."
 
         if image_filename is not None:
-            image_url = S3_BASE_URL + S3_IMAGES_TRACK_DIR + image_filename
+            image_url = settings.S3_BASE_URL + settings.S3_IMAGES_TRACK_DIR + image_filename
             if Track.objects.filter(image=image_url).exists():
                 detail['image_filename'] = "Already existing image file name."
 
@@ -122,8 +122,8 @@ class TrackSerializer(serializers.ModelSerializer):
         user = self.context.get('request').user
         audio_filename = validated_data.pop('audio_filename')
         image_filename = validated_data.pop('image_filename', None)
-        audio_url = S3_BASE_URL + S3_MUSIC_TRACK_DIR + audio_filename
-        image_url = S3_BASE_URL + S3_IMAGES_TRACK_DIR + \
+        audio_url = settings.S3_BASE_URL + settings.S3_MUSIC_TRACK_DIR + audio_filename
+        image_url = settings.S3_BASE_URL + settings.S3_IMAGES_TRACK_DIR + \
             image_filename if image_filename is not None else None
 
         # Update validated_data and create track object.
@@ -135,13 +135,13 @@ class TrackSerializer(serializers.ModelSerializer):
         # Generate presigned url for audio file.
         audio_presigned_url = boto3.client(
             's3',
-            region_name=S3_REGION_NAME,
-            aws_access_key_id=AWS_ACCESS_KEY,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+            region_name=settings.S3_REGION_NAME,
+            aws_access_key_id=settings.AWS_ACCESS_KEY,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
         ).generate_presigned_url(
             ClientMethod='put_object',
-            Params={'Bucket': S3_BUCKET_NAME,
-                    'Key': S3_MUSIC_TRACK_DIR + audio_filename},
+            Params={'Bucket': settings.S3_BUCKET_NAME,
+                    'Key': settings.S3_MUSIC_TRACK_DIR + audio_filename},
             ExpiresIn=300
         )
 
@@ -149,13 +149,13 @@ class TrackSerializer(serializers.ModelSerializer):
         if image_filename is not None:
             image_presigned_url = boto3.client(
                 's3',
-                region_name=S3_REGION_NAME,
-                aws_access_key_id=AWS_ACCESS_KEY,
-                aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+                region_name=settings.S3_REGION_NAME,
+                aws_access_key_id=settings.AWS_ACCESS_KEY,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
             ).generate_presigned_url(
                 ClientMethod='put_object',
-                Params={'Bucket': S3_BUCKET_NAME,
-                        'Key': S3_IMAGES_TRACK_DIR + image_filename},
+                Params={'Bucket': settings.S3_BUCKET_NAME,
+                        'Key': settings.S3_IMAGES_TRACK_DIR + image_filename},
                 ExpiresIn=300
             )
         else:
