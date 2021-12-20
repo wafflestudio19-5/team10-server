@@ -1,45 +1,48 @@
 from django.contrib.auth import get_user_model, logout
 from rest_framework import status, permissions, viewsets
 from rest_framework.exceptions import NotAuthenticated
-from rest_framework.generics import get_object_or_404
-from rest_framework.views import APIView
+from rest_framework.generics import get_object_or_404, GenericAPIView
 from rest_framework.response import Response
 from user.serializers import UserLoginSerializer, UserCreateSerializer, UserSerializer
 
 User = get_user_model()
 
 
-class UserSignUpView(APIView):
+class UserSignUpView(GenericAPIView):
+
     permission_classes = (permissions.AllowAny, )
+    serializer_class = UserCreateSerializer
 
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
         if User.objects.filter(email=email).exists():
             return Response("이미 존재하는 이메일입니다.", status=status.HTTP_409_CONFLICT)
 
-        serializer = UserCreateSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.save()
 
         return Response(data, status=status.HTTP_201_CREATED)
 
 
-class UserLoginView(APIView):
+class UserLoginView(GenericAPIView):
+
     permission_classes = (permissions.AllowAny, )
+    serializer_class = UserLoginSerializer
 
     def put(self, request):
-        serializer = UserLoginSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
-class UserLogoutView(APIView):
+class UserLogoutView(GenericAPIView):
     permission_classes = (permissions.IsAuthenticated, )
 
     def post(self, request):
         logout(request)
-        
+
         return Response({"you\'ve been logged out"}, status=status.HTTP_200_OK)
 
 
