@@ -11,4 +11,4 @@ django-rest-authtoken
 django-extensions
 gunicorn
 boto3
-drf-yasg
+drf-spectacular
