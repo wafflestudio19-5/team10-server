@@ -18,6 +18,23 @@ def jwt_token_of(user):
     return jwt_token
 
 
+# This serializer is for response body of user signup and login.
+class UserTokenSerializer(serializers.ModelSerializer):
+
+    token = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'permalink',
+            'token',
+        )
+
+    def get_token(self, user):
+        return jwt_token_of(user)
+
+
 class UserCreateSerializer(serializers.Serializer):
     display_name = serializers.CharField(max_length=25)
     email = serializers.EmailField(max_length=100)
@@ -26,12 +43,13 @@ class UserCreateSerializer(serializers.Serializer):
     gender = serializers.CharField(max_length=20, required=False)
 
     def validate(self, data):
-        age = data.pop('age')
         password = data.get('password')
-        if age < 0:
-            raise serializers.ValidationError("나이에는 양의 정수만 입력가능합니다.")
+        age = data.pop('age')
+
         if len(password) < 8:
             raise serializers.ValidationError("비밀번호는 8자리 이상 입력해야합니다.")
+        if age < 0:
+            raise serializers.ValidationError("나이에는 양의 정수만 입력가능합니다.")
 
         data.update(
             {'birthday': date(date.today().year-age,
@@ -43,10 +61,7 @@ class UserCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
 
-        return {
-            'permalink': user.permalink,
-            'token': jwt_token_of(user)
-        }
+        return UserTokenSerializer(user).data
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -63,11 +78,8 @@ class UserLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("이메일 또는 비밀번호가 잘못되었습니다.")
 
         update_last_login(None, user)
-        
-        return {
-            'permalink': user.permalink,
-            'token': jwt_token_of(user)
-        }
+
+        return UserTokenSerializer(user).data
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -75,19 +87,26 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
+            'id',
             'permalink',
             'display_name',
             'email',
+            'password',
             'created_at',
             'last_login',
             'birthday',
+            'is_active',
             'gender',
-            'password',
             'first_name',
             'last_name',
             'city',
             'country',
             'bio',
         )
-        extra_kwargs = {'created_at': {'read_only': True}, 'last_login': {
-            'read_only': True}, 'password': {'write_only': True}}
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'created_at': {'read_only': True},
+            'last_login': {'read_only': True},
+            'birthday': {'read_only': True},
+            'is_active': {'read_only': True}
+        }
