@@ -10,8 +10,8 @@ class Track(models.Model):
     artist = models.ForeignKey(
         get_user_model(), related_name="owned_tracks", on_delete=models.CASCADE)
     permalink = models.CharField(max_length=255)
-    audio = models.URLField()
-    image = models.URLField(null=True)
+    audio = models.URLField(unique=True)
+    image = models.URLField(null=True, unique=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     count = models.PositiveIntegerField(default=0)
