@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets
 from rest_framework.response import Response
 from track.models import Track
 from track.serializers import TrackSerializer, TrackPresignedURLSerializer
@@ -10,14 +10,6 @@ class TrackViewSet(viewsets.GenericViewSet):
     serializer_class = TrackSerializer
     query_set = Track.objects.all()
     lookup_field = 'track_id'
-
-    def get_permissions(self):
-        if self.action in ('create', 'update', 'delete'):
-            permission_classes = (permissions.IsAuthenticated, )
-        else:
-            permission_classes = (permissions.AllowAny, )
-
-        return [permission() for permission in permission_classes]
 
     @extend_schema(
         summary="Create Track",
