@@ -1,11 +1,13 @@
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
 from rest_framework.serializers import ValidationError
-from rest_framework.exceptions import APIException
 from track.models import Track
 from user.serializers import UserSerializer
 from tag.serializers import TagSerializer
 from reaction.serializers import LikeSerializer, RepostSerializer
 from django.conf import settings
+from soundcloud.exceptions import ConflictError
 import boto3
 import re
 
@@ -55,12 +57,15 @@ class TrackSerializer(serializers.ModelSerializer):
             'count': {'read_only': True},
         }
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_like_count(self, track):
         return track.likes.count()
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_repost_count(self, track):
         return track.reposts.count()
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_comment_count(self, track):
         return track.comment_set.count()
 
@@ -122,17 +127,36 @@ class TrackSerializer(serializers.ModelSerializer):
         user = self.context.get('request').user
         audio_filename = validated_data.pop('audio_filename')
         image_filename = validated_data.pop('image_filename', None)
-        audio_url = settings.S3_BASE_URL + settings.S3_MUSIC_TRACK_DIR + audio_filename
-        image_url = settings.S3_BASE_URL + settings.S3_IMAGES_TRACK_DIR + \
-            image_filename if image_filename is not None else None
 
-        # Update validated_data and create track object.
+        audio_url = settings.S3_BASE_URL + settings.S3_MUSIC_TRACK_DIR + audio_filename
+        image_url = settings.S3_BASE_URL + settings.S3_IMAGES_TRACK_DIR + image_filename \
+            if image_filename is not None \
+            else None
+
         validated_data.update(
             {'artist': user, 'audio': audio_url, 'image': image_url}
         )
-        track = super().create(validated_data)
 
-        # Generate presigned url for audio file.
+        track = super().create(validated_data)
+        data = TrackPresignedURLSerializer(track).data
+
+        return data, status.HTTP_201_CREATED
+
+
+class TrackPresignedURLSerializer(TrackSerializer):
+
+    audio_presigned_url = serializers.SerializerMethodField()
+    image_presigned_url = serializers.SerializerMethodField()
+
+    class Meta(TrackSerializer.Meta):
+        fields = TrackSerializer.Meta.fields + (
+            'audio_presigned_url',
+            'image_presigned_url',
+        )
+
+    def get_audio_presigned_url(self, track):
+        audio_filename = track.audio.replace(settings.S3_BASE_URL, '')
+
         audio_presigned_url = boto3.client(
             's3',
             region_name=settings.S3_REGION_NAME,
@@ -145,8 +169,12 @@ class TrackSerializer(serializers.ModelSerializer):
             ExpiresIn=300
         )
 
-        # Generate presigned url for image file only if image_filename exists.
-        if image_filename is not None:
+        return audio_presigned_url
+
+    def get_image_presigned_url(self, track):
+        if track.image is not None:
+            image_filename = track.image.replace(settings.S3_BASE_URL, '')
+
             image_presigned_url = boto3.client(
                 's3',
                 region_name=settings.S3_REGION_NAME,
@@ -161,12 +189,7 @@ class TrackSerializer(serializers.ModelSerializer):
         else:
             image_presigned_url = None
 
-        data = TrackSerializer(track).data
-        data.update(
-            {'audio_presigned_url': audio_presigned_url,
-                'image_presigned_url': image_presigned_url}
-        )
-        return data, status.HTTP_201_CREATED
+        return image_presigned_url
 
 
 class SimpleTrackSerializer(serializers.ModelSerializer):
@@ -199,9 +222,3 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
 
     def get_comment_count(self, track):
         return track.comment_set.count()
-
-
-class ConflictError(APIException):
-    status_code = status.HTTP_409_CONFLICT
-    default_detail = ('Already existing name.')
-    default_code = 'conflict'
