@@ -87,7 +87,7 @@ class UserViewSet(viewsets.GenericViewSet):
 
     @extend_schema(
         summary="Retrieve User",
-        description="Typically {user_id} is an integer.\n\nIt may be specified as {user_id} = 'me' only if the proper authorization credentias are provided.",
+        description="Typically {user_id} is an integer.\n\nIt may be specified as {user_id} = 'me' only if the proper authorization credentials are provided.",
         responses={
             200: OpenApiResponse(response=UserSerializer, description='OK'),
             401: OpenApiResponse(description='Unauthorized'),
