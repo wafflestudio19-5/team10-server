@@ -69,7 +69,7 @@ class UserLogoutView(GenericAPIView):
     @extend_schema(
         summary="Logout", tags=['auth'],
         responses={
-            200: OpenApiResponse(response=UserTokenSerializer, description='OK'),
+            200: OpenApiResponse(description='OK'),
             401: OpenApiResponse(description='Unauthorized'),
         }
     )
@@ -95,10 +95,10 @@ class UserViewSet(viewsets.GenericViewSet):
         }
     )
 
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, user_id=None):
 
-        if pk == 'me' and not request.user.is_authenticated:
+        if user_id == 'me' and not request.user.is_authenticated:
             raise NotAuthenticated("먼저 로그인 하세요.")
-        user = request.user if pk == 'me' else get_object_or_404(User, id=pk)
+        user = request.user if user_id == 'me' else get_object_or_404(User, id=user_id)
 
         return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
