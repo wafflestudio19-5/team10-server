@@ -64,10 +64,10 @@ class UserLoginView(GenericAPIView):
 
 
 class UserLogoutView(GenericAPIView):
-    permission_classes = (permissions.IsAuthenticated, )
 
     @extend_schema(
         summary="Logout", tags=['auth'],
+        description="Do nothing, actually.",
         responses={
             200: OpenApiResponse(description='OK'),
             401: OpenApiResponse(description='Unauthorized'),
@@ -81,20 +81,19 @@ class UserLogoutView(GenericAPIView):
 
 class UserViewSet(viewsets.GenericViewSet):
 
-    permission_classes = (permissions.AllowAny, )
     serializer_class = UserSerializer
     queryset = User.objects.all()
     lookup_field = 'user_id'
 
     @extend_schema(
         summary="Retrieve User",
+        description="Typically {user_id} is an integer.\n\nIt may be specified as {user_id} = 'me' only if the proper authorization credentias are provided.",
         responses={
             200: OpenApiResponse(response=UserSerializer, description='OK'),
             401: OpenApiResponse(description='Unauthorized'),
             404: OpenApiResponse(description='Not Found'),
         }
     )
-
     def retrieve(self, request, user_id=None):
 
         if user_id == 'me' and not request.user.is_authenticated:
