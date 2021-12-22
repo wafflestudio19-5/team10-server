@@ -209,4 +209,6 @@ SPECTACULAR_SETTINGS = {
         'displayOperationId': True,
         'filter': True,
     },
+    'COMPONENT_NO_READ_ONLY_REQUIRED': True,
+    'COMPONENT_SPLIT_REQUEST': False,
 }
