@@ -1,56 +1,60 @@
-from rest_framework import status, permissions, views
+from rest_framework import status, permissions
 from django.core.exceptions import ObjectDoesNotExist
-from rest_framework.generics import get_object_or_404
+from rest_framework.generics import get_object_or_404, GenericAPIView
 from rest_framework.response import Response
-from django.contrib.contenttypes.models import ContentType
+from rest_framework.exceptions import ValidationError
 from track.models import Track
 from set.models import Set
 from .models import Like, Repost
 
 
-class LikeTrackAPIView(views.APIView):
-    permission_classes = (permissions.IsAuthenticated, )
+class LikeTrackAPIView(GenericAPIView):
 
-    def post(self, request, pk=None):
-        track = get_object_or_404(Track, permalink=pk)
-        ct = ContentType.objects.get_for_model(track)
+    queryset = Like.objects
+    lookup_field = 'track_id'
+
+    def post(self, request, track_id=None):
+        track = get_object_or_404(Track, id=track_id)
+
         try:
-            Like.objects.get(content_type=ct, object_id=track.id, user=request.user)
-            return Response(data='Already like', status=status.HTTP_400_BAD_REQUEST)
+            self.get_queryset().get(track__id=track.id, user=request.user)
+            raise ValidationError("Already liked")
         except ObjectDoesNotExist:
-            Like.objects.create(content_object=track, user=request.user)
-            return Response(data='like', status=status.HTTP_200_OK)
+            self.get_queryset().create(content_object=track, user=request.user)
+            return Response(data='Liked', status=status.HTTP_200_OK)
 
-    def delete(self, request, pk=None):
-        track = get_object_or_404(Track, permalink=pk)
-        ct = ContentType.objects.get_for_model(track)
+    def delete(self, request, track_id=None):
+        track = get_object_or_404(Track, id=track_id)
+
         try:
-            like = Like.objects.get(content_type=ct, object_id=track.id, user=request.user)
+            like = self.get_queryset().get(track__id=track.id, user=request.user)
             like.delete()
-            return Response(data='unlike', status=status.HTTP_200_OK)
+            return Response(data='Unliked', status=status.HTTP_200_OK)
         except ObjectDoesNotExist:
-            return Response(data='Already unlike', status=status.HTTP_400_BAD_REQUEST)
+            raise ValidationError("Not liked")
 
 
-class LikeSetAPIView(views.APIView):
-    permission_classes = (permissions.IsAuthenticated,)
+class LikeSetAPIView(GenericAPIView):
 
-    def post(self, request, pk=None):
-        set = get_object_or_404(Set, permalink=pk)
-        ct = ContentType.objects.get_for_model(set)
+    queryset = Like.objects
+    lookup_field = 'set_id'
+
+    def post(self, request, set_id=None):
+        set = get_object_or_404(Set, id=set_id)
+
         try:
-            Like.objects.get(content_type=ct, object_id=set.id, user=request.user)
-            return Response(data='Already like', status=status.HTTP_400_BAD_REQUEST)
+            self.get_queryset().get(set__id=set.id, user=request.user)
+            raise ValidationError("Already Liked")
         except ObjectDoesNotExist:
-            Like.objects.create(content_object=set, user=request.user)
-            return Response(data='like', status=status.HTTP_200_OK)
+            self.get_queryset().create(content_object=set, user=request.user)
+            return Response(data='Liked', status=status.HTTP_200_OK)
 
-    def delete(self, request, pk=None):
-        set = get_object_or_404(Set, permalink=pk)
-        ct = ContentType.objects.get_for_model(set)
+    def delete(self, request, set_id=None):
+        set = get_object_or_404(Set, id=set_id)
+
         try:
-            like = Like.objects.get(content_type=ct, object_id=set.id, user=request.user)
+            like = self.get_queryset().get(set__id=set.id, user=request.user)
             like.delete()
-            return Response(data='unlike', status=status.HTTP_200_OK)
+            return Response(data='Unliked', status=status.HTTP_200_OK)
         except ObjectDoesNotExist:
-            return Response(data='Already unlike', status=status.HTTP_400_BAD_REQUEST)
+            raise ValidationError("Not liked")
