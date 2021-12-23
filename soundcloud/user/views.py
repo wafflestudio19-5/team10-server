@@ -47,26 +47,27 @@ class UserLogoutView(APIView):
 
 class UserViewSet(viewsets.GenericViewSet):
 
-    permission_classes = (permissions.AllowAny, )
     serializer_class = UserSerializer
     queryset = User.objects.all()
+    lookup_field = 'user_id'
 
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, user_id=None):
 
-        if pk == 'me' and not request.user.is_authenticated:
+        if user_id == 'me' and not request.user.is_authenticated:
             raise NotAuthenticated("먼저 로그인 하세요.")
-        user = request.user if pk == 'me' else get_object_or_404(
-            User, id=pk)
+        user = request.user if user_id == 'me' else get_object_or_404(User, id=user_id)
 
         return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['POST', 'DELETE'])
-    def follow(self, request, pk=None):
+    def follow(self, request, user_id=None):
+        
         if request.method == 'POST':
-            service = UserFollowService(context={'request': request, 'pk': pk})
+            service = UserFollowService(context={'request': request, 'user_id': user_id})
             status_code, data = service.execute()
             return Response(status=status_code, data=data)
+
         if request.method == 'DELETE':
-            service = UserUnfollowService(context={'request': request, 'pk': pk})
+            service = UserUnfollowService(context={'request': request, 'user_id': user_id})
             status_code, data = service.execute()
             return Response(status=status_code, data=data)
