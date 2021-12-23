@@ -1,25 +1,27 @@
 from django.contrib.auth import get_user_model, logout
 from rest_framework import status, permissions, viewsets
-from rest_framework.exceptions import NotAuthenticated
-from rest_framework.generics import get_object_or_404, GenericAPIView
+from rest_framework.decorators import action
+from rest_framework.generics import GenericAPIView
+from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.response import Response
-from user.serializers import UserLoginSerializer, UserCreateSerializer, UserSerializer, UserTokenSerializer
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework.views import APIView
+from user.serializers import *
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 
 User = get_user_model()
 
 
 class UserSignUpView(GenericAPIView):
 
-    permission_classes = (permissions.AllowAny, )
     serializer_class = UserCreateSerializer
     queryset = User.objects.select_related('email')
+    permission_classes = (permissions.AllowAny, )
 
     @extend_schema(
         summary="Signup",
-        tags=['auth'],
+        tags=['auth', ],
         responses={
-            201: OpenApiResponse(response=UserTokenSerializer, description='Created'),
+            201: OpenApiResponse(response=UserCreateSerializer, description='Created'),
             400: OpenApiResponse(description='Bad Request'),
             409: OpenApiResponse(description='Conflict'),
         }
@@ -40,29 +42,31 @@ class UserSignUpView(GenericAPIView):
 
 class UserLoginView(GenericAPIView):
 
-    permission_classes = (permissions.AllowAny, )
     serializer_class = UserLoginSerializer
+    queryset = User.objects.all()
+    permission_classes = (permissions.AllowAny, )
 
     @extend_schema(
         summary="Login",
-        tags=['auth'],
+        tags=['auth', ],
         responses={
-            200: OpenApiResponse(response=UserTokenSerializer, description='OK'),
+            200: OpenApiResponse(response=UserLoginSerializer, description='OK'),
             400: OpenApiResponse(description='Bad Request'),
         }
     )
     def put(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        data = serializer.execute()
 
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
 
 
-class UserLogoutView(GenericAPIView):
+class UserLogoutView(APIView):
 
     @extend_schema(
         summary="Logout",
-        tags=['auth'],
+        tags=['auth', ],
         description="Do nothing, actually.",
         responses={
             200: OpenApiResponse(description='OK'),
@@ -75,25 +79,25 @@ class UserLogoutView(GenericAPIView):
         return Response({"You\'ve been logged out"}, status=status.HTTP_200_OK)
 
 
-class UserViewSet(viewsets.GenericViewSet):
-
-    serializer_class = UserSerializer
-    queryset = User.objects.all()
-    lookup_field = 'user_id'
-
-    @extend_schema(
+@extend_schema_view(
+    retrieve=extend_schema(
         summary="Retrieve User",
-        description="Typically {user_id} is an integer.\n\nIt may be specified as {user_id} = 'me' only if the proper authorization credentials are provided.",
         responses={
             200: OpenApiResponse(response=UserSerializer, description='OK'),
             401: OpenApiResponse(description='Unauthorized'),
             404: OpenApiResponse(description='Not Found'),
         }
     )
-    def retrieve(self, request, user_id=None):
+)
+class UserViewSet(viewsets.GenericViewSet, RetrieveModelMixin):
 
-        if user_id == 'me' and not request.user.is_authenticated:
-            raise NotAuthenticated("먼저 로그인 하세요.")
-        user = request.user if user_id == 'me' else get_object_or_404(User, id=user_id)
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    lookup_field = 'id'
+    lookup_url_kwarg = 'user_id'
 
-        return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
+    @action(detail=False, methods=['GET', ], permission_classes=(permissions.IsAuthenticated, ))
+    def me(self, request):
+        data = self.get_serializer(request.user).data
+
+        return Response(data, status=status.HTTP_200_OK)

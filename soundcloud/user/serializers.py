@@ -18,57 +18,44 @@ def jwt_token_of(user):
     return jwt_token
 
 
-# This serializer is for response body of user signup and login.
-class UserTokenSerializer(serializers.ModelSerializer):
+class UserCreateSerializer(serializers.Serializer):
 
+    # Read-only fields
+    id = serializers.IntegerField(read_only=True)
+    permalink = serializers.CharField(read_only=True)
     token = serializers.SerializerMethodField()
 
-    class Meta:
-        model = User
-        fields = (
-            'id',
-            'permalink',
-            'token',
-        )
+    # Write-only fields
+    email = serializers.EmailField(max_length=100, write_only=True)
+    display_name = serializers.CharField(max_length=25, write_only=True)
+    password = serializers.CharField(max_length=128, min_length=8, write_only=True)
+    age = serializers.IntegerField(min_value=1, write_only=True)
+    gender = serializers.CharField(write_only=True, required=False)
 
     def get_token(self, user):
         return jwt_token_of(user)
 
-
-class UserCreateSerializer(serializers.Serializer):
-
-    display_name = serializers.CharField(max_length=25)
-    email = serializers.EmailField(max_length=100)
-    password = serializers.CharField(max_length=128, write_only=True)
-    age = serializers.IntegerField()
-    gender = serializers.CharField(max_length=20, required=False)
-
-    def validate(self, data):
-        password = data.get('password')
-        age = data.pop('age')
-
-        if len(password) < 8:
-            raise serializers.ValidationError("비밀번호는 8자리 이상 입력해야합니다.")
-        if age < 0:
-            raise serializers.ValidationError("나이에는 양의 정수만 입력가능합니다.")
-
-        data.update(
-            {'birthday': date(date.today().year-age,
-                              date.today().month, 1)}
-        )
-
-        return data
-
     def create(self, validated_data):
+        age = validated_data.pop('age')
+        validated_data['birthday'] = date(date.today().year-age, date.today().month, 1)
         user = User.objects.create_user(**validated_data)
 
-        return UserTokenSerializer(user).data
+        return UserCreateSerializer(user).data
 
 
 class UserLoginSerializer(serializers.Serializer):
 
-    email = serializers.EmailField(max_length=100)
-    password = serializers.CharField(max_length=128, write_only=True)
+    # Read_only fields
+    id = serializers.IntegerField(read_only=True)
+    permalink = serializers.CharField(read_only=True)
+    token = serializers.SerializerMethodField()
+
+    # Write-only fields
+    email = serializers.EmailField(max_length=100, write_only=True)
+    password = serializers.CharField(max_length=128, min_length=8, write_only=True)
+
+    def get_token(self, user):
+        return jwt_token_of(user)
 
     def validate(self, data):
         email = data.pop('email')
@@ -78,12 +65,19 @@ class UserLoginSerializer(serializers.Serializer):
         if user is None:
             raise serializers.ValidationError("이메일 또는 비밀번호가 잘못되었습니다.")
 
+        self.context['user'] = user
+        return data
+
+    def execute(self):
+        user = self.context.get('user')
         update_last_login(None, user)
 
-        return UserTokenSerializer(user).data
+        return UserLoginSerializer(user).data
 
 
 class UserSerializer(serializers.ModelSerializer):
+
+    age = serializers.IntegerField(min_value=1, write_only=True)
 
     class Meta:
         model = User
@@ -95,6 +89,7 @@ class UserSerializer(serializers.ModelSerializer):
             'password',
             'created_at',
             'last_login',
+            'age',
             'birthday',
             'is_active',
             'gender',
