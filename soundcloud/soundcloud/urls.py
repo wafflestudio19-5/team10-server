@@ -19,10 +19,10 @@ from django.conf import settings
 from drf_spectacular.views import SpectacularJSONAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
+    path('admin/', admin.site.urls),
     path('docs', SpectacularJSONAPIView.as_view(), name='schema-json'),
     path('docs/swagger', SpectacularSwaggerView.as_view(url_name='schema-json'), name='swagger-ui'),
     path('docs/redoc', SpectacularRedocView.as_view(url_name='schema-json'), name='redoc'),
-    path('admin', admin.site.urls),
     path('', include('user.urls')),
     path('', include('track.urls')),
 ]
