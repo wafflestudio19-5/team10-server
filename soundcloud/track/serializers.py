@@ -69,6 +69,55 @@ class TrackSerializer(serializers.ModelSerializer):
     def get_comment_count(self, track):
         return track.comment_set.count()
 
+
+class TrackUploadSerializer(TrackSerializer):
+
+    audio_presigned_url = serializers.SerializerMethodField()
+    image_presigned_url = serializers.SerializerMethodField()
+
+    class Meta(TrackSerializer.Meta):
+        fields = TrackSerializer.Meta.fields + (
+            'audio_presigned_url',
+            'image_presigned_url',
+        )
+
+    def get_audio_presigned_url(self, track):
+        audio_filename = track.audio.replace(settings.S3_BASE_URL, '')
+
+        audio_presigned_url = boto3.client(
+            's3',
+            region_name=settings.S3_REGION_NAME,
+            aws_access_key_id=settings.AWS_ACCESS_KEY,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+        ).generate_presigned_url(
+            ClientMethod='put_object',
+            Params={'Bucket': settings.S3_BUCKET_NAME,
+                    'Key': settings.S3_MUSIC_TRACK_DIR + audio_filename},
+            ExpiresIn=300
+        )
+
+        return audio_presigned_url
+
+    def get_image_presigned_url(self, track):
+        if track.image is not None:
+            image_filename = track.image.replace(settings.S3_BASE_URL, '')
+
+            image_presigned_url = boto3.client(
+                's3',
+                region_name=settings.S3_REGION_NAME,
+                aws_access_key_id=settings.AWS_ACCESS_KEY,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+            ).generate_presigned_url(
+                ClientMethod='put_object',
+                Params={'Bucket': settings.S3_BUCKET_NAME,
+                        'Key': settings.S3_IMAGES_TRACK_DIR + image_filename},
+                ExpiresIn=300
+            )
+        else:
+            image_presigned_url = None
+
+        return image_presigned_url
+
     def validate(self, data):
         user = self.context.get('request').user
         audio_filename = data.get('audio_filename')
@@ -138,58 +187,9 @@ class TrackSerializer(serializers.ModelSerializer):
         )
 
         track = super().create(validated_data)
-        data = TrackPresignedURLSerializer(track).data
+        data = TrackUploadSerializer(track).data
 
         return data, status.HTTP_201_CREATED
-
-
-class TrackPresignedURLSerializer(TrackSerializer):
-
-    audio_presigned_url = serializers.SerializerMethodField()
-    image_presigned_url = serializers.SerializerMethodField()
-
-    class Meta(TrackSerializer.Meta):
-        fields = TrackSerializer.Meta.fields + (
-            'audio_presigned_url',
-            'image_presigned_url',
-        )
-
-    def get_audio_presigned_url(self, track):
-        audio_filename = track.audio.replace(settings.S3_BASE_URL, '')
-
-        audio_presigned_url = boto3.client(
-            's3',
-            region_name=settings.S3_REGION_NAME,
-            aws_access_key_id=settings.AWS_ACCESS_KEY,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
-        ).generate_presigned_url(
-            ClientMethod='put_object',
-            Params={'Bucket': settings.S3_BUCKET_NAME,
-                    'Key': settings.S3_MUSIC_TRACK_DIR + audio_filename},
-            ExpiresIn=300
-        )
-
-        return audio_presigned_url
-
-    def get_image_presigned_url(self, track):
-        if track.image is not None:
-            image_filename = track.image.replace(settings.S3_BASE_URL, '')
-
-            image_presigned_url = boto3.client(
-                's3',
-                region_name=settings.S3_REGION_NAME,
-                aws_access_key_id=settings.AWS_ACCESS_KEY,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
-            ).generate_presigned_url(
-                ClientMethod='put_object',
-                Params={'Bucket': settings.S3_BUCKET_NAME,
-                        'Key': settings.S3_IMAGES_TRACK_DIR + image_filename},
-                ExpiresIn=300
-            )
-        else:
-            image_presigned_url = None
-
-        return image_presigned_url
 
 
 class SimpleTrackSerializer(serializers.ModelSerializer):

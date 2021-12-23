@@ -13,13 +13,11 @@ class UserSignUpView(GenericAPIView):
 
     permission_classes = (permissions.AllowAny, )
     serializer_class = UserCreateSerializer
+    queryset = User.objects.select_related('email')
 
     @extend_schema(
-        summary="Signup", tags=['auth'],
-        request={
-            'application/json': serializer_class,
-            'application/x-www-form-urlencoded': serializer_class,
-        },
+        summary="Signup",
+        tags=['auth'],
         responses={
             201: OpenApiResponse(response=UserTokenSerializer, description='Created'),
             400: OpenApiResponse(description='Bad Request'),
@@ -30,7 +28,7 @@ class UserSignUpView(GenericAPIView):
 
         # Should check whether the email already exists in DB before validation.
         email = request.data.get('email')
-        if User.objects.filter(email=email).exists():
+        if self.get_queryset().filter(email=email).exists():
             return Response("이미 존재하는 이메일입니다.", status=status.HTTP_409_CONFLICT)
 
         serializer = self.get_serializer(data=request.data)
@@ -46,11 +44,8 @@ class UserLoginView(GenericAPIView):
     serializer_class = UserLoginSerializer
 
     @extend_schema(
-        summary="Login", tags=['auth'],
-        request={
-            'application/json': serializer_class,
-            'application/x-www-form-urlencoded': serializer_class,
-        },
+        summary="Login",
+        tags=['auth'],
         responses={
             200: OpenApiResponse(response=UserTokenSerializer, description='OK'),
             400: OpenApiResponse(description='Bad Request'),
@@ -66,7 +61,8 @@ class UserLoginView(GenericAPIView):
 class UserLogoutView(GenericAPIView):
 
     @extend_schema(
-        summary="Logout", tags=['auth'],
+        summary="Logout",
+        tags=['auth'],
         description="Do nothing, actually.",
         responses={
             200: OpenApiResponse(description='OK'),
@@ -76,7 +72,7 @@ class UserLogoutView(GenericAPIView):
     def post(self, request):
         logout(request)
 
-        return Response({"you\'ve been logged out"}, status=status.HTTP_200_OK)
+        return Response({"You\'ve been logged out"}, status=status.HTTP_200_OK)
 
 
 class UserViewSet(viewsets.GenericViewSet):

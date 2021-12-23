@@ -36,6 +36,7 @@ class UserTokenSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.Serializer):
+
     display_name = serializers.CharField(max_length=25)
     email = serializers.EmailField(max_length=100)
     password = serializers.CharField(max_length=128, write_only=True)
