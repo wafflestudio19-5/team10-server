@@ -1,8 +1,9 @@
-from rest_framework import status, permissions
+from rest_framework import status
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.generics import get_object_or_404, GenericAPIView
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 from track.models import Track
 from set.models import Set
 from .models import Like, Repost
@@ -11,6 +12,7 @@ from .models import Like, Repost
 class LikeTrackAPIView(GenericAPIView):
 
     queryset = Like.objects
+    serializer_class = serializers.Serializer
     lookup_field = 'track_id'
 
     def post(self, request, track_id=None):
@@ -37,6 +39,7 @@ class LikeTrackAPIView(GenericAPIView):
 class LikeSetAPIView(GenericAPIView):
 
     queryset = Like.objects
+    serializer_class = serializers.Serializer
     lookup_field = 'set_id'
 
     def post(self, request, set_id=None):
