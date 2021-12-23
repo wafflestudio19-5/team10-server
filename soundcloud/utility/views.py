@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import status, permissions
 from rest_framework.generics import get_object_or_404
-from rest_framework.exceptions import NotAuthenticated
+from rest_framework.exceptions import NotAuthenticated, NotFound
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from track.models import Track
@@ -30,7 +30,7 @@ class ResolveView(APIView):
         url_parsed = urlparse(url)
 
         if url_parsed.netloc != 'soundwaffle.com':
-            return Response(status=status.HTTP_404_NOT_FOUND, data="잘못된 URL이 입력되었습니다.")
+            raise NotFound("잘못된 URL 경로입니다.")
 
         url_path = url_parsed.path
 
@@ -58,4 +58,4 @@ class ResolveView(APIView):
             api_url = "https://api.soundwaffle.com/sets/" + str(getattr(set, 'id'))
             return Response(status=status.HTTP_302_FOUND, data={"link": api_url})
         else:
-            return Response(status=status.HTTP_404_NOT_FOUND, data="잘못된 URL이 입력되었습니다.")
+            raise NotFound("잘못된 URL 경로입니다.")
