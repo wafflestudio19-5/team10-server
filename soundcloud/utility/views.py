@@ -47,14 +47,14 @@ class ResolveView(APIView):
             user_permalink = url_path.split('/')[1]
             track_permalink = url_path.split('/')[2]
             user = get_object_or_404(User, permalink=user_permalink)
-            track = get_object_or_404(Track, user=user, permalink=track_permalink)
+            track = get_object_or_404(Track, artist=user, permalink=track_permalink)
             api_url = "https://api.soundwaffle.com/tracks/" + str(getattr(track, 'id'))
             return Response(status=status.HTTP_302_FOUND, data={"link": api_url})
         elif pattern_set.match(url_path):  # set
             user_permalink = url_path.split('/')[1]
             set_permalink = url_path.split('/')[3]
             user = get_object_or_404(User, permalink=user_permalink)
-            set = get_object_or_404(Set, user=user, permalink=set_permalink)
+            set = get_object_or_404(Set, creator=user, permalink=set_permalink)
             api_url = "https://api.soundwaffle.com/sets/" + str(getattr(set, 'id'))
             return Response(status=status.HTTP_302_FOUND, data={"link": api_url})
         else:
