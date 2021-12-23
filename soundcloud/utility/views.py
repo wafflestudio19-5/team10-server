@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from track.models import Track
 from set.models import Set
 import re
+from urllib.parse import urlparse
 
 User = get_user_model()
 
@@ -26,24 +27,34 @@ class ResolveView(APIView):
             raise NotAuthenticated("먼저 로그인 하세요.")
 
         url = request.GET.get('url')  # /resolve?url={url}
+        url_parsed = urlparse(url)
 
-        pattern_user = re.compile('https://soundwaffle.com/[a-z0-9]{12}$')
-        pattern_track = re.compile('https://soundwaffle.com/[a-z0-9]{12}/[a-z0-9]{12}$')
-        pattern_set = re.compile('https://soundwaffle.com/[a-z0-9]{12}/sets/[a-z0-9]{12}$')
+        if url_parsed.netloc != 'soundwaffle.com':
+            return Response(status=status.HTTP_404_NOT_FOUND, data="잘못된 URL이 입력되었습니다.")
 
-        if pattern_user.match(url):    # user
-            permalink = url.split('/')[3]
-            user = get_object_or_404(User, permalink=permalink)
+        url_path = url_parsed.path
+
+        pattern_user = re.compile('^/[a-z0-9_-]{3,25}$')
+        pattern_track = re.compile('^/[a-z0-9_-]{3,25}/[a-z0-9_-]{3,255}$')
+        pattern_set = re.compile('^/[a-z0-9_-]{3,25}/sets/[a-z0-9_-]{3,255}$')
+
+        if pattern_user.match(url_path):    # user
+            user_permalink = url_path.split('/')[1]
+            user = get_object_or_404(User, permalink=user_permalink)
             api_url = "https://api.soundwaffle.com/users/" + str(getattr(user, 'id'))
             return Response(status=status.HTTP_302_FOUND, data={"link": api_url})
-        elif pattern_track.match(url):  # track
-            permalink = url.split('/')[4]
-            track = get_object_or_404(Track, permalink=permalink)
+        elif pattern_track.match(url_path):  # track
+            user_permalink = url_path.split('/')[1]
+            track_permalink = url_path.split('/')[2]
+            user = get_object_or_404(User, permalink=user_permalink)
+            track = get_object_or_404(Track, user=user, permalink=track_permalink)
             api_url = "https://api.soundwaffle.com/tracks/" + str(getattr(track, 'id'))
             return Response(status=status.HTTP_302_FOUND, data={"link": api_url})
-        elif pattern_set.match(url):  # set
-            permalink = url.split('/')[5]
-            set = get_object_or_404(Set, permalink=permalink)
+        elif pattern_set.match(url_path):  # set
+            user_permalink = url_path.split('/')[1]
+            set_permalink = url_path.split('/')[3]
+            user = get_object_or_404(User, permalink=user_permalink)
+            set = get_object_or_404(Set, user=user, permalink=set_permalink)
             api_url = "https://api.soundwaffle.com/sets/" + str(getattr(set, 'id'))
             return Response(status=status.HTTP_302_FOUND, data={"link": api_url})
         else:
