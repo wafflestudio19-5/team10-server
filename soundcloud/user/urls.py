@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 from .views import UserLoginView, UserSignUpView, UserLogoutView, UserViewSet
 
-router = SimpleRouter()
+router = SimpleRouter(trailing_slash=False)
 router.register('users', UserViewSet, basename='users')  # /users
 
 urlpatterns = [
