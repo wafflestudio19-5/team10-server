@@ -1,7 +1,7 @@
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework import serializers
-from serializers import LikeService, RepostService
+from .serializers import LikeService, RepostService
 
 
 class LikeTrackAPIView(GenericAPIView):
