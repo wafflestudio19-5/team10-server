@@ -15,7 +15,7 @@ class LikeService(serializers.Serializer):
         user = self.context.get('user')
 
         if type == 'track':
-            track = get_object_or_404(Track, id=id)
+            track = get_object_or_404(Track, permalink=id)
             if method == 'POST':
                 try:
                     Like.objects.get(track__id=track.id, user=user)
@@ -29,7 +29,7 @@ class LikeService(serializers.Serializer):
 
                 return status.HTTP_200_OK, 'Unliked'
         elif type == 'set':
-            set = get_object_or_404(Set, id=id)
+            set = get_object_or_404(Set, permalink=id)
             if method == 'POST':
                 try:
                     Like.objects.get(set__id=set.id, user=user)
@@ -53,7 +53,7 @@ class RepostService(serializers.Serializer):
         user = self.context.get('user')
 
         if type == 'track':
-            track = get_object_or_404(Track, id=id)
+            track = get_object_or_404(Track, permalink=id)
             if method == 'POST':
                 try:
                     Repost.objects.get(track__id=track.id, user=user)
@@ -67,7 +67,7 @@ class RepostService(serializers.Serializer):
 
                 return status.HTTP_200_OK, 'Unreposted'
         elif type == 'set':
-            set = get_object_or_404(Set, id=id)
+            set = get_object_or_404(Set, permalink=id)
             if method == 'POST':
                 try:
                     Repost.objects.get(set__id=set.id, user=user)
