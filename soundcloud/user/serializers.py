@@ -1,8 +1,10 @@
 from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import update_last_login
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 from datetime import date
+import re
 
 # 토큰 사용을 위한 기본 세팅
 User = get_user_model()
@@ -16,6 +18,13 @@ def jwt_token_of(user):
     jwt_token = JWT_ENCODE_HANDLER(payload)
 
     return jwt_token
+
+def create_permalink():
+    while True:
+        permalink = User.objects.make_random_password(
+            length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
+        if not User.objects.filter(permalink=permalink).exists():
+            return permalink
 
 
 class UserCreateSerializer(serializers.Serializer):
@@ -35,9 +44,14 @@ class UserCreateSerializer(serializers.Serializer):
     def get_token(self, user):
         return jwt_token_of(user)
 
+    def validate(self, data):
+        age = data.pop('age')
+        data['birthday'] = date(date.today().year-age, date.today().month, 1)
+
+        return data
+
     def create(self, validated_data):
-        age = validated_data.pop('age')
-        validated_data['birthday'] = date(date.today().year-age, date.today().month, 1)
+        validated_data['permalink'] = create_permalink()
         user = User.objects.create_user(**validated_data)
 
         return UserCreateSerializer(user).data
@@ -100,9 +114,55 @@ class UserSerializer(serializers.ModelSerializer):
             'bio',
         )
         extra_kwargs = {
-            'password': {'write_only': True},
+            'permalink': {
+                'max_length': 25,
+                'min_length': 3,
+            },
+            'password': {
+                'write_only': True,
+                'max_length': 128,
+                'min_length': 8,
+            },
             'created_at': {'read_only': True},
             'last_login': {'read_only': True},
             'birthday': {'read_only': True},
-            'is_active': {'read_only': True}
+            'is_active': {'read_only': True},
         }
+
+    def validate_permalink(self, value):
+        pattern = re.compile('^[a-z0-9\-\_]+$')
+
+        if not re.search(pattern, value):
+            raise serializers.ValidationError("Only lowercase letters/numbers/_/- are allowed in permalink.")
+
+        return value
+
+    def validate_password(self, value):
+        
+        return make_password(value)
+
+    def validate(self, data):
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
+
+        if (first_name is None) != (last_name is None):
+            raise serializers.ValidationError("Both of the first name and the last name must be entered.")
+
+        age = data.pop('age', None)
+        if age is not None:
+            data['birthday'] = date(date.today().year-age, date.today().month, 1)
+
+        return data
+
+
+class SimpleUserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'permalink',
+            'email',
+            'first_name',
+            'last_name',
+        )
