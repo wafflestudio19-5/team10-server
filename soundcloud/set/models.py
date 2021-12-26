@@ -35,3 +35,11 @@ class Set(models.Model):
     likes = GenericRelation(Like, related_query_name="set") ##추가
     reposts = GenericRelation(Repost, related_query_name="set") ##추가
     #image = models.ImageField(null=True, blank=True, upload_to=?)
+
+    class Meta:
+        constraints=[
+            models.UniqueConstraint(
+                fields=['creator', 'permalink'],
+                name='set_permalink_unique',
+            ),
+        ]

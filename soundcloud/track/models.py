@@ -21,3 +21,11 @@ class Track(models.Model):
     is_private = models.BooleanField(default=False)
     likes = GenericRelation(Like, related_query_name="track")
     reposts = GenericRelation(Repost, related_query_name="track")
+
+    class Meta:
+        constraints=[
+            models.UniqueConstraint(
+                fields=['artist', 'permalink'],
+                name='track_permalink_unique',
+            ),
+        ]
