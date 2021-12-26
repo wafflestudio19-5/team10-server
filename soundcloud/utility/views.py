@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
-from rest_framework import status, permissions
+from rest_framework import status
 from rest_framework.generics import get_object_or_404
-from rest_framework.exceptions import NotAuthenticated, NotFound
+from rest_framework.exceptions import NotAuthenticated, ValidationError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from track.models import Track
@@ -13,7 +13,6 @@ User = get_user_model()
 
 
 class ResolveView(APIView):
-    permission_classes = (permissions.AllowAny,)
 
     def get(self, request, *args, **kwargs):
         """
@@ -23,14 +22,11 @@ class ResolveView(APIView):
         위의 세 가지 permalink 기반의 URL로부터 각 object의 정보를 불러올 수 있는 id 기반의 API 서버 URL을 반환함
         """
 
-        if not request.user.is_authenticated:
-            raise NotAuthenticated("먼저 로그인 하세요.")
-
         url = request.GET.get('url')  # /resolve?url={url}
         url_parsed = urlparse(url)
 
-        if url_parsed.netloc != 'soundwaffle.com':
-            raise NotFound("잘못된 URL 경로입니다.")
+        if url_parsed.hostname not in [ 'www.soundwaffle.com', 'soundwaffle.com' ]:
+            raise ValidationError("잘못된 hostname입니다.")
 
         url_path = url_parsed.path
 
@@ -58,4 +54,4 @@ class ResolveView(APIView):
             api_url = "https://api.soundwaffle.com/sets/" + str(getattr(set, 'id'))
             return Response(status=status.HTTP_302_FOUND, data={"link": api_url})
         else:
-            raise NotFound("잘못된 URL 경로입니다.")
+            raise ValidationError("잘못된 URL 경로입니다.")
