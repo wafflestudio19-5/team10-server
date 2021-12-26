@@ -1,68 +1,59 @@
-from rest_framework.generics import GenericAPIView
+from rest_framework.generics import GenericAPIView, CreateAPIView
 from rest_framework.response import Response
-from rest_framework import serializers
+from set.models import Set
+from track.models import Track
 from .serializers import LikeService, RepostService
 
 
-class LikeTrackAPIView(GenericAPIView):
+class BaseReactionView(GenericAPIView):
 
-    serializer_class = serializers.Serializer
-    lookup_field = 'track_id'
+    serializer_class = None
+    queryset = None
+    lookup_field = 'id'
+    lookup_url_kwarg = None
 
-    def post(self, request, track_id=None):
-        service = LikeService(context={'user': request.user, 'type': 'track', 'method': 'POST', 'id': track_id})
-        service_status, data = service.execute()
-        return Response(status=service_status, data=data)
+    def get_serializer_context(self):
+        context = super(BaseReactionView, self).get_serializer_context()
+        context['target'] = self.get_object()
 
-    def delete(self, request, track_id=None):
-        service = LikeService(context={'user': request.user, 'type': 'track', 'method': 'DELETE', 'id': track_id})
-        service_status, data = service.execute()
-        return Response(status=service_status, data=data)
+        return context
 
+    def post(self, request, *args, **kwargs):
+        service = self.get_serializer()
+        status, data = service.create()
 
-class LikeSetAPIView(GenericAPIView):
+        return Response(status=status, data=data)
 
-    serializer_class = serializers.Serializer
-    lookup_field = 'set_id'
+    def delete(self, request, *args, **kwargs):
+        service = self.get_serializer()
+        status, data = service.delete()
 
-    def post(self, request, set_id=None):
-        service = LikeService(context={'user': request.user, 'type': 'set', 'method': 'POST', 'id': set_id})
-        service_status, data = service.execute()
-        return Response(status=service_status, data=data)
-
-    def delete(self, request, set_id=None):
-        service = LikeService(context={'user': request.user, 'type': 'set', 'method': 'DELETE', 'id': set_id})
-        service_status, data = service.execute()
-        return Response(status=service_status, data=data)
+        return Response(status=status, data=data)
 
 
-class RepostTrackAPIView(GenericAPIView):
+class LikeTrackView(BaseReactionView):
 
-    serializer_class = serializers.Serializer
-    lookup_field = 'track_id'
-
-    def post(self, request, track_id=None):
-        service = RepostService(context={'user': request.user, 'type': 'track', 'method': 'POST', 'id': track_id})
-        service_status, data = service.execute()
-        return Response(status=service_status, data=data)
-
-    def delete(self, request, track_id=None):
-        service = RepostService(context={'user': request.user, 'type': 'track', 'method': 'DELETE', 'id': track_id})
-        service_status, data = service.execute()
-        return Response(status=service_status, data=data)
+    serializer_class = LikeService
+    queryset = Track.objects.all()
+    lookup_url_kwarg = 'track_id'
 
 
-class RepostSetAPIView(GenericAPIView):
+class LikeSetView(BaseReactionView):
 
-    serializer_class = serializers.Serializer
-    lookup_field = 'track_id'
+    serializer_class = LikeService
+    queryset = Set.objects.all()
+    lookup_url_kwarg = 'set_id'
 
-    def post(self, request, set_id=None):
-        service = RepostService(context={'user': request.user, 'type': 'set', 'method': 'POST', 'id': set_id})
-        service_status, data = service.execute()
-        return Response(status=service_status, data=data)
 
-    def delete(self, request, set_id=None):
-        service = RepostService(context={'user': request.user, 'type': 'set', 'method': 'DELETE', 'id': set_id})
-        service_status, data = service.execute()
-        return Response(status=service_status, data=data)
+class RepostTrackView(BaseReactionView):
+
+    serializer_class = RepostService
+    queryset = Track.objects.all()
+    lookup_url_kwarg = 'track_id'
+
+
+class RepostSetView(BaseReactionView):
+
+    serializer_class = RepostService
+    queryset = Set.objects.all()
+    lookup_url_kwarg = 'set_id'
