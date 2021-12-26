@@ -13,6 +13,14 @@ class Like(models.Model):
     content_object = GenericForeignKey('content_type', 'object_id')
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'content_type', 'object_id'],
+                name='like_unique'
+            ),
+        ]
+
 
 class Repost(models.Model):
 
@@ -21,3 +29,11 @@ class Repost(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'content_type', 'object_id'],
+                name='repost_unique',
+            ),
+        ]
