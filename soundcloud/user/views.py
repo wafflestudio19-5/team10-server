@@ -49,7 +49,8 @@ class UserViewSet(viewsets.GenericViewSet):
 
     serializer_class = UserSerializer
     queryset = User.objects.all()
-    lookup_field = 'user_id'
+    lookup_field = 'id'
+    lookup_url_kwarg = 'user_id'
 
     def retrieve(self, request, user_id=None):
 
