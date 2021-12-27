@@ -21,11 +21,14 @@ class CustomUserManager(BaseUserManager):
 
 
 def create_permalink():
-    while True:
-        permalink = User.objects.make_random_password(
-            length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
-        if not User.objects.filter(permalink=permalink).exists():
-            return permalink
+    try:
+        while True:
+            permalink = User.objects.make_random_password(
+                length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
+            if not User.objects.filter(permalink=permalink).exists():
+                return permalink
+    except:
+        pass
 
 
 class User(AbstractBaseUser):
