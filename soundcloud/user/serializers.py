@@ -1,9 +1,11 @@
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.models import update_last_login
 from django.db.utils import IntegrityError
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.generics import get_object_or_404
 from rest_framework_jwt.settings import api_settings
 from datetime import date
+from user.models import Follow
 
 # 토큰 사용을 위한 기본 세팅
 User = get_user_model()
@@ -92,3 +94,26 @@ class UserSerializer(serializers.ModelSerializer):
         )
         extra_kwargs = {'created_at': {'read_only': True}, 'last_login': {
             'read_only': True}, 'password': {'write_only': True}}
+
+class UserFollowService(serializers.Serializer):
+
+    def execute(self):
+        follower = self.context['request'].user
+        followee = get_object_or_404(User, id=self.context['pk'])
+        if not follower.is_authenticated:
+            return status.HTTP_403_FORBIDDEN, '먼저 로그인 하세요.'
+
+        Follow.objects.create(follower=follower, followee=followee)
+        return status.HTTP_201_CREATED, UserSerializer(followee).data
+
+class UserUnfollowService(serializers.Serializer):
+
+    def execute(self):
+        follower = self.context['request'].user
+        followee = get_object_or_404(User, id=self.context['pk'])
+        if not follower.is_authenticated:
+            return status.HTTP_403_FORBIDDEN, '먼저 로그인 하세요.'
+
+        follow = get_object_or_404(Follow, follower=follower, followee=followee)
+        follow.delete()
+        return status.HTTP_200_OK, UserSerializer(followee).data
