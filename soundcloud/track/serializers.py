@@ -1,20 +1,36 @@
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 from rest_framework.serializers import ValidationError
 from track.models import Track
 from tag.serializers import TagSerializer
 from user.serializers import UserSerializer
 from reaction.serializers import LikeSerializer, RepostSerializer
 from django.conf import settings
-from soundcloud.exceptions import ConflictError
-import boto3
-import re
+import boto3, re, os
+
+def get_unique_url(url, field):
+    if url is None or field not in [ 'audio', 'image' ]:
+        return None
+
+    name, ext = os.path.splitext(url)
+    queryset = Track.objects.select_related(field)
+
+    while queryset.filter(**{field: url}).exists():
+        if re.search(r'\-\d+$', name):
+            num = re.search(r'\d+$', name).group(0)
+            name = re.sub(r'\d+$', str(int(num)+1), name)
+        else:
+            name += '-1'
+        url = name + ext
+    
+    return url
 
 
 class TrackSerializer(serializers.ModelSerializer):
 
-    artist = UserSerializer(read_only=True)
+    artist = UserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     like_count = serializers.SerializerMethodField()
@@ -46,9 +62,9 @@ class TrackSerializer(serializers.ModelSerializer):
             'comment_count',
             'likes',
             'reposts',
+            # 'comments',
             'audio_filename',
             'image_filename',
-            # 'comments',
         )
         extra_kwargs = {
             'permalink': {
@@ -63,6 +79,15 @@ class TrackSerializer(serializers.ModelSerializer):
             'count',
         )
 
+        # Since 'artist' is read-only field, ModelSerializer wouldn't generate UniqueTogetherValidator automatically.
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Track.objects.all(),
+                fields=('artist', 'permalink'),
+                message="Already existing permalink for the requested user."
+            ),
+        ]
+
     @extend_schema_field(OpenApiTypes.INT)
     def get_like_count(self, track):
         return track.likes.count()
@@ -75,6 +100,13 @@ class TrackSerializer(serializers.ModelSerializer):
     def get_comment_count(self, track):
         return track.comment_set.count()
 
+    def validate_permalink(self, value):
+
+        if not any(c.isalpha() for c in value):
+            raise ValidationError("Permalink must contain at least one alphabetic character.")
+
+        return value
+    
     def validate_audio_filename(self, value):
         pattern = re.compile('^[a-zA-Z0-9\/\!\-\_\.\*\'\(\)]+$')
 
@@ -95,45 +127,21 @@ class TrackSerializer(serializers.ModelSerializer):
 
         return value
 
-    def validate_permalink(self, value):
-        pattern = re.compile('^[a-z0-9\-\_]+$')
-
-        if not any(c.isalpha() for c in value):
-            raise ValidationError("Permalink must contain at least one alphabetic character.")
-        if not re.search(pattern, value):
-            raise ValidationError("Only lowercase letters/numbers/_/- are allowed in permalink.")
-
-        return value
-
     def validate(self, data):
         audio_filename = data.pop('audio_filename', None)
         image_filename = data.pop('image_filename', None)
-        permalink = data.get('permalink')
-        
-        user = self.context.get('request').user
-        data['artist'] = user
-
-        detail = {}
-        track = self.instance
 
         if audio_filename is not None:
-            audio_url = settings.S3_BASE_URL + settings.S3_MUSIC_TRACK_DIR + audio_filename
-            if (track is None or getattr(track, 'audio') != audio_url) and Track.objects.filter(audio=audio_url).exists():
-                detail['audio_filename'] = "Already existing audio file name."
-            data['audio'] = audio_url
+            audio_url = settings.S3_BASE_URL + settings.S3_MUSIC_TRACK_DIR + audio_filename if audio_filename is not None else None
+            data['audio'] = get_unique_url(audio_url, 'audio')
 
         if image_filename is not None:
-            image_url = settings.S3_BASE_URL + settings.S3_IMAGES_TRACK_DIR + image_filename
-            if (track is None or getattr(track, 'image') != image_url) and Track.objects.filter(image=image_url).exists():
-                detail['image_filename'] = "Already existing image file name."
-            data['image'] = image_url
+            image_url = settings.S3_BASE_URL + settings.S3_IMAGES_TRACK_DIR + image_filename if image_filename is not None else None
+            data['image'] = get_unique_url(image_url, 'image')
 
-        if permalink is not None:
-            if (track is None or getattr(track, 'permalink') != permalink) and user.owned_tracks.filter(permalink=permalink).exists():
-                detail['permalink'] = "Already existing permalink for the user."
-
-        if any(detail):
-            raise ConflictError(detail)
+        # Should manually include 'artist' to the data when creating the object, because it is read-only field.
+        if self.instance is None:
+            data['artist'] = serializers.CurrentUserDefault()(self)
 
         return data
 
