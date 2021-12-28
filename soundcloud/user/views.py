@@ -2,9 +2,11 @@ from django.contrib.auth import get_user_model, logout
 from rest_framework import status, permissions, viewsets
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.generics import get_object_or_404
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from user.serializers import UserLoginSerializer, UserCreateSerializer, UserSerializer
+from user.serializers import UserLoginSerializer, UserCreateSerializer, UserSerializer, \
+    UserFollowService, UserUnfollowService
 
 User = get_user_model()
 
@@ -57,3 +59,14 @@ class UserViewSet(viewsets.GenericViewSet):
             User, id=pk)
 
         return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['POST', 'DELETE'])
+    def follow(self, request, pk=None):
+        if request.method == 'POST':
+            service = UserFollowService(context={'request': request, 'pk': pk})
+            status_code, data = service.execute()
+            return Response(status=status_code, data=data)
+        if request.method == 'DELETE':
+            service = UserUnfollowService(context={'request': request, 'pk': pk})
+            status_code, data = service.execute()
+            return Response(status=status_code, data=data)
