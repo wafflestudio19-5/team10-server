@@ -123,11 +123,13 @@ class UserSerializer(serializers.ModelSerializer):
                 'max_length': 128,
                 'min_length': 8,
             },
-            'created_at': {'read_only': True},
-            'last_login': {'read_only': True},
-            'birthday': {'read_only': True},
-            'is_active': {'read_only': True},
         }
+        read_only_fields = (
+            'created_at',
+            'last_login',
+            'birthday',
+            'is_active',
+        )
 
     def validate_permalink(self, value):
         pattern = re.compile('^[a-z0-9\-\_]+$')
@@ -145,7 +147,7 @@ class UserSerializer(serializers.ModelSerializer):
         first_name = data.get('first_name')
         last_name = data.get('last_name')
 
-        if (first_name is None) != (last_name is None):
+        if bool(first_name) != bool(last_name):
             raise serializers.ValidationError("Both of the first name and the last name must be entered.")
 
         age = data.pop('age', None)
