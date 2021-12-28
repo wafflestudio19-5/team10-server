@@ -4,7 +4,7 @@ from django.contrib.auth.models import update_last_login
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 from datetime import date
-import re
+from soundcloud.exceptions import ConflictError
 
 # 토큰 사용을 위한 기본 세팅
 User = get_user_model()
@@ -31,7 +31,7 @@ class UserCreateSerializer(serializers.Serializer):
 
     # Read-only fields
     id = serializers.IntegerField(read_only=True)
-    permalink = serializers.CharField(read_only=True)
+    permalink = serializers.SlugField(read_only=True)
     token = serializers.SerializerMethodField()
 
     # Write-only fields
@@ -44,24 +44,30 @@ class UserCreateSerializer(serializers.Serializer):
     def get_token(self, user):
         return jwt_token_of(user)
 
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise ConflictError({'email': "Already existing email."})
+
+        return value
+
     def validate(self, data):
         age = data.pop('age')
         data['birthday'] = date(date.today().year-age, date.today().month, 1)
+        data['permalink'] = create_permalink()
 
         return data
 
     def create(self, validated_data):
-        validated_data['permalink'] = create_permalink()
         user = User.objects.create_user(**validated_data)
 
-        return UserCreateSerializer(user).data
+        return user
 
 
 class UserLoginSerializer(serializers.Serializer):
 
-    # Read_only fields
+    # Read-only fields
     id = serializers.IntegerField(read_only=True)
-    permalink = serializers.CharField(read_only=True)
+    permalink = serializers.SlugField(read_only=True)
     token = serializers.SerializerMethodField()
 
     # Write-only fields
@@ -78,15 +84,13 @@ class UserLoginSerializer(serializers.Serializer):
 
         if user is None:
             raise serializers.ValidationError("이메일 또는 비밀번호가 잘못되었습니다.")
+        else:
+            self.instance = user
 
-        self.context['user'] = user
         return data
 
     def execute(self):
-        user = self.context.get('user')
-        update_last_login(None, user)
-
-        return UserLoginSerializer(user).data
+        update_last_login(None, self.instance)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -130,14 +134,6 @@ class UserSerializer(serializers.ModelSerializer):
             'birthday',
             'is_active',
         )
-
-    def validate_permalink(self, value):
-        pattern = re.compile('^[a-z0-9\-\_]+$')
-
-        if not re.search(pattern, value):
-            raise serializers.ValidationError("Only lowercase letters/numbers/_/- are allowed in permalink.")
-
-        return value
 
     def validate_password(self, value):
         

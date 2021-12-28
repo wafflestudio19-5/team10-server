@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model, logout
 from rest_framework import status, permissions, viewsets
-from rest_framework.generics import GenericAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import GenericAPIView, CreateAPIView, RetrieveUpdateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from user.serializers import *
@@ -9,13 +9,8 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
 User = get_user_model()
 
 
-class UserSignUpView(GenericAPIView):
-
-    serializer_class = UserCreateSerializer
-    queryset = User.objects.select_related('email')
-    permission_classes = (permissions.AllowAny, )
-
-    @extend_schema(
+@extend_schema_view(
+    post=extend_schema(
         summary="Signup",
         tags=['auth', ],
         responses={
@@ -24,18 +19,12 @@ class UserSignUpView(GenericAPIView):
             409: OpenApiResponse(description='Conflict'),
         }
     )
-    def post(self, request, *args, **kwargs):
+)
+class UserSignUpView(CreateAPIView):
 
-        # Should check whether the email already exists in DB before validation.
-        email = request.data.get('email')
-        if self.get_queryset().filter(email=email).exists():
-            return Response("이미 존재하는 이메일입니다.", status=status.HTTP_409_CONFLICT)
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.save()
-
-        return Response(data, status=status.HTTP_201_CREATED)
+    serializer_class = UserCreateSerializer
+    queryset = User.objects.all()
+    permission_classes = (permissions.AllowAny, )
 
 
 class UserLoginView(GenericAPIView):
@@ -55,9 +44,9 @@ class UserLoginView(GenericAPIView):
     def put(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.execute()
+        serializer.execute()
 
-        return Response(data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserLogoutView(APIView):
@@ -117,6 +106,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         summary="Update Me",
         responses={
             200: OpenApiResponse(response=UserSerializer, description='OK'),
+            400: OpenApiResponse(description='Bad Request'),
             401: OpenApiResponse(description='Unauthorized'),
         }
     ),
@@ -124,6 +114,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         summary="Partial Update Me",
         responses={
             200: OpenApiResponse(response=UserSerializer, description='OK'),
+            400: OpenApiResponse(description='Bad Request'),
             401: OpenApiResponse(description='Unauthorized'),
         }
     ),
@@ -131,7 +122,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 class UserSelfView(RetrieveUpdateAPIView):
 
     serializer_class = UserSerializer
-    queryset = None
+    queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated, )
 
     def get_object(self):
