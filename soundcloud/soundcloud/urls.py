@@ -25,6 +25,8 @@ urlpatterns = [
     path('docs/redoc', SpectacularRedocView.as_view(url_name='schema-json'), name='redoc'),
     path('', include('user.urls')),
     path('', include('track.urls')),
+    path('', include('reaction.urls')),
+    path('', include('utility.urls')),
 ]
 
 if settings.DEBUG:
