@@ -8,7 +8,7 @@ from tag.models import Tag
 class Track(models.Model):
     title = models.CharField(max_length=100)
     artist = models.ForeignKey(get_user_model(), related_name="owned_tracks", on_delete=models.CASCADE)
-    permalink = models.CharField(max_length=255)
+    permalink = models.SlugField(max_length=255)
     audio = models.URLField(unique=True)
     image = models.URLField(null=True, unique=True)
     description = models.TextField(blank=True)

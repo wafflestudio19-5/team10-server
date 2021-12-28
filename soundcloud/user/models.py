@@ -35,7 +35,7 @@ class CustomUserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    permalink = models.CharField(max_length=25, unique=True)
+    permalink = models.SlugField(max_length=25, unique=True)
     display_name = models.CharField(max_length=25)
     email = models.EmailField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
