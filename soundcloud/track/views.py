@@ -11,7 +11,6 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
             '201': OpenApiResponse(response=TrackUploadSerializer, description='Created'),
             '400': OpenApiResponse(description='Bad Request'),
             '401': OpenApiResponse(description='Unauthorized'),
-            '409': OpenApiResponse(description='Conflict'),
         }
     ),
     retrieve=extend_schema(
@@ -29,7 +28,6 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
             '401': OpenApiResponse(description='Unauthorized'),
             '403': OpenApiResponse(description='Permission Denied'),
             '404': OpenApiResponse(description='Not Found'),
-            '409': OpenApiResponse(description='Conflict'),
         }
     ),
     partial_update=extend_schema(
@@ -40,7 +38,6 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
             '401': OpenApiResponse(description='Unauthorized'),
             '403': OpenApiResponse(description='Permission Denied'),
             '404': OpenApiResponse(description='Not Found'),
-            '409': OpenApiResponse(description='Conflict'),
         }
     ),
     destroy=extend_schema(
@@ -75,4 +72,3 @@ class TrackViewSet(viewsets.ModelViewSet):
 
 
     # TODO: 자기 트랙만 수정하게
-    # TODO: 409 에러 핸들링
