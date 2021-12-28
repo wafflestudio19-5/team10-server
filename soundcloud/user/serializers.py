@@ -1,9 +1,9 @@
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.models import update_last_login
-from django.db.utils import IntegrityError
 from rest_framework import serializers, status
 from rest_framework.generics import get_object_or_404
 from rest_framework_jwt.settings import api_settings
+from soundcloud.exceptions import ConflictError
 from datetime import date
 from user.models import Follow
 
@@ -99,9 +99,10 @@ class UserFollowService(serializers.Serializer):
 
     def execute(self):
         follower = self.context['request'].user
-        followee = get_object_or_404(User, id=self.context['pk'])
-        if not follower.is_authenticated:
-            return status.HTTP_403_FORBIDDEN, '먼저 로그인 하세요.'
+        followee = get_object_or_404(User, id=self.context['user_id'])
+
+        if Follow.objects.filter(follower=follower, followee=followee).exists():
+            raise ConflictError("Already followed")
 
         Follow.objects.create(follower=follower, followee=followee)
         return status.HTTP_201_CREATED, UserSerializer(followee).data
@@ -110,9 +111,7 @@ class UserUnfollowService(serializers.Serializer):
 
     def execute(self):
         follower = self.context['request'].user
-        followee = get_object_or_404(User, id=self.context['pk'])
-        if not follower.is_authenticated:
-            return status.HTTP_403_FORBIDDEN, '먼저 로그인 하세요.'
+        followee = get_object_or_404(User, id=self.context['user_id'])
 
         follow = get_object_or_404(Follow, follower=follower, followee=followee)
         follow.delete()
