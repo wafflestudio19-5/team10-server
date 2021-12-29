@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericRelation
+from django.db.models.fields.related import ForeignKey
 from track.models import Track
 from reaction.models import Like, Repost
 from tag.models import Tag 
@@ -35,3 +36,7 @@ class Set(models.Model):
     likes = GenericRelation(Like, related_query_name="set") ##추가
     reposts = GenericRelation(Repost, related_query_name="set") ##추가
     #image = models.ImageField(null=True, blank=True, upload_to=?)
+
+class SetTrack(models.Model):
+    set = models.ForeignKey(Set, on_delete=models.CASCADE)
+    track = models.ForeignKey(Track, on_delete=models.CASCADE)
