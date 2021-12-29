@@ -8,5 +8,5 @@ class Comment(models.Model):
     content = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     commented_at = models.TimeField(default="00:00")
-    parent_comment = models.OneToOneField('self', null=True, related_name="reply", on_delete=models.CASCADE) ##linkedlist
+    parent_comment = models.OneToOneField('self', null=True, related_name="reply", on_delete=models.SET_NULL) ##linkedlist
 
