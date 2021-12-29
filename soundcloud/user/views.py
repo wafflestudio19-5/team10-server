@@ -61,6 +61,30 @@ class UserViewSet(viewsets.GenericViewSet):
 
         return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
 
+
+@extend_schema_view(
+    followers=extend_schema(
+        summary="Get User's Followers",
+        responses={
+            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
+    followings=extend_schema(
+        summary="Get User's Followees",
+        responses={
+            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    )
+)
+class FollowViewSet(viewsets.GenericViewSet):
+
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    lookup_field = 'id'
+    lookup_url_kwarg = 'user_id'
+
     @extend_schema(
         methods=['POST'],
         summary="Follow User",
@@ -80,9 +104,8 @@ class UserViewSet(viewsets.GenericViewSet):
             404: OpenApiResponse(description='Not Found'),
         }
     )
-    @action(detail=True, methods=['POST', 'DELETE'], permission_classes=(permissions.IsAuthenticated, ))
+    @action(detail=True, methods=['POST', 'DELETE'], permission_classes=(permissions.IsAuthenticated,))
     def follow(self, request, user_id=None):
-        
         if request.method == 'POST':
             service = UserFollowService(context={'request': request, 'user_id': user_id})
             status_code, data = service.execute()
@@ -93,26 +116,12 @@ class UserViewSet(viewsets.GenericViewSet):
             status_code, data = service.execute()
             return Response(status=status_code, data=data)
 
-    @extend_schema(
-        summary="Get User's Followers",
-        responses={
-            200: OpenApiResponse(response=UserSerializer, description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    )
     @action(detail=True, methods=['GET'])
     def followers(self, request, user_id=None):
         service = FollowerRetrieveService(context={'user_id': user_id})
         status_code, data = service.execute()
         return Response(status=status.HTTP_200_OK, data=data)
 
-    @extend_schema(
-        summary="Get User's Followees",
-        responses={
-            200: OpenApiResponse(response=UserSerializer, description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    )
     @action(detail=True, methods=['GET'])
     def followings(self, request, user_id=None):
         service = FolloweeRetrieveService(context={'request': request, 'user_id': user_id})
