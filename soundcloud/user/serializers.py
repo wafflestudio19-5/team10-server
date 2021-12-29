@@ -4,7 +4,7 @@ from django.contrib.auth.models import update_last_login
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 from datetime import date
-from soundcloud.exceptions import ConflictError
+from soundcloud.utils import ConflictError
 
 # 토큰 사용을 위한 기본 세팅
 User = get_user_model()

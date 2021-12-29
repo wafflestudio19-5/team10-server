@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from track.models import Track
-from track.serializers import SimpleTrackSerializer, TrackSerializer, TrackUploadSerializer
+from track.serializers import SimpleTrackSerializer, TrackSerializer, TrackMediaUploadSerializer
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 
 
@@ -8,7 +8,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
     create=extend_schema(
         summary="Create Track",
         responses={
-            '201': OpenApiResponse(response=TrackUploadSerializer, description='Created'),
+            '201': OpenApiResponse(response=TrackMediaUploadSerializer, description='Created'),
             '400': OpenApiResponse(description='Bad Request'),
             '401': OpenApiResponse(description='Unauthorized'),
         }
@@ -23,7 +23,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
     update=extend_schema(
         summary="Update Track",
         responses={
-            '200': OpenApiResponse(response=TrackUploadSerializer, description='OK'),
+            '200': OpenApiResponse(response=TrackMediaUploadSerializer, description='OK'),
             '400': OpenApiResponse(description='Bad Request'),
             '401': OpenApiResponse(description='Unauthorized'),
             '403': OpenApiResponse(description='Permission Denied'),
@@ -33,7 +33,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
     partial_update=extend_schema(
         summary="Partial Update Track",
         responses={
-            '200': OpenApiResponse(response=TrackUploadSerializer, description='OK'),
+            '200': OpenApiResponse(response=TrackMediaUploadSerializer, description='OK'),
             '400': OpenApiResponse(description='Bad Request'),
             '401': OpenApiResponse(description='Unauthorized'),
             '403': OpenApiResponse(description='Permission Denied'),
@@ -66,9 +66,9 @@ class TrackViewSet(viewsets.ModelViewSet):
         if self.action in ['retrieve', 'delete']:
             return TrackSerializer
         elif self.action in ['create', 'update', 'partial_update']:
-            return TrackUploadSerializer
+            return TrackMediaUploadSerializer
         elif self.action in ['list']:
             return SimpleTrackSerializer
 
 
-    # TODO: 자기 트랙만 수정하게
+    # TODO: 자기 트랙만 수정하게]
