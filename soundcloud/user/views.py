@@ -93,12 +93,26 @@ class UserViewSet(viewsets.GenericViewSet):
             status_code, data = service.execute()
             return Response(status=status_code, data=data)
 
+    @extend_schema(
+        summary="Get User's Followers",
+        responses={
+            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    )
     @action(detail=True, methods=['GET'])
     def followers(self, request, user_id=None):
         service = FollowerRetrieveService(context={'user_id': user_id})
         status_code, data = service.execute()
         return Response(status=status.HTTP_200_OK, data=data)
 
+    @extend_schema(
+        summary="Get User's Followees",
+        responses={
+            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    )
     @action(detail=True, methods=['GET'])
     def followings(self, request, user_id=None):
         service = FolloweeRetrieveService(context={'request': request, 'user_id': user_id})
