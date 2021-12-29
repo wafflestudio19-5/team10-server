@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from user.serializers import UserLoginSerializer, UserCreateSerializer, UserSerializer, \
     UserFollowService, UserUnfollowService
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 
 User = get_user_model()
 
@@ -60,6 +61,25 @@ class UserViewSet(viewsets.GenericViewSet):
 
         return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        methods=['POST'],
+        summary="Follow User",
+        responses={
+            201: OpenApiResponse(response=UserSerializer, description='Created'),
+            401: OpenApiResponse(description='Unauthorized'),
+            404: OpenApiResponse(description='Not Found'),
+            409: OpenApiResponse(description='Conflict'),
+        }
+    )
+    @extend_schema(
+        methods=['DELETE'],
+        summary="Unfollow User",
+        responses={
+            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            401: OpenApiResponse(description='Unauthorized'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    )
     @action(detail=True, methods=['POST', 'DELETE'])
     def follow(self, request, user_id=None):
         
