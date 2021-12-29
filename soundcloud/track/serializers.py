@@ -7,12 +7,14 @@ from track.models import Track
 from tag.serializers import TagSerializer
 from user.serializers import UserSerializer
 from reaction.serializers import LikeSerializer, RepostSerializer
-from soundcloud.utils import MediaUploadMixin
+from soundcloud.utils import get_presigned_url, MediaUploadMixin
 
 
 class TrackSerializer(serializers.ModelSerializer):
 
     artist = UserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
+    audio = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     like_count = serializers.SerializerMethodField()
@@ -51,8 +53,6 @@ class TrackSerializer(serializers.ModelSerializer):
             },
         }
         read_only_fields = (
-            'audio',
-            'image',
             'created_at',
             'count',
         )
@@ -65,6 +65,12 @@ class TrackSerializer(serializers.ModelSerializer):
                 message="Already existing permalink for the requested user."
             ),
         ]
+
+    def get_audio(self, track):
+        return get_presigned_url(track.audio, 'get_object')
+
+    def get_image(self, track):
+        return get_presigned_url(track.image, 'get_object')
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_like_count(self, track):
@@ -112,13 +118,13 @@ class TrackMediaUploadSerializer(TrackSerializer, MediaUploadMixin):
         if self.context['request'].data.get('audio_filename') is None:
             return None
 
-        return self.get_presigned_url(track.audio)
+        return get_presigned_url(track.audio, 'put_object')
 
     def get_image_presigned_url(self, track):
         if self.context['request'].data.get('image_filename') is None:
             return None
 
-        return self.get_presigned_url(track.image)
+        return get_presigned_url(track.image, 'put_object')
     
     def validate_audio_filename(self, value):
         if not self.check_extension(value, 'audio'):

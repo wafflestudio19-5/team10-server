@@ -3,6 +3,32 @@ from rest_framework import status
 from django.conf import settings
 import boto3, os, re
 
+def get_presigned_url(url, method, full_url=True):
+    if url is None:
+        return None
+
+    if method not in [ 'get_object', 'put_object' ]:
+        raise ValueError("method choices: ('get_object', 'put_object')")
+
+    if full_url:
+        key = url.replace(settings.S3_BASE_URL, '')
+
+    presigned_url = boto3.client(
+        's3',
+        region_name=settings.S3_REGION_NAME,
+        aws_access_key_id=settings.AWS_ACCESS_KEY,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+    ).generate_presigned_url(
+        ClientMethod=method,
+        Params={
+            'Bucket': settings.S3_BUCKET_NAME,
+            'Key': key,
+        },
+        ExpiresIn=300
+    )
+
+    return presigned_url
+
 
 class ConflictError(APIException):
     
@@ -72,27 +98,3 @@ class MediaUploadMixin:
     def check_filename(filename):
 
         return re.search(MediaUploadMixin.filename_pattern, filename)
-
-    @staticmethod
-    def get_presigned_url(url, full_url=True):
-        if url is None:
-            return None
-
-        if full_url:
-            key = url.replace(settings.S3_BASE_URL, '')
-
-        presigned_url = boto3.client(
-            's3',
-            region_name=settings.S3_REGION_NAME,
-            aws_access_key_id=settings.AWS_ACCESS_KEY,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
-        ).generate_presigned_url(
-            ClientMethod='put_object',
-            Params={
-                'Bucket': settings.S3_BUCKET_NAME,
-                'Key': key,
-            },
-            ExpiresIn=300
-        )
-
-        return presigned_url
