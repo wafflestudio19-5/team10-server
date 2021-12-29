@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 import json
 import datetime
+from re import DEBUG
 from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -178,3 +179,12 @@ CORS_ALLOW_CREDENTIALS = True
 AUTH_USER_MODEL = 'user.User'
 
 SITE_ID = 1
+
+# for Sociallogin
+import environ
+env = environ.Env(
+    DEBUG=(int,0)
+)
+environ.Env.read_env('.env')
+BASE_BACKEND_URL = env.str('DJANGO_BASE_BACKEND_URL', default='http://localhost:8000')
+BASE_FRONTEND_URL = env.str('DJANGO_BASE_FRONTEND_URL', default='http://localhost:8000') #3000인지 확인

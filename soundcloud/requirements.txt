@@ -10,3 +10,4 @@ djangorestframework-jwt
 django-rest-authtoken
 django-extensions
 gunicorn
+django-environ #social
