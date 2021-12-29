@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from user.serializers import UserLoginSerializer, UserCreateSerializer, UserSerializer, \
-    UserFollowService, UserUnfollowService
+    UserFollowService, UserUnfollowService, FollowerRetrieveService, FolloweeRetrieveService
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 
 User = get_user_model()
@@ -95,15 +95,12 @@ class UserViewSet(viewsets.GenericViewSet):
 
     @action(detail=True, methods=['GET'])
     def followers(self, request, user_id=None):
-
-        service = UserFollowService(context={'request': request, 'user_id': user_id})
+        service = FollowerRetrieveService(context={'user_id': user_id})
         status_code, data = service.execute()
-        return Response(status=status_code, data=data)
-
+        return Response(status=status.HTTP_200_OK, data=data)
 
     @action(detail=True, methods=['GET'])
     def followings(self, request, user_id=None):
-
-        service = UserFollowService(context={'request': request, 'user_id': user_id})
+        service = FolloweeRetrieveService(context={'request': request, 'user_id': user_id})
         status_code, data = service.execute()
-        return Response(status=status_code, data=data)
+        return Response(status=status.HTTP_200_OK, data=data)

@@ -116,3 +116,16 @@ class UserUnfollowService(serializers.Serializer):
         follow = get_object_or_404(Follow, follower=follower, followee=followee)
         follow.delete()
         return status.HTTP_200_OK, UserSerializer(followee).data
+
+class FollowerRetrieveService(serializers.Serializer):
+
+    def execute(self):
+        user = get_object_or_404(User, id=self.context['user_id'])
+        return status.HTTP_200_OK, user.followed_by.values_list('follower', flat=True)
+
+
+class FolloweeRetrieveService(serializers.Serializer):
+
+    def execute(self):
+        user = get_object_or_404(User, id=self.context['user_id'])
+        return status.HTTP_200_OK, user.follows.values_list('followee', flat=True)
