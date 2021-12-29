@@ -80,7 +80,7 @@ class UserViewSet(viewsets.GenericViewSet):
             404: OpenApiResponse(description='Not Found'),
         }
     )
-    @action(detail=True, methods=['POST', 'DELETE'])
+    @action(detail=True, methods=['POST', 'DELETE'], permission_classes=(permissions.IsAuthenticated, ))
     def follow(self, request, user_id=None):
         
         if request.method == 'POST':
@@ -92,3 +92,18 @@ class UserViewSet(viewsets.GenericViewSet):
             service = UserUnfollowService(context={'request': request, 'user_id': user_id})
             status_code, data = service.execute()
             return Response(status=status_code, data=data)
+
+    @action(detail=True, methods=['GET'])
+    def followers(self, request, user_id=None):
+
+        service = UserFollowService(context={'request': request, 'user_id': user_id})
+        status_code, data = service.execute()
+        return Response(status=status_code, data=data)
+
+
+    @action(detail=True, methods=['GET'])
+    def followings(self, request, user_id=None):
+
+        service = UserFollowService(context={'request': request, 'user_id': user_id})
+        status_code, data = service.execute()
+        return Response(status=status_code, data=data)
