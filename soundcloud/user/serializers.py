@@ -105,7 +105,7 @@ class UserFollowService(serializers.Serializer):
             raise ConflictError("Already followed")
 
         Follow.objects.create(follower=follower, followee=followee)
-        return status.HTTP_201_CREATED, {'result': 'success'}
+        return status.HTTP_201_CREATED, UserSerializer(followee).data
 
 class UserUnfollowService(serializers.Serializer):
 
@@ -115,4 +115,4 @@ class UserUnfollowService(serializers.Serializer):
 
         follow = get_object_or_404(Follow, follower=follower, followee=followee)
         follow.delete()
-        return status.HTTP_200_OK, {'result': 'success'}
+        return status.HTTP_200_OK, UserSerializer(followee).data
