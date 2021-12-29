@@ -1,10 +1,9 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
-from .views import UserLoginView, UserSignUpView, UserLogoutView, UserViewSet, FollowViewSet
+from .views import UserLoginView, UserSignUpView, UserLogoutView, UserViewSet
 
 router = SimpleRouter(trailing_slash=False)
 router.register('users', UserViewSet, basename='users')  # /users
-router.register('users', FollowViewSet, basename='follow')  # /users
 
 urlpatterns = [
     path('signup', UserSignUpView.as_view(), name='signup'),  # /signup

@@ -46,22 +46,6 @@ class UserLogoutView(APIView):
         return Response({"you\'ve been logged out"}, status=status.HTTP_200_OK)
 
 
-class UserViewSet(viewsets.GenericViewSet):
-
-    serializer_class = UserSerializer
-    queryset = User.objects.all()
-    lookup_field = 'id'
-    lookup_url_kwarg = 'user_id'
-
-    def retrieve(self, request, user_id=None):
-
-        if user_id == 'me' and not request.user.is_authenticated:
-            raise NotAuthenticated("먼저 로그인 하세요.")
-        user = request.user if user_id == 'me' else get_object_or_404(User, id=user_id)
-
-        return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
-
-
 @extend_schema_view(
     followers=extend_schema(
         summary="Get User's Followers",
@@ -78,12 +62,20 @@ class UserViewSet(viewsets.GenericViewSet):
         }
     )
 )
-class FollowViewSet(viewsets.GenericViewSet):
+class UserViewSet(viewsets.GenericViewSet):
 
     serializer_class = UserSerializer
     queryset = User.objects.all()
     lookup_field = 'id'
     lookup_url_kwarg = 'user_id'
+
+    def retrieve(self, request, user_id=None):
+
+        if user_id == 'me' and not request.user.is_authenticated:
+            raise NotAuthenticated("먼저 로그인 하세요.")
+        user = request.user if user_id == 'me' else get_object_or_404(User, id=user_id)
+
+        return Response(self.get_serializer(user).data, status=status.HTTP_200_OK)
 
     @extend_schema(
         methods=['POST'],
@@ -116,13 +108,13 @@ class FollowViewSet(viewsets.GenericViewSet):
             status_code, data = service.execute()
             return Response(status=status_code, data=data)
 
-    @action(detail=True, methods=['GET'])
+    @action(detail=True)
     def followers(self, request, user_id=None):
         service = FollowerRetrieveService(context={'user_id': user_id})
         status_code, data = service.execute()
         return Response(status=status_code, data=data)
 
-    @action(detail=True, methods=['GET'])
+    @action(detail=True)
     def followings(self, request, user_id=None):
         service = FolloweeRetrieveService(context={'request': request, 'user_id': user_id})
         status_code, data = service.execute()
