@@ -120,10 +120,10 @@ class FollowViewSet(viewsets.GenericViewSet):
     def followers(self, request, user_id=None):
         service = FollowerRetrieveService(context={'user_id': user_id})
         status_code, data = service.execute()
-        return Response(status=status.HTTP_200_OK, data=data)
+        return Response(status=status_code, data=data)
 
     @action(detail=True, methods=['GET'])
     def followings(self, request, user_id=None):
         service = FolloweeRetrieveService(context={'request': request, 'user_id': user_id})
         status_code, data = service.execute()
-        return Response(status=status.HTTP_200_OK, data=data)
+        return Response(status=status_code, data=data)

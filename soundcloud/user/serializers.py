@@ -95,6 +95,7 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'created_at': {'read_only': True}, 'last_login': {
             'read_only': True}, 'password': {'write_only': True}}
 
+
 class UserFollowService(serializers.Serializer):
 
     def execute(self):
@@ -107,6 +108,7 @@ class UserFollowService(serializers.Serializer):
         Follow.objects.create(follower=follower, followee=followee)
         return status.HTTP_201_CREATED, UserSerializer(followee).data
 
+
 class UserUnfollowService(serializers.Serializer):
 
     def execute(self):
@@ -116,6 +118,7 @@ class UserUnfollowService(serializers.Serializer):
         follow = get_object_or_404(Follow, follower=follower, followee=followee)
         follow.delete()
         return status.HTTP_200_OK, UserSerializer(followee).data
+
 
 class FollowerRetrieveService(serializers.Serializer):
 
