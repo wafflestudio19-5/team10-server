@@ -1,10 +1,12 @@
 from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import update_last_login
 from rest_framework import serializers, status
 from rest_framework.generics import get_object_or_404
 from rest_framework_jwt.settings import api_settings
 from soundcloud.exceptions import ConflictError
 from datetime import date
+import re
 from user.models import Follow
 
 # 토큰 사용을 위한 기본 세팅
@@ -21,41 +23,55 @@ def jwt_token_of(user):
     return jwt_token
 
 
+def create_permalink():
+    while True:
+        permalink = User.objects.make_random_password(
+            length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
+        if not User.objects.filter(permalink=permalink).exists():
+            return permalink
+
+
 class UserCreateSerializer(serializers.Serializer):
-    display_name = serializers.CharField(max_length=25)
-    email = serializers.EmailField(max_length=100)
-    password = serializers.CharField(max_length=128, write_only=True)
-    age = serializers.IntegerField()
-    gender = serializers.CharField(max_length=20, required=False)
+    # Read-only fields
+    id = serializers.IntegerField(read_only=True)
+    permalink = serializers.CharField(read_only=True)
+    token = serializers.SerializerMethodField()
+
+    # Write-only fields
+    email = serializers.EmailField(max_length=100, write_only=True)
+    display_name = serializers.CharField(max_length=25, write_only=True)
+    password = serializers.CharField(max_length=128, min_length=8, write_only=True)
+    age = serializers.IntegerField(min_value=1, write_only=True)
+    gender = serializers.CharField(write_only=True, required=False)
+
+    def get_token(self, user):
+        return jwt_token_of(user)
 
     def validate(self, data):
         age = data.pop('age')
-        password = data.get('password')
-        if age < 0:
-            raise serializers.ValidationError("나이에는 양의 정수만 입력가능합니다.")
-        if len(password) < 8:
-            raise serializers.ValidationError("비밀번호는 8자리 이상 입력해야합니다.")
-
-        data.update(
-            {'birthday': date(date.today().year-age,
-                              date.today().month, 1)}
-        )
+        data['birthday'] = date(date.today().year - age, date.today().month, 1)
 
         return data
 
     def create(self, validated_data):
+        validated_data['permalink'] = create_permalink()
         user = User.objects.create_user(**validated_data)
 
-        return {
-            'permalink': user.permalink,
-            'token': jwt_token_of(user)
-        }
+        return UserCreateSerializer(user).data
 
 
 class UserLoginSerializer(serializers.Serializer):
+    # Read_only fields
+    id = serializers.IntegerField(read_only=True)
+    permalink = serializers.CharField(read_only=True)
+    token = serializers.SerializerMethodField()
 
-    email = serializers.EmailField(max_length=100)
-    password = serializers.CharField(max_length=128, write_only=True)
+    # Write-only fields
+    email = serializers.EmailField(max_length=100, write_only=True)
+    password = serializers.CharField(max_length=128, min_length=8, write_only=True)
+
+    def get_token(self, user):
+        return jwt_token_of(user)
 
     def validate(self, data):
         email = data.pop('email')
@@ -65,59 +81,115 @@ class UserLoginSerializer(serializers.Serializer):
         if user is None:
             raise serializers.ValidationError("이메일 또는 비밀번호가 잘못되었습니다.")
 
+        self.context['user'] = user
+        return data
+
+    def execute(self):
+        user = self.context.get('user')
         update_last_login(None, user)
-        
-        return {
-            'permalink': user.permalink,
-            'token': jwt_token_of(user)
-        }
+
+        return UserLoginSerializer(user).data
 
 
 class UserSerializer(serializers.ModelSerializer):
+    age = serializers.IntegerField(min_value=1, write_only=True)
 
     class Meta:
         model = User
         fields = (
+            'id',
             'permalink',
             'display_name',
             'email',
+            'password',
             'created_at',
             'last_login',
+            'age',
             'birthday',
+            'is_active',
             'gender',
-            'password',
             'first_name',
             'last_name',
             'city',
             'country',
             'bio',
         )
-        extra_kwargs = {'created_at': {'read_only': True}, 'last_login': {
-            'read_only': True}, 'password': {'write_only': True}}
+        extra_kwargs = {
+            'permalink': {
+                'max_length': 25,
+                'min_length': 3,
+            },
+            'password': {
+                'write_only': True,
+                'max_length': 128,
+                'min_length': 8,
+            },
+            'created_at': {'read_only': True},
+            'last_login': {'read_only': True},
+            'birthday': {'read_only': True},
+            'is_active': {'read_only': True},
+        }
+
+    def validate_permalink(self, value):
+        pattern = re.compile('^[a-z0-9\-\_]+$')
+
+        if not re.search(pattern, value):
+            raise serializers.ValidationError("Only lowercase letters/numbers/_/- are allowed in permalink.")
+
+        return value
+
+    def validate_password(self, value):
+
+        return make_password(value)
+
+    def validate(self, data):
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
+
+        if (first_name is None) != (last_name is None):
+            raise serializers.ValidationError("Both of the first name and the last name must be entered.")
+
+        age = data.pop('age', None)
+        if age is not None:
+            data['birthday'] = date(date.today().year - age, date.today().month, 1)
+
+        return data
+
+
+class SimpleUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'permalink',
+            'email',
+            'first_name',
+            'last_name',
+        )
 
 
 class UserFollowService(serializers.Serializer):
 
     def execute(self):
         follower = self.context['request'].user
-        followee = get_object_or_404(User, id=self.context['user_id'])
+        followee = self.context['user']
 
         if Follow.objects.filter(follower=follower, followee=followee).exists():
             raise ConflictError("Already followed")
 
         Follow.objects.create(follower=follower, followee=followee)
-        return status.HTTP_201_CREATED, UserSerializer(followee).data
+        return status.HTTP_201_CREATED, "Successful"
 
 
 class UserUnfollowService(serializers.Serializer):
 
     def execute(self):
         follower = self.context['request'].user
-        followee = get_object_or_404(User, id=self.context['user_id'])
+        followee = self.context['user']
 
         follow = get_object_or_404(Follow, follower=follower, followee=followee)
         follow.delete()
-        return status.HTTP_200_OK, UserSerializer(followee).data
+        return status.HTTP_200_OK, "Successful"
 
 
 class FollowerRetrieveService(serializers.Serializer):
