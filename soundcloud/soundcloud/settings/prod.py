@@ -20,7 +20,7 @@ ALLOWED_HOSTS = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': 'waffle-team-10-rds.cf6av8nj1vlu.ap-northeast-2.rds.amazonaws.com',
+        'HOST': 'django-team-10-database.cdfa0hitpoet.ap-northeast-2.rds.amazonaws.com',
         'PORT': 3306,
         'NAME': 'soundcloud',
         'USER': 'waffle-team-10',
