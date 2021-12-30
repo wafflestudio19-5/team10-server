@@ -32,7 +32,8 @@ class PostCommentService(serializers.Serializer):
         user = self.context['request'].user
         if not user.is_authenticated:
             raise NotAuthenticated("먼저 로그인 하세요.")
-        track = self.context['track']
+        track_id = self.context['track_id']
+        track = get_object_or_404(Track, id=track_id)
         content = self.validated_data.get('content')
         parent_comment_id = self.validated_data.get('parent_id')
         parent_comment = get_object_or_404(Comment, id=parent_comment_id) if parent_comment_id else None
@@ -49,7 +50,6 @@ class PostCommentService(serializers.Serializer):
 
 
 class DeleteCommentService(serializers.Serializer):
-    comment_id = serializers.IntegerField(required=True)
     parent_id = serializers.IntegerField(required=False, allow_null=True)
 
     def execute(self):
@@ -58,20 +58,18 @@ class DeleteCommentService(serializers.Serializer):
         user = self.context['request'].user
         if not user.is_authenticated:
             raise NotAuthenticated("먼저 로그인 하세요.")
-        track = self.context['track']
-        comment_id = self.validated_data.get('comment_id')
+        current_comment = self.context['comment']
         parent_comment_id = self.validated_data.get('parent_id')
         parent_comment = get_object_or_404(Comment, id=parent_comment_id) if parent_comment_id else None
 
-        try:
-            current = Comment.objects.get(id=comment_id, writer=user, track=track, parent_comment=parent_comment)
-            child = current.reply
-            current.delete()
-            if child:
-                child.parent_comment = parent_comment
-                child.save()
-        except Comment.DoesNotExist:
-            raise NotFound("Comment not found.")
+        if current_comment.parent_comment != parent_comment:
+            raise NotFound("Comment with given parent id does not exist.")
+
+        child_comment = current_comment.reply
+        current_comment.delete()
+        if child_comment:
+            child_comment.parent_comment = parent_comment
+            child_comment.save()
 
         return status.HTTP_200_OK, "Comment deleted."
 
@@ -79,7 +77,8 @@ class DeleteCommentService(serializers.Serializer):
 class RetrieveCommentService(serializers.Serializer):
 
     def execute(self):
-        track = self.context['track']
+        track_id = self.context['track_id']
+        track = get_object_or_404(Track, id=track_id)
         comments = Comment.objects.filter(track=track)
 
         return status.HTTP_200_OK, comments

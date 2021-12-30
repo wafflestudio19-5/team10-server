@@ -4,18 +4,24 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from track.models import Track
+from comment.models import Comment
 from track.serializers import CommentSerializer, PostCommentService, DeleteCommentService, RetrieveCommentService
 
 
-class CommentView(GenericAPIView):
+class CommentViewSet(viewsets.GenericViewSet):
 
     serializer_class = CommentSerializer
-    queryset = Track.objects.all()
-    lookup_field = 'id'
-    lookup_url_kwarg = 'track_id'
+    queryset = Comment.objects.all()
+
+    def get_object(self):
+        multi_filter = {'id': self.kwargs['comment_id'], 'track__id': self.kwargs['track_id']}
+        comment = get_object_or_404(self.queryset, **multi_filter)
+        self.check_object_permissions(self.request, comment)
+        return comment
 
     @extend_schema(
         summary="Create Comment",
+        request=PostCommentService,
         responses={
             201: OpenApiResponse(description='Created'),
             400: OpenApiResponse(description='Bad Request'),
@@ -24,13 +30,14 @@ class CommentView(GenericAPIView):
             409: OpenApiResponse(description='Conflict'),
         }
     )
-    def post(self, request, *args, **kwargs):
-        service = PostCommentService(data=request.data, context={'request': request, 'track': self.get_object()})
+    def create(self, request, *args, **kwargs):
+        service = PostCommentService(data=request.data, context={'request': request, 'track_id': self.kwargs['track_id']})
         status_code, data = service.execute()
         return Response(status=status_code, data=data)
 
     @extend_schema(
         summary="Delete Comment",
+        request=DeleteCommentService,
         responses={
             200: OpenApiResponse(description='OK'),
             400: OpenApiResponse(description='Bad Request'),
@@ -38,8 +45,8 @@ class CommentView(GenericAPIView):
             404: OpenApiResponse(description='Not Found'),
         }
     )
-    def delete(self, request, *args, **kwargs):
-        service = DeleteCommentService(data=request.data, context={'request': request, 'track': self.get_object()})
+    def destroy(self, request, *args, **kwargs):
+        service = DeleteCommentService(data=request.data, context={'request': request, 'comment': self.get_object()})
         status_code, data = service.execute()
         return Response(status=status_code, data=data)
 
@@ -50,7 +57,7 @@ class CommentView(GenericAPIView):
             404: OpenApiResponse(description='Not Found'),
         }
     )
-    def get(self, request, *args, **kwargs):
-        service = RetrieveCommentService(context={'track': self.get_object()})
+    def list(self, request, *args, **kwargs):
+        service = RetrieveCommentService(context={'track_id': self.kwargs['track_id']})
         status_code, data = service.execute()
         return Response(status=status_code, data=self.get_serializer(data, many=True).data)
