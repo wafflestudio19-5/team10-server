@@ -34,20 +34,8 @@ class CustomUserManager(BaseUserManager):
         return self._create_user(email, password, **extra_fields)
 
 
-def create_permalink():
-    try:
-        while True:
-            permalink = User.objects.make_random_password(
-                length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
-            if not User.objects.filter(permalink=permalink).exists():
-                return permalink
-    except:
-        pass
-
-
 class User(AbstractBaseUser, PermissionsMixin):
-    permalink = models.CharField(
-        max_length=25, unique=True, default=create_permalink)
+    permalink = models.CharField(max_length=25, unique=True)
     display_name = models.CharField(max_length=25)
     email = models.EmailField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -71,8 +59,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Follow(models.Model):
-    follower = models.ForeignKey(
-        get_user_model(), related_name="follows", on_delete=models.CASCADE)
-    followee = models.ForeignKey(
-        get_user_model(), related_name="followed_by", on_delete=models.CASCADE)
+    follower = models.ForeignKey(get_user_model(), related_name="follows", on_delete=models.CASCADE)
+    followee = models.ForeignKey(get_user_model(), related_name="followed_by", on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
