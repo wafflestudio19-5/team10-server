@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_jwt',
     'rest_framework.authtoken',
+    'drf_spectacular',
     'django_extensions',
     'user.apps.UserConfig',
     'track',
@@ -155,6 +156,8 @@ REST_FRAMEWORK = {
         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
+
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # JWT Authorization
@@ -178,3 +181,21 @@ CORS_ALLOW_CREDENTIALS = True
 AUTH_USER_MODEL = 'user.User'
 
 SITE_ID = 1
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'SoundWaffle API',
+    'DESCRIPTION': 'Soundwaffle API Document',
+    'VERSION': '0.1.0',
+    'CONTACT': {
+        'name': 'WaffleStudio Rookies 19.5 team-10-server',
+        'url': 'https://github.com/wafflestudio19-5/team10-server',
+    },
+    'SWAGGER_UI_SETTINGS': {
+        'dom_id': '#swagger-ui',
+        'layout': 'BaseLayout',
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': True,
+        'filter': True,
+    },
+}
