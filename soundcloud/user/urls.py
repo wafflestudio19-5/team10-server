@@ -1,18 +1,18 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
-from .views import UserLoginView, UserSignUpView, UserLogoutView, UserViewSet
 from .googleapi import *
+from .views import UserSelfView, UserLoginView, UserSignUpView, UserLogoutView, UserViewSet, UserFollowView
 
 router = SimpleRouter(trailing_slash=False)
-router.register('users', UserViewSet, basename='users')  # /users
+router.register('users', UserViewSet, basename='users')         # /users
 
 urlpatterns = [
-    path('signup', UserSignUpView.as_view(), name='signup'),  # /signup
-    path('login', UserLoginView.as_view(), name='login'),  # /login
-    path('logout', UserLogoutView.as_view(), name='logout'),  # /logout
-    path('', include(router.urls), name='auth-user'),
-    
+    path('signup', UserSignUpView.as_view(), name='signup'),    # /signup
+    path('login', UserLoginView.as_view(), name='login'),       # /login
+    path('logout', UserLogoutView.as_view(), name='logout'),    # /logout
+    path('users/me', UserSelfView.as_view(), name='user-self'), # /users/me
+    path('users/me/follow/<int:user_id>', UserFollowView.as_view(), name='user-follow'),  # /users/me/follow
+    path('', include(router.urls), name='user'),                # /users/{user_id}
     path('google', GoogleLoginApi.as_view(), name='google_login'),
     path('google/callback', GoogleSigninCallBackApi.as_view(), name='google_login_callback'),
-
 ]
