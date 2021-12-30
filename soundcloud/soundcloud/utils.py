@@ -1,6 +1,7 @@
 from rest_framework.exceptions import APIException, ValidationError
-from rest_framework import status
+from rest_framework import permissions, status
 from django.conf import settings
+from guardian.shortcuts import assign_perm
 import boto3, os, re
 
 def get_presigned_url(url, method, full_url=True):
@@ -29,13 +30,28 @@ def get_presigned_url(url, method, full_url=True):
 
     return presigned_url
 
+def assign_object_perms(user, instance):
+    """
+    Assigns permission to modify and delete the instance to the user.
+    """
+    kwargs = {
+        'app_label': instance._meta.app_label,
+        'model_name': instance._meta.model_name
+    }
+
+    assign_perm('%(app_label)s.change_%(model_name)s' % kwargs, user, instance)
+    assign_perm('%(app_label)s.delete_%(model_name)s' % kwargs, user, instance)
+
+
+class CustomObjectPermissions(permissions.IsAuthenticatedOrReadOnly, permissions.DjangoObjectPermissions):
+    pass
+
 
 class ConflictError(APIException):
     
     status_code = status.HTTP_409_CONFLICT
     default_detail = ('Already existing name.')
     default_code = 'conflict'
-
 
 
 class MediaUploadMixin:

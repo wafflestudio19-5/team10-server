@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
 from track.serializers import SimpleTrackSerializer, TrackSerializer, TrackMediaUploadSerializer
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
@@ -59,6 +60,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
 class TrackViewSet(viewsets.ModelViewSet):
 
     queryset = Track.objects.all()
+    permission_classes = (CustomObjectPermissions, )
     lookup_field = 'id'
     lookup_url_kwarg = 'track_id'
 
@@ -69,6 +71,3 @@ class TrackViewSet(viewsets.ModelViewSet):
             return SimpleTrackSerializer
         else:
             return TrackSerializer
-
-
-    # TODO: 자기 트랙만 수정하게

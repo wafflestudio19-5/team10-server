@@ -7,7 +7,7 @@ from track.models import Track
 from tag.serializers import TagSerializer
 from user.serializers import UserSerializer
 from reaction.serializers import LikeSerializer, RepostSerializer
-from soundcloud.utils import get_presigned_url, MediaUploadMixin
+from soundcloud.utils import assign_object_perms, get_presigned_url, MediaUploadMixin
 
 
 class TrackSerializer(serializers.ModelSerializer):
@@ -97,6 +97,12 @@ class TrackSerializer(serializers.ModelSerializer):
             data['artist'] = self.context['request'].user
 
         return data
+
+    def create(self, validated_data):
+        instance = super().create(validated_data=validated_data)
+        assign_object_perms(instance.artist, instance)
+
+        return instance
     
 
 class TrackMediaUploadSerializer(MediaUploadMixin, TrackSerializer):

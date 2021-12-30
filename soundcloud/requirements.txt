@@ -12,3 +12,4 @@ django-extensions
 gunicorn
 boto3
 drf-spectacular
+django-guardian
