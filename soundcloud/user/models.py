@@ -52,6 +52,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     country = models.CharField(max_length=20, blank=True)
     bio = models.TextField(blank=True)
     path = models.TextField(blank=True) #add for sociallogin
+    #is_staff field err
 
     @property
     def is_staff(self):
