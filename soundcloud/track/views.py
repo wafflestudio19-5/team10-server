@@ -37,7 +37,6 @@ class CommentViewSet(viewsets.GenericViewSet):
 
     @extend_schema(
         summary="Delete Comment",
-        request=DeleteCommentService,
         responses={
             200: OpenApiResponse(description='OK'),
             400: OpenApiResponse(description='Bad Request'),
@@ -46,7 +45,7 @@ class CommentViewSet(viewsets.GenericViewSet):
         }
     )
     def destroy(self, request, *args, **kwargs):
-        service = DeleteCommentService(data=request.data, context={'request': request, 'comment': self.get_object()})
+        service = DeleteCommentService(context={'request': request, 'comment': self.get_object()})
         status_code, data = service.execute()
         return Response(status=status_code, data=data)
 
