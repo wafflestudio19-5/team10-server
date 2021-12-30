@@ -21,7 +21,7 @@ class Track(models.Model):
     reposts = GenericRelation(Repost, related_query_name="track")
 
     class Meta:
-        constraints=[
+        constraints = [
             models.UniqueConstraint(
                 fields=['artist', 'permalink'],
                 name='track_permalink_unique',
