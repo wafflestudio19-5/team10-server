@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model, logout
 from rest_framework import status, permissions, viewsets
 from rest_framework.generics import GenericAPIView, RetrieveUpdateAPIView
+from rest_framework.mixins import CreateModelMixin, DestroyModelMixin
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from user.serializers import *
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
@@ -117,37 +119,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return UserSerializer
         elif self.action == 'list':
             return SimpleUserSerializer
-  
-    @extend_schema(
-        methods=['POST'],
-        summary="Follow User",
-        responses={
-            201: OpenApiResponse(response=UserSerializer, description='Created'),
-            401: OpenApiResponse(description='Unauthorized'),
-            404: OpenApiResponse(description='Not Found'),
-            409: OpenApiResponse(description='Conflict'),
-        }
-    )
-    @extend_schema(
-        methods=['DELETE'],
-        summary="Unfollow User",
-        responses={
-            200: OpenApiResponse(response=UserSerializer, description='OK'),
-            401: OpenApiResponse(description='Unauthorized'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    )
-    @action(detail=True, methods=['POST', 'DELETE'], permission_classes=(permissions.IsAuthenticated,))
-    def follow(self, request, user_id=None):
-        if request.method == 'POST':
-            service = UserFollowService(context={'request': request, 'user_id': user_id})
-            status_code, data = service.execute()
-            return Response(status=status_code, data=data)
-
-        if request.method == 'DELETE':
-            service = UserUnfollowService(context={'request': request, 'user_id': user_id})
-            status_code, data = service.execute()
-            return Response(status=status_code, data=data)
 
     @action(detail=True)
     def followers(self, request, user_id=None):
@@ -193,3 +164,38 @@ class UserSelfView(RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class UserFollowView(GenericAPIView):
+
+    queryset = User.objects.all()
+    lookup_field = 'id'
+    lookup_url_kwarg = 'user_id'
+    permission_classes = (permissions.IsAuthenticated, )
+
+    @extend_schema(
+        summary="Follow User",
+        responses={
+            201: OpenApiResponse(response=UserSerializer, description='Created'),
+            401: OpenApiResponse(description='Unauthorized'),
+            404: OpenApiResponse(description='Not Found'),
+            409: OpenApiResponse(description='Conflict'),
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        service = UserFollowService(context={'request': request, 'user': self.get_object()})
+        status_code, data = service.execute()
+        return Response(status=status_code, data=data)
+
+    @extend_schema(
+        summary="Unfollow User",
+        responses={
+            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            401: OpenApiResponse(description='Unauthorized'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        service = UserUnfollowService(context={'request': request, 'user': self.get_object()})
+        status_code, data = service.execute()
+        return Response(status=status_code, data=data)
