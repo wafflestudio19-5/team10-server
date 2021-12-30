@@ -41,6 +41,19 @@ def get_secret(setting, secrets=secrets):
 
 SECRET_KEY = get_secret("SECRET_KEY")
 
+# Settings for S3 bucket
+
+AWS_ACCESS_KEY = get_secret("AWS_ACCESS_KEY")
+AWS_SECRET_ACCESS_KEY = get_secret("AWS_SECRET_ACCESS_KEY")
+S3_REGION_NAME = "ap-northeast-2"
+S3_BUCKET_NAME = "django-team-10-media"
+S3_BASE_URL = "https://" + S3_BUCKET_NAME + ".s3." + S3_REGION_NAME + ".amazonaws.com/"
+S3_MUSIC_TRACK_DIR = "media/music/track/"
+S3_IMAGES_SET_DIR = "media/images/set/"
+S3_IMAGES_TRACK_DIR = "media/images/track/"
+S3_IMAGES_USER_PROFILE_DIR = "media/images/user/profile/"
+S3_IMAGES_USER_HEADER_DIR = "media/images/user/header/"
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -154,7 +167,6 @@ REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
     ),
 
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
@@ -198,4 +210,6 @@ SPECTACULAR_SETTINGS = {
         'displayOperationId': True,
         'filter': True,
     },
+    'COMPONENT_NO_READ_ONLY_REQUIRED': True,
+    'COMPONENT_SPLIT_REQUEST': False,
 }
