@@ -1,4 +1,4 @@
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ValidationError
 from rest_framework import status
 from django.conf import settings
 import boto3, os, re
@@ -37,7 +37,11 @@ class ConflictError(APIException):
     default_code = 'conflict'
 
 
+
 class MediaUploadMixin:
+    """
+    Must be used with 'rest_framework.serializers.ModelSerializer'.
+    """
 
     media_types = ('audio', 'image')
     content_types = ('track', 'set', 'user_profile', 'user_header')
@@ -58,6 +62,18 @@ class MediaUploadMixin:
     }
     filename_pattern = re.compile('^[a-zA-Z0-9\/\!\-\_\.\*\'\(\)]+$')
 
+    def get_audio_presigned_url(self, instance):
+        if self.context['request'].data.get('audio_filename') is None:
+            return None
+
+        return get_presigned_url(instance.audio, 'put_object')
+
+    def get_image_presigned_url(self, instance):
+        if self.context['request'].data.get('image_filename') is None:
+            return None
+
+        return get_presigned_url(instance.image, 'put_object')
+
     def get_unique_url(self, filename, media_type, content_type, model=None):
         if filename is None:
             return None
@@ -67,11 +83,7 @@ class MediaUploadMixin:
         except KeyError:
             raise ValueError(f"media_type choices: {MediaUploadMixin.media_types}, content_type choices: {MediaUploadMixin.content_types}")
 
-        try:
-            model = model or self.Meta.model
-        except AttributeError:
-            raise TypeError("You should specify 'model' parameter or use rest_framework.serializers.ModelSerializer.")
-
+        model = model or self.Meta.model
         name, ext = os.path.splitext(url)
         queryset = model.objects.exclude(id=getattr(self.instance, 'id', None))
 
@@ -84,6 +96,24 @@ class MediaUploadMixin:
             url = name + ext
         
         return url
+
+    def validate_audio_filename(self, value):
+        if not self.check_extension(value, 'audio'):
+            raise ValidationError("Unsupported audio file extension.")
+
+        if not self.check_filename(value):
+            raise ValidationError("Incorrect audio filename format.")
+
+        return value
+
+    def validate_image_filename(self, value):
+        if not self.check_extension(value, 'image'):
+            raise ValidationError("Unsupported image file extension.")
+
+        if not self.check_filename(value):
+            raise ValidationError("Incorrect image filename format.")
+
+        return value
 
     @staticmethod
     def check_extension(filename, media_type):

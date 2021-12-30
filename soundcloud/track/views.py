@@ -63,12 +63,12 @@ class TrackViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = 'track_id'
 
     def get_serializer_class(self):
-        if self.action in ['retrieve', 'delete']:
-            return TrackSerializer
-        elif self.action in ['create', 'update', 'partial_update']:
+        if self.action in ['create', 'update', 'partial_update']:
             return TrackMediaUploadSerializer
         elif self.action in ['list']:
             return SimpleTrackSerializer
+        else:
+            return TrackSerializer
 
 
-    # TODO: 자기 트랙만 수정하게]
+    # TODO: 자기 트랙만 수정하게

@@ -99,7 +99,7 @@ class TrackSerializer(serializers.ModelSerializer):
         return data
     
 
-class TrackMediaUploadSerializer(TrackSerializer, MediaUploadMixin):
+class TrackMediaUploadSerializer(MediaUploadMixin, TrackSerializer):
 
     audio_filename = serializers.CharField(write_only=True)
     image_filename = serializers.CharField(write_only=True, required=False)
@@ -113,36 +113,6 @@ class TrackMediaUploadSerializer(TrackSerializer, MediaUploadMixin):
             'audio_presigned_url',
             'image_presigned_url',
         )
-
-    def get_audio_presigned_url(self, track):
-        if self.context['request'].data.get('audio_filename') is None:
-            return None
-
-        return get_presigned_url(track.audio, 'put_object')
-
-    def get_image_presigned_url(self, track):
-        if self.context['request'].data.get('image_filename') is None:
-            return None
-
-        return get_presigned_url(track.image, 'put_object')
-    
-    def validate_audio_filename(self, value):
-        if not self.check_extension(value, 'audio'):
-            raise ValidationError("Unsupported audio file extension.")
-
-        if not self.check_filename(value):
-            raise ValidationError("Incorrect audio filename format.")
-
-        return value
-
-    def validate_image_filename(self, value):
-        if not self.check_extension(value, 'image'):
-            raise ValidationError("Unsupported image file extension.")
-
-        if not self.check_filename(value):
-            raise ValidationError("Incorrect image filename format.")
-
-        return value
 
     def validate(self, data):
         data = super().validate(data)
@@ -159,7 +129,9 @@ class TrackMediaUploadSerializer(TrackSerializer, MediaUploadMixin):
 
 
 class SimpleTrackSerializer(serializers.ModelSerializer):
-
+    
+    audio = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
@@ -179,6 +151,12 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
             'repost_count',
             'comment_count',
         )
+
+    def get_audio(self, track):
+        return get_presigned_url(track.audio, 'get_object')
+
+    def get_image(self, track):
+        return get_presigned_url(track.image, 'get_object')
 
     def get_like_count(self, track):
         return track.likes.count()
