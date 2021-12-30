@@ -19,13 +19,6 @@ def jwt_token_of(user):
 
     return jwt_token
 
-def create_permalink():
-    while True:
-        permalink = User.objects.make_random_password(
-            length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
-        if not User.objects.filter(permalink=permalink).exists():
-            return permalink
-
 
 class UserCreateSerializer(serializers.Serializer):
 
@@ -53,7 +46,6 @@ class UserCreateSerializer(serializers.Serializer):
     def validate(self, data):
         age = data.pop('age')
         data['birthday'] = date(date.today().year-age, date.today().month, 1)
-        data['permalink'] = create_permalink()
 
         return data
 
@@ -71,8 +63,8 @@ class UserLoginSerializer(serializers.Serializer):
     token = serializers.SerializerMethodField()
 
     # Write-only fields
-    email = serializers.EmailField(max_length=100, write_only=True)
-    password = serializers.CharField(max_length=128, min_length=8, write_only=True)
+    email = serializers.EmailField(write_only=True)
+    password = serializers.CharField(write_only=True)
 
     def get_token(self, user):
         return jwt_token_of(user)
