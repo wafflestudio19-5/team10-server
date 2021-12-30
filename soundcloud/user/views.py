@@ -1,8 +1,6 @@
 from django.contrib.auth import get_user_model, logout
 from rest_framework import status, permissions, viewsets
-from rest_framework.decorators import action
-from rest_framework.generics import GenericAPIView
-from rest_framework.mixins import RetrieveModelMixin
+from rest_framework.generics import GenericAPIView, RetrieveUpdateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from user.serializers import *
@@ -84,23 +82,60 @@ class UserLogoutView(APIView):
         summary="Retrieve User",
         responses={
             200: OpenApiResponse(response=UserSerializer, description='OK'),
-            401: OpenApiResponse(description='Unauthorized'),
             404: OpenApiResponse(description='Not Found'),
+        }
+    ),
+    list=extend_schema(
+        summary="List Users",
+        responses={
+            200: OpenApiResponse(response=SimpleUserSerializer, description='OK'),
         }
     )
 )
-class UserViewSet(viewsets.GenericViewSet, RetrieveModelMixin):
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
-    serializer_class = UserSerializer
     queryset = User.objects.all()
     lookup_field = 'id'
     lookup_url_kwarg = 'user_id'
 
-    @action(detail=False, methods=['GET', ], permission_classes=(permissions.IsAuthenticated, ))
-    def me(self, request):
-        data = self.get_serializer(request.user).data
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return UserSerializer
+        elif self.action == 'list':
+            return SimpleUserSerializer
 
-        return Response(data, status=status.HTTP_200_OK)
+
+@extend_schema_view(
+    get=extend_schema(
+        summary="Retrieve Me",
+        responses={
+            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            401: OpenApiResponse(description='Unauthorized'),
+        }
+    ),
+    put=extend_schema(
+        summary="Update Me",
+        responses={
+            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            401: OpenApiResponse(description='Unauthorized'),
+        }
+    ),
+    patch=extend_schema(
+        summary="Partial Update Me",
+        responses={
+            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            401: OpenApiResponse(description='Unauthorized'),
+        }
+    ),
+)
+class UserSelfView(RetrieveUpdateAPIView):
+
+    serializer_class = UserSerializer
+    queryset = None
+    permission_classes = (permissions.IsAuthenticated, )
+
+    def get_object(self):
+        return self.request.user
 
     @action(detail=True, methods=['POST', 'DELETE'])
     def follow(self, request, user_id=None):
