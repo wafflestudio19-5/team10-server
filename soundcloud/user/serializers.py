@@ -22,40 +22,43 @@ def jwt_token_of(user):
 
 
 class UserCreateSerializer(serializers.Serializer):
-    display_name = serializers.CharField(max_length=25)
-    email = serializers.EmailField(max_length=100)
-    password = serializers.CharField(max_length=128, write_only=True)
-    age = serializers.IntegerField()
-    gender = serializers.CharField(max_length=20, required=False)
 
-    def validate(self, data):
-        age = data.pop('age')
-        password = data.get('password')
-        if age < 0:
-            raise serializers.ValidationError("나이에는 양의 정수만 입력가능합니다.")
-        if len(password) < 8:
-            raise serializers.ValidationError("비밀번호는 8자리 이상 입력해야합니다.")
+    # Read-only fields
+    id = serializers.IntegerField(read_only=True)
+    permalink = serializers.CharField(read_only=True)
+    token = serializers.SerializerMethodField()
 
-        data.update(
-            {'birthday': date(date.today().year-age,
-                              date.today().month, 1)}
-        )
+    # Write-only fields
+    email = serializers.EmailField(max_length=100, write_only=True)
+    display_name = serializers.CharField(max_length=25, write_only=True)
+    password = serializers.CharField(max_length=128, min_length=8, write_only=True)
+    age = serializers.IntegerField(min_value=1, write_only=True)
+    gender = serializers.CharField(write_only=True, required=False)
 
-        return data
+    def get_token(self, user):
+        return jwt_token_of(user)
 
     def create(self, validated_data):
+        age = validated_data.pop('age')
+        validated_data['birthday'] = date(date.today().year-age, date.today().month, 1)
         user = User.objects.create_user(**validated_data)
 
-        return {
-            'permalink': user.permalink,
-            'token': jwt_token_of(user)
-        }
+        return UserCreateSerializer(user).data
 
 
 class UserLoginSerializer(serializers.Serializer):
 
-    email = serializers.EmailField(max_length=100)
-    password = serializers.CharField(max_length=128, write_only=True)
+    # Read_only fields
+    id = serializers.IntegerField(read_only=True)
+    permalink = serializers.CharField(read_only=True)
+    token = serializers.SerializerMethodField()
+
+    # Write-only fields
+    email = serializers.EmailField(max_length=100, write_only=True)
+    password = serializers.CharField(max_length=128, min_length=8, write_only=True)
+
+    def get_token(self, user):
+        return jwt_token_of(user)
 
     def validate(self, data):
         email = data.pop('email')
@@ -65,35 +68,48 @@ class UserLoginSerializer(serializers.Serializer):
         if user is None:
             raise serializers.ValidationError("이메일 또는 비밀번호가 잘못되었습니다.")
 
+        self.context['user'] = user
+        return data
+
+    def execute(self):
+        user = self.context.get('user')
         update_last_login(None, user)
-        
-        return {
-            'permalink': user.permalink,
-            'token': jwt_token_of(user)
-        }
+
+        return UserLoginSerializer(user).data
 
 
 class UserSerializer(serializers.ModelSerializer):
 
+    age = serializers.IntegerField(min_value=1, write_only=True)
+
     class Meta:
         model = User
         fields = (
+            'id',
             'permalink',
             'display_name',
             'email',
+            'password',
             'created_at',
             'last_login',
+            'age',
             'birthday',
+            'is_active',
             'gender',
-            'password',
             'first_name',
             'last_name',
             'city',
             'country',
             'bio',
         )
-        extra_kwargs = {'created_at': {'read_only': True}, 'last_login': {
-            'read_only': True}, 'password': {'write_only': True}}
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'created_at': {'read_only': True},
+            'last_login': {'read_only': True},
+            'birthday': {'read_only': True},
+            'is_active': {'read_only': True}
+        }
+
 
 class UserFollowService(serializers.Serializer):
 
@@ -106,6 +122,7 @@ class UserFollowService(serializers.Serializer):
 
         Follow.objects.create(follower=follower, followee=followee)
         return status.HTTP_201_CREATED, UserSerializer(followee).data
+
 
 class UserUnfollowService(serializers.Serializer):
 

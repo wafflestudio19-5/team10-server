@@ -6,6 +6,28 @@ from django.contrib.contenttypes.models import ContentType
 from rest_framework.exceptions import NotFound
 
 
+class LikeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Like
+        fields = '__all__'
+
+    def validate(self, data):
+        
+        return data
+
+
+class RepostSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Repost
+        fields = '__all__'
+
+    def validate(self, data):
+        
+        return data
+
+
 class BaseReactionService(serializers.Serializer):
 
     reaction_type = None

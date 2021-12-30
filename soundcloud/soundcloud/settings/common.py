@@ -41,6 +41,19 @@ def get_secret(setting, secrets=secrets):
 
 SECRET_KEY = get_secret("SECRET_KEY")
 
+# Settings for S3 bucket
+
+AWS_ACCESS_KEY = get_secret("AWS_ACCESS_KEY")
+AWS_SECRET_ACCESS_KEY = get_secret("AWS_SECRET_ACCESS_KEY")
+S3_REGION_NAME = "ap-northeast-2"
+S3_BUCKET_NAME = "django-team-10-media"
+S3_BASE_URL = "https://" + S3_BUCKET_NAME + ".s3." + S3_REGION_NAME + ".amazonaws.com/"
+S3_MUSIC_TRACK_DIR = "media/music/track/"
+S3_IMAGES_SET_DIR = "media/images/set/"
+S3_IMAGES_TRACK_DIR = "media/images/track/"
+S3_IMAGES_USER_PROFILE_DIR = "media/images/user/profile/"
+S3_IMAGES_USER_HEADER_DIR = "media/images/user/header/"
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -55,6 +68,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_jwt',
     'rest_framework.authtoken',
+    'drf_spectacular',
     'django_extensions',
     'user.apps.UserConfig',
     'track',
@@ -153,8 +167,9 @@ REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
     ),
+
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # JWT Authorization
@@ -178,3 +193,23 @@ CORS_ALLOW_CREDENTIALS = True
 AUTH_USER_MODEL = 'user.User'
 
 SITE_ID = 1
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'SoundWaffle API',
+    'DESCRIPTION': 'Soundwaffle API Document',
+    'VERSION': '0.1.0',
+    'CONTACT': {
+        'name': 'WaffleStudio Rookies 19.5 team-10-server',
+        'url': 'https://github.com/wafflestudio19-5/team10-server',
+    },
+    'SWAGGER_UI_SETTINGS': {
+        'dom_id': '#swagger-ui',
+        'layout': 'BaseLayout',
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': True,
+        'filter': True,
+    },
+    'COMPONENT_NO_READ_ONLY_REQUIRED': True,
+    'COMPONENT_SPLIT_REQUEST': False,
+}
