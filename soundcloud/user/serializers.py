@@ -115,6 +115,7 @@ class UserSerializer(serializers.ModelSerializer):
             'city',
             'country',
             'bio',
+            'path', #add
         )
         extra_kwargs = {
             'permalink': {

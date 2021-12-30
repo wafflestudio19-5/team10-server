@@ -10,12 +10,15 @@ class CustomUserManager(BaseUserManager):
 
     use_in_migrations = True
 
-    def _create_user(self, email, password, **extra_fields):
+    def _create_user(self, email, password, path, **extra_fields):
         if not email:
             raise ValueError('이메일을 설정해주세요.')
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
-        user.set_password(password)
+        if (password is None) and (path == "google"):
+            user.setset_unusable_password()
+        else:
+            user.set_password(password)
         user.save(using=self._db)
 
         return user
@@ -47,6 +50,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     city = models.CharField(max_length=20, blank=True)
     country = models.CharField(max_length=20, blank=True)
     bio = models.TextField(blank=True)
+    path = models.TextField(blank=True) #add for sociallogin
 
     @property
     def is_staff(self):
