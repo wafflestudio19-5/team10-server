@@ -30,8 +30,8 @@ class GoogleSigninCallBackApi(PermissionsMixin, APIView):
     @transaction.atomic
     def social_user_create(self, email, **extra_fields):
         data = copy.deepcopy(extra_fields)
-        data["email"].append(email)
-        data["password"].append(None)
+        data["email"]=email
+        data["password"]="googlepassword"
 
         serializer = UserCreateSerializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -42,7 +42,7 @@ class GoogleSigninCallBackApi(PermissionsMixin, APIView):
     @transaction.atomic
     def social_user_get_or_create(self, email, **extra_data):
         data = copy.deepcopy(extra_data)
-        data["email"].append(email)
+        data["email"]=email
 
         if User.objects.filter(email=email).exists(): #이미 존재하는 이메일이면 로그인 비번은 첫 시도시 unusable로 설정된 상태.
             serializer = UserLoginSerializer(data=data)
@@ -63,9 +63,10 @@ class GoogleSigninCallBackApi(PermissionsMixin, APIView):
             'first_name': user_data.get('given_name', ''), 
             'last_name': user_data.get('family_name', ''), 
             'nickname': user_data.get('nickname', ''), 
-            'name': user_data.get('name', ''), 
+            'display_name': user_data.get('name', ''), 
             #'image': user_data.get('picture', None), 
             'path': "google", 
+            'age':1, #왜 필수인가
             }  #구글이 넘겨주는 거.
 
         #response = redirect(settings.BASE_FRONTEND_URL) 

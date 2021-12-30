@@ -12,7 +12,7 @@ def google_get_access_token(google_token_api, code): #성공해서 받은 code�
     client_secret = get_secret("SOCIAL_AUTH_GOOGLE_SECRET")
     code = code 
     grant_type = 'authorization_code' 
-    redirection_uri = settings.BASE_BACKEND_URL + "/api/v1/auth/login/google/callback" 
+    redirection_uri = settings.BASE_BACKEND_URL + "/google/callback" 
     state = "random_string"
 
     google_token_api += f"?client_id={client_id}&client_secret={client_secret}&code={code}&grant_type={grant_type}&redirect_uri={redirection_uri}&state={state}" 

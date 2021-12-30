@@ -10,12 +10,13 @@ class CustomUserManager(BaseUserManager):
 
     use_in_migrations = True
 
-    def _create_user(self, email, password, path, **extra_fields):
+    def _create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError('이메일을 설정해주세요.')
+        path = extra_fields.get('path')
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
-        if (password is None) and (path == "google"):
+        if (password == "googlepassword") and (path == "google"):
             user.setset_unusable_password()
         else:
             user.set_password(password)
