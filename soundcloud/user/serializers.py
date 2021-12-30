@@ -1,10 +1,13 @@
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import update_last_login
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.generics import get_object_or_404
 from rest_framework_jwt.settings import api_settings
+from soundcloud.exceptions import ConflictError
 from datetime import date
 from soundcloud.utils import ConflictError
+from user.models import Follow
 
 # 토큰 사용을 위한 기본 세팅
 User = get_user_model()
@@ -156,3 +159,42 @@ class SimpleUserSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
         )
+
+
+
+class UserFollowService(serializers.Serializer):
+
+    def execute(self):
+        follower = self.context['request'].user
+        followee = self.context['user']
+
+        if Follow.objects.filter(follower=follower, followee=followee).exists():
+            raise ConflictError("Already followed")
+
+        Follow.objects.create(follower=follower, followee=followee)
+        return status.HTTP_201_CREATED, "Successful"
+
+
+class UserUnfollowService(serializers.Serializer):
+
+    def execute(self):
+        follower = self.context['request'].user
+        followee = self.context['user']
+
+        follow = get_object_or_404(Follow, follower=follower, followee=followee)
+        follow.delete()
+        return status.HTTP_200_OK, "Successful"
+
+
+class FollowerRetrieveService(serializers.Serializer):
+
+    def execute(self):
+        user = get_object_or_404(User, id=self.context['user_id'])
+        return status.HTTP_200_OK, user.followed_by.values_list('follower', flat=True)
+
+
+class FolloweeRetrieveService(serializers.Serializer):
+
+    def execute(self):
+        user = get_object_or_404(User, id=self.context['user_id'])
+        return status.HTTP_200_OK, user.follows.values_list('followee', flat=True)
