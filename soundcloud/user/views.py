@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model, logout
 from rest_framework import status, permissions, viewsets
 from rest_framework.generics import GenericAPIView, RetrieveUpdateAPIView
+from rest_framework.mixins import CreateModelMixin, DestroyModelMixin
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from user.serializers import *
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
@@ -73,10 +75,10 @@ class UserLogoutView(APIView):
     )
     def post(self, request):
         logout(request)
-
+        
         return Response({"You\'ve been logged out"}, status=status.HTTP_200_OK)
 
-
+      
 @extend_schema_view(
     retrieve=extend_schema(
         summary="Retrieve User",
@@ -89,6 +91,20 @@ class UserLogoutView(APIView):
         summary="List Users",
         responses={
             200: OpenApiResponse(response=SimpleUserSerializer, description='OK'),
+        }
+    ),
+    followers=extend_schema(
+        summary="Get User's Followers",
+        responses={
+            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
+    followings=extend_schema(
+        summary="Get User's Followees",
+        responses={
+            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            404: OpenApiResponse(description='Not Found'),
         }
     )
 )
@@ -103,6 +119,18 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return UserSerializer
         elif self.action == 'list':
             return SimpleUserSerializer
+
+    @action(detail=True)
+    def followers(self, request, user_id=None):
+        service = FollowerRetrieveService(context={'user_id': user_id})
+        status_code, data = service.execute()
+        return Response(status=status_code, data=data)
+
+    @action(detail=True)
+    def followings(self, request, user_id=None):
+        service = FolloweeRetrieveService(context={'request': request, 'user_id': user_id})
+        status_code, data = service.execute()
+        return Response(status=status_code, data=data)
 
 
 @extend_schema_view(
@@ -137,15 +165,37 @@ class UserSelfView(RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
 
-    @action(detail=True, methods=['POST', 'DELETE'])
-    def follow(self, request, user_id=None):
-        
-        if request.method == 'POST':
-            service = UserFollowService(context={'request': request, 'user_id': user_id})
-            status_code, data = service.execute()
-            return Response(status=status_code, data=data)
 
-        if request.method == 'DELETE':
-            service = UserUnfollowService(context={'request': request, 'user_id': user_id})
-            status_code, data = service.execute()
-            return Response(status=status_code, data=data)
+class UserFollowView(GenericAPIView):
+
+    queryset = User.objects.all()
+    lookup_field = 'id'
+    lookup_url_kwarg = 'user_id'
+    permission_classes = (permissions.IsAuthenticated, )
+
+    @extend_schema(
+        summary="Follow User",
+        responses={
+            201: OpenApiResponse(response=UserSerializer, description='Created'),
+            401: OpenApiResponse(description='Unauthorized'),
+            404: OpenApiResponse(description='Not Found'),
+            409: OpenApiResponse(description='Conflict'),
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        service = UserFollowService(context={'request': request, 'user': self.get_object()})
+        status_code, data = service.execute()
+        return Response(status=status_code, data=data)
+
+    @extend_schema(
+        summary="Unfollow User",
+        responses={
+            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            401: OpenApiResponse(description='Unauthorized'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        service = UserUnfollowService(context={'request': request, 'user': self.get_object()})
+        status_code, data = service.execute()
+        return Response(status=status_code, data=data)
