@@ -136,3 +136,16 @@ class UserSelfView(RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+    @action(detail=True, methods=['POST', 'DELETE'])
+    def follow(self, request, user_id=None):
+        
+        if request.method == 'POST':
+            service = UserFollowService(context={'request': request, 'user_id': user_id})
+            status_code, data = service.execute()
+            return Response(status=status_code, data=data)
+
+        if request.method == 'DELETE':
+            service = UserUnfollowService(context={'request': request, 'user_id': user_id})
+            status_code, data = service.execute()
+            return Response(status=status_code, data=data)

@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     'comment',
     'tag',
     'reaction',
+    'utility',
 ]
 
 MIDDLEWARE = [
