@@ -81,5 +81,5 @@ class SetTrackSerializer(serializers.ModelSerializer):
 
 
 
-#class SetUploadSerializer(SetSerializer):
+class SetUploadSerializer(SetSerializer):
 #track/settrack 생성까지.
