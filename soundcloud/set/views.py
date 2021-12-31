@@ -37,7 +37,7 @@ class SetViewSet(viewsets.GenericViewSet):
     def destroy(self, request, pk):
         set = self.get_object()
         if set.creator != request.user:
-            return Response({"error": "set of others"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"error": "set of others"}, status=403)
         SetTrack.objects.filter(set=set).delete() #트랙은 남아있음
         set.delete()
         return Response(status=status.HTTP_200_OK)

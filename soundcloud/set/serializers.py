@@ -82,4 +82,33 @@ class SetTrackSerializer(serializers.ModelSerializer):
 
 
 class SetUploadSerializer(SetSerializer):
-#track/settrack 생성까지.
+    image_presigned_url = serializers.SerializerMethodField()
+    class Meta(SetSerializer.Meta):
+        fields = SetSerializer.Meta.fields + (
+            'image_presigned_url',
+        )
+    
+    #트랙 시리얼라이저에서 가져옴
+    def get_image_presigned_url(self, track):
+        if track.image is not None:
+            image_filename = track.image.replace(settings.S3_BASE_URL, '')
+
+            image_presigned_url = boto3.client(
+                's3',
+                region_name=settings.S3_REGION_NAME,
+                aws_access_key_id=settings.AWS_ACCESS_KEY,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+            ).generate_presigned_url(
+                ClientMethod='put_object',
+                Params={'Bucket': settings.S3_BUCKET_NAME,
+                        'Key': settings.S3_IMAGES_TRACK_DIR + image_filename},
+                ExpiresIn=300
+            )
+        else:
+            image_presigned_url = None
+
+        return image_presigned_url
+
+    
+
+    #track/settrack 생성까지.
