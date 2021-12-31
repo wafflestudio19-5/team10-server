@@ -174,7 +174,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 
 class UserFollowService(serializers.Serializer):
 
-    def execute(self):
+    def create(self):
         follower = self.context['request'].user
         followee = self.context['user']
 
@@ -184,10 +184,7 @@ class UserFollowService(serializers.Serializer):
         Follow.objects.create(follower=follower, followee=followee)
         return status.HTTP_201_CREATED, "Successful"
 
-
-class UserUnfollowService(serializers.Serializer):
-
-    def execute(self):
+    def delete(self):
         follower = self.context['request'].user
         followee = self.context['user']
 

@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model, logout
 from rest_framework import status, permissions, viewsets
 from rest_framework.generics import GenericAPIView, RetrieveUpdateAPIView
-from rest_framework.mixins import CreateModelMixin, DestroyModelMixin
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
@@ -168,10 +167,16 @@ class UserSelfView(RetrieveUpdateAPIView):
 
 class UserFollowView(GenericAPIView):
 
+    serializer_class = UserFollowService
     queryset = User.objects.all()
     lookup_field = 'id'
     lookup_url_kwarg = 'user_id'
-    permission_classes = (permissions.IsAuthenticated, )
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['user'] = self.get_object()
+
+        return context
 
     @extend_schema(
         summary="Follow User",
@@ -183,9 +188,10 @@ class UserFollowView(GenericAPIView):
         }
     )
     def post(self, request, *args, **kwargs):
-        service = UserFollowService(context={'request': request, 'user': self.get_object()})
-        status_code, data = service.execute()
-        return Response(status=status_code, data=data)
+        service = self.get_serializer()
+        status, data = service.create()
+
+        return Response(status=status, data=data)
 
     @extend_schema(
         summary="Unfollow User",
@@ -196,6 +202,7 @@ class UserFollowView(GenericAPIView):
         }
     )
     def delete(self, request, *args, **kwargs):
-        service = UserUnfollowService(context={'request': request, 'user': self.get_object()})
-        status_code, data = service.execute()
-        return Response(status=status_code, data=data)
+        service = self.get_serializer()
+        status, data = service.delete()
+
+        return Response(status=status, data=data)
