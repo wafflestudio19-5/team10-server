@@ -53,16 +53,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True)
     birthday = models.DateField(default=date.today)
     is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
     gender = models.CharField(max_length=20, blank=True)
     first_name = models.CharField(max_length=35, blank=True)
     last_name = models.CharField(max_length=35, blank=True)
     city = models.CharField(max_length=20, blank=True)
     country = models.CharField(max_length=20, blank=True)
     bio = models.TextField(blank=True)
-
-    @property
-    def is_staff(self):
-        return self.is_superuser
 
     objects = CustomUserManager()
 
