@@ -10,6 +10,6 @@ urlpatterns = [
     path('login', UserLoginView.as_view(), name='login'),       # /login
     path('logout', UserLogoutView.as_view(), name='logout'),    # /logout
     path('users/me', UserSelfView.as_view(), name='user-self'), # /users/me
-    path('users/me/follow/<int:user_id>', UserFollowView.as_view(), name='user-follow'),  # /users/me/follow
+    path('users/me/followings/<int:user_id>', UserFollowView.as_view(), name='user-follow'),  # /users/me/follow
     path('', include(router.urls), name='user'),                # /users/{user_id}
 ]

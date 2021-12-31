@@ -193,7 +193,7 @@ class UserUnfollowService(serializers.Serializer):
 
         follow = get_object_or_404(Follow, follower=follower, followee=followee)
         follow.delete()
-        return status.HTTP_200_OK, "Successful"
+        return status.HTTP_204_NO_CONTENT, "Successful"
 
 
 class FollowerRetrieveService(serializers.Serializer):
