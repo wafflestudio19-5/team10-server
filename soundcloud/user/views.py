@@ -182,9 +182,9 @@ class UserFollowView(GenericAPIView):
         summary="Follow User",
         responses={
             201: OpenApiResponse(response=UserSerializer, description='Created'),
+            400: OpenApiResponse(description='Bad Request'),
             401: OpenApiResponse(description='Unauthorized'),
             404: OpenApiResponse(description='Not Found'),
-            409: OpenApiResponse(description='Conflict'),
         }
     )
     def post(self, request, *args, **kwargs):
@@ -196,7 +196,7 @@ class UserFollowView(GenericAPIView):
     @extend_schema(
         summary="Unfollow User",
         responses={
-            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            204: OpenApiResponse(response=UserSerializer, description='No Content'),
             401: OpenApiResponse(description='Unauthorized'),
             404: OpenApiResponse(description='Not Found'),
         }
