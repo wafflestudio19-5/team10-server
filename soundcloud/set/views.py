@@ -8,7 +8,7 @@ class SetViewSet(viewsets.GenericViewSet):
     #serializer_class = SetSerializer
     def get_sealizer_class(self):
         if self.action in ['create', 'update']:
-            return TrackUploadSerializer
+            return SetUploadSerializer
         else:
             return SetSerializer
     
@@ -16,24 +16,29 @@ class SetViewSet(viewsets.GenericViewSet):
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        set = serializer.save()
-
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
     # 2. PUT /sets/{set_id}
     def update(self, request, pk):
-
-        return
+        set = self.get_object()
+        serializer = self.get_serializer(set, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.update(set, serializer.validated_data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     # 3. GET /sets/{set_id}
     def retrieve(self, request, pk):
-
-        return
+        set = self.get_object()
+        return Response(self.get_serializer(set).data, status=status.HTTP_200_OK)
 
     # 4. DELETE /sets/{set_id}
-    def delete(self, request, pk):
-
-        return
+    def destroy(self, request, pk):
+        set = self.get_object()
+        if set.creator != request.user:
+            return Response({"error": "set of others"}, status=status.HTTP_401_UNAUTHORIZED)
+        set.delete()
+        return Response(status=status.HTTP_200_OK)
 
 
