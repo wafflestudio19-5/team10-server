@@ -171,15 +171,17 @@ class SimpleUserSerializer(serializers.ModelSerializer):
         )
 
 
-
 class UserFollowService(serializers.Serializer):
 
     def create(self):
         follower = self.context['request'].user
         followee = self.context['user']
 
+        if follower == followee:
+            raise serializers.ValidationError("You cannot follow yourself.")
+
         if Follow.objects.filter(follower=follower, followee=followee).exists():
-            raise ConflictError("Already followed")
+            raise serializers.ValidationError("Already followed")
 
         Follow.objects.create(follower=follower, followee=followee)
         return status.HTTP_201_CREATED, "Successful"
