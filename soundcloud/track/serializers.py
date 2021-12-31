@@ -20,9 +20,6 @@ class TrackSerializer(serializers.ModelSerializer):
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
-    likes = LikeSerializer(many=True, read_only=True)
-    reposts = RepostSerializer(many=True, read_only=True)
-    # comments = CommentSerializer(many=True, read_only=True)
 
     class Meta:
         model = Track
@@ -42,9 +39,6 @@ class TrackSerializer(serializers.ModelSerializer):
             'like_count',
             'repost_count',
             'comment_count',
-            'likes',
-            'reposts',
-            # 'comments',
         )
         extra_kwargs = {
             'permalink': {
