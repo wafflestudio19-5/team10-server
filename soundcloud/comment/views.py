@@ -37,7 +37,6 @@ class CommentViewSet(viewsets.GenericViewSet):
         summary="Delete Comment",
         responses={
             204: OpenApiResponse(description='No Content'),
-            400: OpenApiResponse(description='Bad Request'),
             401: OpenApiResponse(description='Unauthorized'),
             404: OpenApiResponse(description='Not Found'),
         }
