@@ -14,7 +14,8 @@ class CustomUserManager(BaseUserManager):
         if not email:
             raise ValueError('이메일을 설정해주세요.')
         email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+        permalink = self.create_permalink()
+        user = self.model(email=email, permalink=permalink, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
 
@@ -33,9 +34,16 @@ class CustomUserManager(BaseUserManager):
 
         return self._create_user(email, password, **extra_fields)
 
+    def create_permalink(self):
+        while True:
+            permalink = User.objects.make_random_password(
+                length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
+            if not User.objects.filter(permalink=permalink).exists():
+                return permalink
+
 
 class User(AbstractBaseUser, PermissionsMixin):
-    permalink = models.CharField(max_length=25, unique=True)
+    permalink = models.SlugField(max_length=25, unique=True)
     display_name = models.CharField(max_length=25)
     email = models.EmailField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
