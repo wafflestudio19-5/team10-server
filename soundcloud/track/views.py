@@ -1,38 +1,73 @@
-from rest_framework import viewsets, permissions
-from rest_framework.generics import GenericAPIView, get_object_or_404
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+from rest_framework import viewsets
+from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
-from comment.models import Comment
-from track.serializers import *
+from track.serializers import SimpleTrackSerializer, TrackSerializer, TrackMediaUploadSerializer
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 
 
-class TrackViewSet(viewsets.GenericViewSet):
+@extend_schema_view(
+    create=extend_schema(
+        summary="Create Track",
+        responses={
+            '201': OpenApiResponse(response=TrackMediaUploadSerializer, description='Created'),
+            '400': OpenApiResponse(description='Bad Request'),
+            '401': OpenApiResponse(description='Unauthorized'),
+        }
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve Track",
+        responses={
+            '200': OpenApiResponse(response=TrackSerializer, description='OK'),
+            '404': OpenApiResponse(description='Not Found')
+        }
+    ),
+    update=extend_schema(
+        summary="Update Track",
+        responses={
+            '200': OpenApiResponse(response=TrackMediaUploadSerializer, description='OK'),
+            '400': OpenApiResponse(description='Bad Request'),
+            '401': OpenApiResponse(description='Unauthorized'),
+            '403': OpenApiResponse(description='Permission Denied'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    ),
+    partial_update=extend_schema(
+        summary="Partial Update Track",
+        responses={
+            '200': OpenApiResponse(response=TrackMediaUploadSerializer, description='OK'),
+            '400': OpenApiResponse(description='Bad Request'),
+            '401': OpenApiResponse(description='Unauthorized'),
+            '403': OpenApiResponse(description='Permission Denied'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    ),
+    destroy=extend_schema(
+        summary="Delete Track",
+        responses={
+            '204': OpenApiResponse(description='No Content'),
+            '401': OpenApiResponse(description='Unauthorized'),
+            '403': OpenApiResponse(description='Permission Denied'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    ),
+    list=extend_schema(
+        summary="List Tracks",
+        responses={
+            '200': OpenApiResponse(response=TrackSerializer, description='OK'),
+        }
+    )
+)
+class TrackViewSet(viewsets.ModelViewSet):
 
-    query_set = Track.objects.all()
-    lookup_field = 'track_id'
+    queryset = Track.objects.all()
+    permission_classes = (CustomObjectPermissions, )
+    lookup_field = 'id'
+    lookup_url_kwarg = 'track_id'
 
     def get_serializer_class(self):
-        if self.action in ['create', 'update']:
-            return TrackUploadSerializer
+        if self.action in ['create', 'update', 'partial_update']:
+            return TrackMediaUploadSerializer
         elif self.action in ['list']:
             return SimpleTrackSerializer
         else:
             return TrackSerializer
-
-    @extend_schema(
-        summary="Create Track",
-        responses={
-            201: OpenApiResponse(response=TrackUploadSerializer, description='Created'),
-            400: OpenApiResponse(description='Bad Request'),
-            401: OpenApiResponse(description='Unauthorized'),
-            409: OpenApiResponse(description='Conflict'),
-        }
-    )
-    def create(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data, status = serializer.save()
-
-        return Response(data=data, status=status)
