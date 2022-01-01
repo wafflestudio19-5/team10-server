@@ -171,29 +171,28 @@ class SimpleUserSerializer(serializers.ModelSerializer):
         )
 
 
-
 class UserFollowService(serializers.Serializer):
 
-    def execute(self):
+    def create(self):
         follower = self.context['request'].user
         followee = self.context['user']
 
+        if follower == followee:
+            raise serializers.ValidationError("You cannot follow yourself.")
+
         if Follow.objects.filter(follower=follower, followee=followee).exists():
-            raise ConflictError("Already followed")
+            raise serializers.ValidationError("Already followed")
 
         Follow.objects.create(follower=follower, followee=followee)
         return status.HTTP_201_CREATED, "Successful"
 
-
-class UserUnfollowService(serializers.Serializer):
-
-    def execute(self):
+    def delete(self):
         follower = self.context['request'].user
         followee = self.context['user']
 
         follow = get_object_or_404(Follow, follower=follower, followee=followee)
         follow.delete()
-        return status.HTTP_200_OK, "Successful"
+        return status.HTTP_204_NO_CONTENT, "Successful"
 
 
 class FollowerRetrieveService(serializers.Serializer):
