@@ -1,8 +1,5 @@
-from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.generics import get_object_or_404
-from rest_framework.exceptions import NotFound, NotAuthenticated
-from rest_framework.serializers import ValidationError
 from datetime import datetime
 from soundcloud.exceptions import ConflictError
 from track.models import Track
@@ -16,6 +13,7 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = (
+            'id',
             'writer',
             'content',
             'created_at',
@@ -32,8 +30,6 @@ class PostCommentService(serializers.Serializer):
         self.is_valid(raise_exception=True)
 
         user = self.context['request'].user
-        if not user.is_authenticated:
-            raise NotAuthenticated("먼저 로그인 하세요.")
         track_id = self.context['track_id']
         track = get_object_or_404(Track, id=track_id)
         content = self.validated_data.get('content')
@@ -54,9 +50,6 @@ class PostCommentService(serializers.Serializer):
 class DeleteCommentService(serializers.Serializer):
 
     def execute(self):
-        user = self.context['request'].user
-        if not user.is_authenticated:
-            raise NotAuthenticated("먼저 로그인 하세요.")
         current_comment = self.context['comment']
         parent_comment = current_comment.parent_comment
         child_comment = current_comment.reply

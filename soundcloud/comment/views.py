@@ -1,8 +1,7 @@
-from rest_framework import viewsets, permissions
-from rest_framework.generics import GenericAPIView, get_object_or_404
+from rest_framework import viewsets
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from rest_framework.decorators import action
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from comment.serializers import *
 
 
