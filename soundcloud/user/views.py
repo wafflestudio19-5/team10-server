@@ -199,5 +199,5 @@ class UserFollowView(GenericAPIView):
     def delete(self, request, *args, **kwargs):
         service = self.get_serializer()
         status, data = service.delete()
-
+        
         return Response(status=status, data=data)
