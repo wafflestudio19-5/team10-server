@@ -15,7 +15,8 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('이메일을 설정해주세요.')
         path = extra_fields.get('path')
         email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+        permalink = self.create_permalink()
+        user = self.model(email=email, permalink=permalink, **extra_fields)
         if (password == "googlepassword") and (path == "google"):
             user.setset_unusable_password()
         else:
@@ -37,14 +38,22 @@ class CustomUserManager(BaseUserManager):
 
         return self._create_user(email, password, **extra_fields)
 
+    def create_permalink(self):
+        while True:
+            permalink = User.objects.make_random_password(
+                length=12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
+            if not User.objects.filter(permalink=permalink).exists():
+                return permalink
+
 
 class User(AbstractBaseUser, PermissionsMixin):
-    permalink = models.CharField(max_length=25, unique=True)
+    permalink = models.SlugField(max_length=25, unique=True)
     display_name = models.CharField(max_length=25)
     email = models.EmailField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     birthday = models.DateField(default=date.today)
     is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
     gender = models.CharField(max_length=20, blank=True)
     first_name = models.CharField(max_length=35, blank=True)
     last_name = models.CharField(max_length=35, blank=True)
@@ -53,10 +62,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     bio = models.TextField(blank=True)
     path = models.TextField(blank=True) #add for sociallogin
     #is_staff field err
-
-    @property
-    def is_staff(self):
-        return self.is_superuser
 
     objects = CustomUserManager()
 

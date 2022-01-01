@@ -13,3 +13,4 @@ gunicorn
 django-environ #social
 boto3
 drf-spectacular
+django-guardian
