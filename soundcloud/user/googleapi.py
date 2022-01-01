@@ -26,6 +26,9 @@ class GoogleLoginApi(PermissionsMixin, APIView):
 
 class GoogleSigninCallBackApi(PermissionsMixin, APIView):
     permission_classes = (permissions.AllowAny, )
+
+    def social_user_login(response, user): #jwt_login()
+        return response
         
     @transaction.atomic
     def social_user_create(self, email, **extra_fields):
@@ -35,9 +38,9 @@ class GoogleSigninCallBackApi(PermissionsMixin, APIView):
 
         serializer = UserCreateSerializer(data=data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.save()
+        user = serializer.save()
 
-        return Response(data, status=status.HTTP_201_CREATED)
+        return user
 
     @transaction.atomic
     def social_user_get_or_create(self, email, **extra_data):
@@ -45,12 +48,18 @@ class GoogleSigninCallBackApi(PermissionsMixin, APIView):
         data["email"]=email
 
         if User.objects.filter(email=email).exists(): #이미 존재하는 이메일이면 로그인 비번은 첫 시도시 unusable로 설정된 상태.
-            serializer = UserLoginSerializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            data = serializer.execute()
-            return Response(data, status=status.HTTP_200_OK)
+            user = User.objects.filter(email=email).first()
+            response = redirect(settings.BASE_FRONTEND_URL)
+            response = self.social_user_login(response=response, user=user)
 
-        return self.social_user_create(email=email, **extra_data)
+            return response
+                
+
+        user = self.social_user_create(email=email, **extra_data)
+        response = redirect(settings.BASE_FRONTEND_URL)
+        response = self.social_user_login(response=response, user=user)
+
+        return response
 
 
     def get(self, request, *args, **kwargs): 
