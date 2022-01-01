@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from reaction.models import Like, Repost
-from soundcloud.exceptions import ConflictError
+#from soundcloud.exceptions import ConflictError
 from rest_framework import status
 from django.contrib.contenttypes.models import ContentType
 from rest_framework.exceptions import NotFound

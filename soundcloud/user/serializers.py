@@ -4,7 +4,7 @@ from django.contrib.auth.models import update_last_login
 from rest_framework import serializers, status
 from rest_framework.generics import get_object_or_404
 from rest_framework_jwt.settings import api_settings
-from soundcloud.exceptions import ConflictError
+#from soundcloud.exceptions import ConflictError
 from datetime import date
 from soundcloud.utils import ConflictError
 from user.models import Follow
