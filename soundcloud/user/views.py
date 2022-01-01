@@ -159,34 +159,42 @@ class UserSelfView(RetrieveUpdateAPIView):
 
 class UserFollowView(GenericAPIView):
 
+    serializer_class = UserFollowService
     queryset = User.objects.all()
     lookup_field = 'id'
     lookup_url_kwarg = 'user_id'
-    permission_classes = (permissions.IsAuthenticated, )
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['user'] = self.get_object()
+
+        return context
 
     @extend_schema(
         summary="Follow User",
         responses={
             201: OpenApiResponse(response=UserSerializer, description='Created'),
+            400: OpenApiResponse(description='Bad Request'),
             401: OpenApiResponse(description='Unauthorized'),
             404: OpenApiResponse(description='Not Found'),
-            409: OpenApiResponse(description='Conflict'),
         }
     )
     def post(self, request, *args, **kwargs):
-        service = UserFollowService(context={'request': request, 'user': self.get_object()})
-        status_code, data = service.execute()
-        return Response(status=status_code, data=data)
+        service = self.get_serializer()
+        status, data = service.create()
+
+        return Response(status=status, data=data)
 
     @extend_schema(
         summary="Unfollow User",
         responses={
-            200: OpenApiResponse(response=UserSerializer, description='OK'),
+            204: OpenApiResponse(response=UserSerializer, description='No Content'),
             401: OpenApiResponse(description='Unauthorized'),
             404: OpenApiResponse(description='Not Found'),
         }
     )
     def delete(self, request, *args, **kwargs):
-        service = UserUnfollowService(context={'request': request, 'user': self.get_object()})
-        status_code, data = service.execute()
-        return Response(status=status_code, data=data)
+        service = self.get_serializer()
+        status, data = service.delete()
+
+        return Response(status=status, data=data)
