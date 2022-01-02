@@ -103,22 +103,24 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_url_kwarg = 'user_id'
 
     def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return UserSerializer
-        elif self.action == 'list':
+        if self.action in [ 'list', 'followers', 'followings' ]:
             return SimpleUserSerializer
+        else:
+            return UserSerializer
 
     @action(detail=True)
-    def followers(self, request, user_id=None):
-        service = FollowerRetrieveService(context={'user_id': user_id})
-        status_code, data = service.execute()
-        return Response(status=status_code, data=data)
+    def followers(self, *args, **kwargs):
+        queryset = self.get_queryset().filter(followings__followee=self.get_object())
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response(serializer.data)
 
     @action(detail=True)
-    def followings(self, request, user_id=None):
-        service = FolloweeRetrieveService(context={'request': request, 'user_id': user_id})
-        status_code, data = service.execute()
-        return Response(status=status_code, data=data)
+    def followings(self, *args, **kwargs):
+        queryset = self.get_queryset().filter(followers__follower=self.get_object())
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response(serializer.data)
 
 
 @extend_schema_view(

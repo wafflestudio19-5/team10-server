@@ -145,7 +145,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_follower_count(self, user):
-        return user.followed_by.count()
+        return user.followers.count()
 
     def validate_password(self, value):
         
@@ -209,7 +209,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_follower_count(self, user):
-        return user.followed_by.count()
+        return user.followers.count()
 
 
 class UserFollowService(serializers.Serializer):
@@ -234,17 +234,3 @@ class UserFollowService(serializers.Serializer):
         follow = get_object_or_404(Follow, follower=follower, followee=followee)
         follow.delete()
         return status.HTTP_204_NO_CONTENT, "Successful"
-
-
-class FollowerRetrieveService(serializers.Serializer):
-
-    def execute(self):
-        user = get_object_or_404(User, id=self.context['user_id'])
-        return status.HTTP_200_OK, user.followed_by.values_list('follower', flat=True)
-
-
-class FolloweeRetrieveService(serializers.Serializer):
-
-    def execute(self):
-        user = get_object_or_404(User, id=self.context['user_id'])
-        return status.HTTP_200_OK, user.follows.values_list('followee', flat=True)
