@@ -165,7 +165,7 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
 
-class UserUploadSerializer(MediaUploadMixin, UserSerializer):
+class UserMediaUploadSerializer(MediaUploadMixin, UserSerializer):
 
     image_profile_filename = serializers.CharField(write_only=True, required=False)
     image_header_filename = serializers.CharField(write_only=True, required=False)
@@ -207,6 +207,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
     def get_image_profile(self, user):
         return get_presigned_url(user.image_profile, 'get_object')
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_follower_count(self, user):
         return user.followed_by.count()
 

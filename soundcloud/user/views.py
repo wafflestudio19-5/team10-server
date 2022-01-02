@@ -132,7 +132,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     put=extend_schema(
         summary="Update Me",
         responses={
-            200: OpenApiResponse(response=UserUploadSerializer, description='OK'),
+            200: OpenApiResponse(response=UserMediaUploadSerializer, description='OK'),
             400: OpenApiResponse(description='Bad Request'),
             401: OpenApiResponse(description='Unauthorized'),
         }
@@ -140,7 +140,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     patch=extend_schema(
         summary="Partial Update Me",
         responses={
-            200: OpenApiResponse(response=UserUploadSerializer, description='OK'),
+            200: OpenApiResponse(response=UserMediaUploadSerializer, description='OK'),
             400: OpenApiResponse(description='Bad Request'),
             401: OpenApiResponse(description='Unauthorized'),
         }
@@ -152,8 +152,8 @@ class UserSelfView(RetrieveUpdateAPIView):
     permission_classes = (permissions.IsAuthenticated, )
 
     def get_serializer_class(self):
-        if self.request.method in [ 'put', 'patch' ]:
-            return UserUploadSerializer
+        if self.request.method in [ 'PUT', 'PATCH' ]:
+            return UserMediaUploadSerializer
         else:
             return UserSerializer
 
