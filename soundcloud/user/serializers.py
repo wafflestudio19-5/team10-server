@@ -4,7 +4,6 @@ from django.contrib.auth.models import update_last_login
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
-from rest_framework.generics import get_object_or_404
 from rest_framework_jwt.settings import api_settings
 from soundcloud.utils import ConflictError, MediaUploadMixin, get_presigned_url
 from datetime import date
@@ -35,7 +34,7 @@ class UserCreateSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=100, write_only=True)
     display_name = serializers.CharField(max_length=25, write_only=True)
     password = serializers.CharField(max_length=128, min_length=8, write_only=True)
-    age = serializers.IntegerField(min_value=1, write_only=True)
+    age = serializers.IntegerField(min_value=1, write_only=True, required=False)
     gender = serializers.CharField(write_only=True, required=False)
 
     def get_token(self, user):
@@ -48,8 +47,9 @@ class UserCreateSerializer(serializers.Serializer):
         return value
 
     def validate(self, data):
-        age = data.pop('age')
-        data['birthday'] = date(date.today().year-age, date.today().month, 1)
+        age = data.pop('age', None)
+        if age is not None:
+            data['birthday'] = date(date.today().year-age, date.today().month, 1)
 
         return data
 
@@ -93,7 +93,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     image_profile = serializers.SerializerMethodField()
     image_header = serializers.SerializerMethodField()
-    age = serializers.IntegerField(min_value=1, write_only=True)
+    age = serializers.IntegerField(min_value=1, write_only=True, required=False)
     follower_count = serializers.SerializerMethodField()
 
     class Meta:

@@ -52,7 +52,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     image_profile = models.URLField(null=True, unique=True)
     image_header = models.URLField(null=True, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    birthday = models.DateField(default=date.today)
+    birthday = models.DateField(null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     gender = models.CharField(max_length=20, blank=True)
