@@ -116,14 +116,7 @@ class TrackMediaUploadSerializer(MediaUploadMixin, TrackSerializer):
 
     def validate(self, data):
         data = super().validate(data)
-        audio_filename = data.pop('audio_filename', None)
-        image_filename = data.pop('image_filename', None)
-
-        # Generate unique audio url or image url, and include them to the data.
-        if audio_filename is not None:
-            data['audio'] = self.get_unique_url(audio_filename, 'audio', 'track')
-        if image_filename is not None:
-            data['image'] = self.get_unique_url(image_filename, 'image', 'track')
+        data.update(self.get_unique_urls(**data))
 
         return data
 

@@ -4,6 +4,29 @@ from django.conf import settings
 from guardian.shortcuts import assign_perm
 import boto3, os, re
 
+MODEL_NAMES = ('track', 'set', 'user',)
+FIELD_NAMES = ('audio', 'image', 'image_profile', 'image_header',)
+MEDIA_PATHS = {
+    'track': {
+        'audio': settings.S3_BASE_URL + settings.S3_MUSIC_TRACK_DIR,
+        'image': settings.S3_BASE_URL + settings.S3_IMAGES_TRACK_DIR,
+    },
+    'set': {
+        'image': settings.S3_BASE_URL + settings.S3_IMAGES_SET_DIR,
+    },
+    'user': {
+        'image_profile': settings.S3_BASE_URL + settings.S3_IMAGES_USER_PROFILE_DIR,
+        'image_header': settings.S3_BASE_URL + settings.S3_IMAGES_USER_HEADER_DIR,
+    },
+}
+MEDIA_TYPES = ('audio', 'image',)
+EXTENSIONS = {
+    'audio': ('.wav', '.flac', '.aiff', '.alac', 'mp3', '.aac', '.ogg', '.oga', '.mp4', '.mp2', '.m4a', '.3gp', '.3g2', '.mj2', '.amr', '.wma',),
+    'image': ('.jpg', '.png',),
+}
+FILENAME_PATTERN = re.compile('^[a-zA-Z0-9\/\!\-\_\.\*\'\(\)]+$')
+
+
 def get_presigned_url(url, method, full_url=True):
     if url is None:
         return None
@@ -29,6 +52,7 @@ def get_presigned_url(url, method, full_url=True):
     )
 
     return presigned_url
+
 
 def assign_object_perms(user, instance):
     """
@@ -59,51 +83,19 @@ class MediaUploadMixin:
     Must be used with 'rest_framework.serializers.ModelSerializer'.
     """
 
-    media_types = ('audio', 'image')
-    content_types = ('track', 'set', 'user_profile', 'user_header')
-    media_paths = {
-        'audio' : {
-            'track':        settings.S3_BASE_URL + settings.S3_MUSIC_TRACK_DIR,
-        },
-        'image' : {
-            'track':        settings.S3_BASE_URL + settings.S3_IMAGES_TRACK_DIR,
-            'set':          settings.S3_BASE_URL + settings.S3_IMAGES_SET_DIR,
-            'user_profile': settings.S3_BASE_URL + settings.S3_IMAGES_USER_PROFILE_DIR,
-            'user_header':  settings.S3_BASE_URL + settings.S3_IMAGES_USER_HEADER_DIR,
-        },
-    }
-    extensions = {
-        'audio': ('.wav', '.flac', '.aiff', '.alac', 'mp3', '.aac', '.ogg', '.oga', '.mp4', '.mp2', '.m4a', '.3gp', '.3g2', '.mj2', '.amr', '.wma'),
-        'image': ('.jpg', '.png'),
-    }
-    filename_pattern = re.compile('^[a-zA-Z0-9\/\!\-\_\.\*\'\(\)]+$')
-
-    def get_audio_presigned_url(self, instance):
-        if self.context['request'].data.get('audio_filename') is None:
-            return None
-
-        return get_presigned_url(instance.audio, 'put_object')
-
-    def get_image_presigned_url(self, instance):
-        if self.context['request'].data.get('image_filename') is None:
-            return None
-
-        return get_presigned_url(instance.image, 'put_object')
-
-    def get_unique_url(self, filename, media_type, content_type, model=None):
+    def _get_unique_url(self, filename, model_name, field_name, queryset=None):
         if filename is None:
             return None
 
         try:
-            url = MediaUploadMixin.media_paths[media_type][content_type] + filename
+            url = MEDIA_PATHS[model_name][field_name] + filename
         except KeyError:
-            raise ValueError(f"media_type choices: {MediaUploadMixin.media_types}, content_type choices: {MediaUploadMixin.content_types}")
+            raise ValueError(f"model_name choices: {MODEL_NAMES}, field_name choices: {FIELD_NAMES}")
 
-        model = model or self.Meta.model
+        queryset = queryset or self.Meta.model.objects.exclude(id=getattr(self.instance, 'id', None))
         name, ext = os.path.splitext(url)
-        queryset = model.objects.exclude(id=getattr(self.instance, 'id', None))
 
-        while queryset.filter(**{media_type: url}).exists():
+        while queryset.filter(**{field_name: url}).exists():
             if re.search(r'\-\d+$', name):
                 num = re.search(r'\d+$', name).group(0)
                 name = re.sub(r'\d+$', str(int(num)+1), name)
@@ -113,34 +105,68 @@ class MediaUploadMixin:
         
         return url
 
-    def validate_audio_filename(self, value):
-        if not self.check_extension(value, 'audio'):
-            raise ValidationError("Unsupported audio file extension.")
+    def _get_presigned_url(self, instance, field_name):
+        if self.context['request'].data.get(field_name+'_filename') is None:
+            return None
+
+        return get_presigned_url(getattr(instance, field_name, None), 'put_object')
+
+    def _validate_filename(self, value, media_type):
+        if not self.check_extension(value, media_type):
+            raise ValidationError(f"Unsupported {media_type} file extension.")
 
         if not self.check_filename(value):
-            raise ValidationError("Incorrect audio filename format.")
+            raise ValidationError(f"Incorrect {media_type} filename format.")
 
         return value
+
+    def get_unique_urls(self, **kwargs):
+
+        data = {}
+        for key, filename in kwargs.items():
+            if not key.endswith('_filename'):
+                continue
+            field_name = key.replace('_filename', '')
+            url = self._get_unique_url(filename, self.Meta.model._meta.model_name, field_name)
+            if url is not None:
+                data[field_name] = url
+
+        return data
+
+    def get_audio_presigned_url(self, instance):
+        return self._get_presigned_url(instance, 'audio')
+
+    def get_image_presigned_url(self, instance):
+        return self._get_presigned_url(instance, 'image')
+
+    def get_image_profile_presigned_url(self, instance):
+        return self._get_presigned_url(instance, 'image_profile')
+
+    def get_image_header_presigned_url(self, instance):
+        return self._get_presigned_url(instance, 'image_header')
+
+    def validate_audio_filename(self, value):
+        return self._validate_filename(value, 'audio')
 
     def validate_image_filename(self, value):
-        if not self.check_extension(value, 'image'):
-            raise ValidationError("Unsupported image file extension.")
+        return self._validate_filename(value, 'image')
 
-        if not self.check_filename(value):
-            raise ValidationError("Incorrect image filename format.")
+    def validate_image_profile_filename(self, value):
+        return self._validate_filename(value, 'image')
 
-        return value
+    def validate_image_header_filename(self, value):
+        return self._validate_filename(value, 'image')
 
     @staticmethod
     def check_extension(filename, media_type):
         try:
-            valid_extensions = MediaUploadMixin.extensions[media_type]
+            valid_extensions = EXTENSIONS[media_type]
         except KeyError:
-            raise ValueError(f"media_type choices: {MediaUploadMixin.media_types}")
+            raise ValueError(f"media_type choices: {MEDIA_TYPES}")
 
         return filename.lower().endswith(valid_extensions)
 
     @staticmethod
     def check_filename(filename):
 
-        return re.search(MediaUploadMixin.filename_pattern, filename)
+        return re.search(FILENAME_PATTERN, filename)
