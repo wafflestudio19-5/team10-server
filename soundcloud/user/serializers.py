@@ -186,8 +186,10 @@ class UserUploadSerializer(MediaUploadMixin, UserSerializer):
 
         return data
 
+
 class SimpleUserSerializer(serializers.ModelSerializer):
 
+    image_profile = serializers.SerializerMethodField()
     follower_count = serializers.SerializerMethodField()
 
     class Meta:
