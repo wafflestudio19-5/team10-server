@@ -179,7 +179,7 @@ class UserFollowView(GenericAPIView):
     @extend_schema(
         summary="Follow User",
         responses={
-            201: OpenApiResponse(response=UserSerializer, description='Created'),
+            201: OpenApiResponse(description='Created'),
             400: OpenApiResponse(description='Bad Request'),
             401: OpenApiResponse(description='Unauthorized'),
             404: OpenApiResponse(description='Not Found'),
@@ -194,7 +194,8 @@ class UserFollowView(GenericAPIView):
     @extend_schema(
         summary="Unfollow User",
         responses={
-            204: OpenApiResponse(response=UserSerializer, description='No Content'),
+            204: OpenApiResponse(description='No Content'),
+            400: OpenApiResponse(description='Bad Request'),
             401: OpenApiResponse(description='Unauthorized'),
             404: OpenApiResponse(description='Not Found'),
         }

@@ -222,7 +222,7 @@ class UserFollowService(serializers.Serializer):
             raise serializers.ValidationError("You cannot follow yourself.")
 
         if Follow.objects.filter(follower=follower, followee=followee).exists():
-            raise serializers.ValidationError("Already followed")
+            raise serializers.ValidationError("Already followed.")
 
         Follow.objects.create(follower=follower, followee=followee)
         return status.HTTP_201_CREATED, "Successful"
@@ -231,6 +231,10 @@ class UserFollowService(serializers.Serializer):
         follower = self.context['request'].user
         followee = self.context['user']
 
-        follow = get_object_or_404(Follow, follower=follower, followee=followee)
+        try:
+            follow = Follow.objects.get(follower=follower, followee=followee)
+        except Follow.DoesNotExist:
+            raise serializers.ValidationError("Haven't followed yet.")
+
         follow.delete()
         return status.HTTP_204_NO_CONTENT, "Successful"
