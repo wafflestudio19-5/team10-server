@@ -24,7 +24,6 @@ def jwt_token_of(user):
 
 
 class UserCreateSerializer(serializers.Serializer):
-
     # Read-only fields
     id = serializers.IntegerField(read_only=True)
     permalink = serializers.SlugField(read_only=True)
@@ -48,7 +47,7 @@ class UserCreateSerializer(serializers.Serializer):
 
     def validate(self, data):
         age = data.pop('age')
-        data['birthday'] = date(date.today().year-age, date.today().month, 1)
+        data['birthday'] = date(date.today().year - age, date.today().month, 1)
 
         return data
 
@@ -89,7 +88,6 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-
     age = serializers.IntegerField(min_value=1, write_only=True)
 
     class Meta:
@@ -131,7 +129,7 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
     def validate_password(self, value):
-        
+
         return make_password(value)
 
     def validate(self, data):
@@ -143,13 +141,12 @@ class UserSerializer(serializers.ModelSerializer):
 
         age = data.pop('age', None)
         if age is not None:
-            data['birthday'] = date(date.today().year-age, date.today().month, 1)
+            data['birthday'] = date(date.today().year - age, date.today().month, 1)
 
         return data
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
         fields = (
