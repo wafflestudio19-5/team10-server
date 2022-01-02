@@ -1,12 +1,13 @@
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import update_last_login
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
 from rest_framework.generics import get_object_or_404
 from rest_framework_jwt.settings import api_settings
-from soundcloud.utils import ConflictError
+from soundcloud.utils import ConflictError, MediaUploadMixin, get_presigned_url
 from datetime import date
-from soundcloud.utils import ConflictError
 from user.models import Follow
 
 # 토큰 사용을 위한 기본 세팅
@@ -90,7 +91,10 @@ class UserLoginSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
 
+    image_profile = serializers.SerializerMethodField()
+    image_header = serializers.SerializerMethodField()
     age = serializers.IntegerField(min_value=1, write_only=True)
+    follower_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -100,10 +104,13 @@ class UserSerializer(serializers.ModelSerializer):
             'display_name',
             'email',
             'password',
+            'image_profile',
+            'image_header',
             'created_at',
             'last_login',
             'age',
             'birthday',
+            'follower_count',
             'is_active',
             'gender',
             'first_name',
@@ -130,6 +137,16 @@ class UserSerializer(serializers.ModelSerializer):
             'is_active',
         )
 
+    def get_image_profile(self, user):
+        return get_presigned_url(user.image_profile, 'get_object')
+
+    def get_image_header(self, user):
+        return get_presigned_url(user.image_header, 'get_object')
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_follower_count(self, user):
+        return user.followed_by.count()
+
     def validate_password(self, value):
         
         return make_password(value)
@@ -148,7 +165,30 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
 
+class UserUploadSerializer(MediaUploadMixin, UserSerializer):
+
+    image_profile_filename = serializers.CharField(write_only=True, required=False)
+    image_header_filename = serializers.CharField(write_only=True, required=False)
+    image_profile_presigned_url = serializers.SerializerMethodField()
+    image_header_presigned_url = serializers.SerializerMethodField()
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + (
+            'image_profile_filename',
+            'image_header_filename',
+            'image_profile_presigned_url',
+            'image_header_presigned_url',
+        )
+
+    def validate(self, data):
+        data = super().validate(data)
+        data.update(self.get_unique_urls(**data))
+
+        return data
+
 class SimpleUserSerializer(serializers.ModelSerializer):
+
+    follower_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -156,9 +196,17 @@ class SimpleUserSerializer(serializers.ModelSerializer):
             'id',
             'permalink',
             'email',
+            'follower_count',
+            'image_profile',
             'first_name',
             'last_name',
         )
+
+    def get_image_profile(self, user):
+        return get_presigned_url(user.image_profile, 'get_object')
+
+    def get_follower_count(self, user):
+        return user.followed_by.count()
 
 
 class UserFollowService(serializers.Serializer):
