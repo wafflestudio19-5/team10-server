@@ -177,6 +177,7 @@ REST_FRAMEWORK = {
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend', # this is default
     'guardian.backends.ObjectPermissionBackend',
+    'user.googleapi.GoogleBackend', 
 )
 
 # JWT Authorization

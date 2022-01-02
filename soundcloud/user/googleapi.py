@@ -8,6 +8,7 @@ from user.views import *
 from soundcloud.settings.common import *
 from django.db import transaction
 import copy
+from django.contrib.auth import login
 
 User = get_user_model()
 
@@ -27,8 +28,13 @@ class GoogleLoginApi(PermissionsMixin, APIView):
 class GoogleSigninCallBackApi(PermissionsMixin, APIView):
     permission_classes = (permissions.AllowAny, )
 
-    def social_user_login(response, user): #jwt_login()
-        return response
+    def social_user_login(self, user, data): #jwt_login()
+        login(self.request, user, 'user.googleapi.GoogleBackend')  # GoogleBackend 를 통한 인증 시도
+        serializer = UserSocialLoginSerializer(user, data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.execute()
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
         
     @transaction.atomic
     def social_user_create(self, email, **extra_fields):
@@ -39,27 +45,20 @@ class GoogleSigninCallBackApi(PermissionsMixin, APIView):
         serializer = UserCreateSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-
-        return user
+        
+        return self.social_user_login(user, data) #회원가입 후 소셜로그인
 
     @transaction.atomic
     def social_user_get_or_create(self, email, **extra_data):
         data = copy.deepcopy(extra_data)
         data["email"]=email
 
-        if User.objects.filter(email=email).exists(): #이미 존재하는 이메일이면 로그인 비번은 첫 시도시 unusable로 설정된 상태.
+        if User.objects.filter(email=email).exists(): #이미 존재하는 이메일이면 소셜로그인.
             user = User.objects.filter(email=email).first()
-            response = redirect(settings.BASE_FRONTEND_URL)
-            response = self.social_user_login(response=response, user=user)
+            return self.social_user_login(user, data)
+        else: #회원가입부터
+            return self.social_user_create(email=email, **extra_data)
 
-            return response
-                
-
-        user = self.social_user_create(email=email, **extra_data)
-        response = redirect(settings.BASE_FRONTEND_URL)
-        response = self.social_user_login(response=response, user=user)
-
-        return response
 
 
     def get(self, request, *args, **kwargs): 
@@ -78,12 +77,27 @@ class GoogleSigninCallBackApi(PermissionsMixin, APIView):
             'age':1, #왜 필수인가
             }  #구글이 넘겨주는 거.
 
-        #response = redirect(settings.BASE_FRONTEND_URL) 
-        #response = jwt_login(response=response, user=user)  # user 에 맞게 수정하기
         
         return self.social_user_get_or_create(**profile_data) 
 
 
 
+from django.contrib.auth import get_user_model
+from django.contrib.auth.backends import ModelBackend
+#from django.contrib.auth.models import AnonymousUser
+
+User = get_user_model()
+
+class GoogleBackend(ModelBackend):
+    def authenticate(self, request, email=None, **kwargs):
+        if email is None:
+            email = kwargs.get(User.EMAIL_FIELD)
+        try:
+            user = User._default_manager.get_by_natural_key(email)
+        except User.DoesNotExist:
+            pass
+        else:
+            if self.user_can_authenticate(user):
+                return user
 
 

@@ -57,6 +57,32 @@ class UserCreateSerializer(serializers.Serializer):
 
         return user
 
+class UserSocialLoginSerializer(serializers.Serializer):
+    # Read-only fields
+    id = serializers.IntegerField(read_only=True)
+    permalink = serializers.SlugField(read_only=True)
+    token = serializers.SerializerMethodField()
+
+    # Write-only fields
+    email = serializers.EmailField(write_only=True)
+
+    def get_token(self, user):
+        return jwt_token_of(user)
+
+    def validate(self, data):
+        email = data.pop('email')
+        user = User.objects.filter(email=email).first()
+        if user is None:
+            raise serializers.ValidationError("이메일이 잘못되었습니다.")
+        else:
+            self.instance = user
+
+        return data
+
+    def execute(self):
+        update_last_login(None, self.instance)
+
+
 
 class UserLoginSerializer(serializers.Serializer):
 
