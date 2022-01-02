@@ -1,14 +1,12 @@
-from rest_framework import serializers, status
-from rest_framework.generics import get_object_or_404
-from datetime import datetime
-from soundcloud.exceptions import ConflictError
-from track.models import Track
+from rest_framework import serializers
+from rest_framework.serializers import ValidationError
 from comment.models import Comment
-from user.serializers import UserSerializer
+from user.serializers import SimpleUserSerializer
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    writer = UserSerializer(read_only=True)
+    writer = SimpleUserSerializer(read_only=True)
+    parent_id = serializers.IntegerField(required=False, allow_null=True, write_only=True)
 
     class Meta:
         model = Comment
@@ -18,54 +16,42 @@ class CommentSerializer(serializers.ModelSerializer):
             'content',
             'created_at',
             'commented_at',
-            'parent_comment'
+            'parent_id',
+            'parent_comment',
+        )
+        read_only_fields = (
+            'created_at',
+            'commented_at',
+            'parent_comment',
         )
 
+    def validate_parent_id(self, value):
+        try:
+            parent_comment = self.context['queryset'].get(id=value)
+        except Comment.DoesNotExist:
+            raise ValidationError("Parent comment id does not exist on the track.")
 
-class PostCommentService(serializers.Serializer):
-    content = serializers.CharField(required=True, allow_blank=True, allow_null=False)
-    parent_id = serializers.IntegerField(required=False, allow_null=True)
+        if self.context['queryset'].filter(parent_comment=parent_comment).exists():
+            raise ValidationError("Comment already exists on this parent.")
 
-    def execute(self):
-        self.is_valid(raise_exception=True)
+        return value
 
-        user = self.context['request'].user
-        track_id = self.context['track_id']
-        track = get_object_or_404(Track, id=track_id)
-        content = self.validated_data.get('content')
-        parent_comment_id = self.validated_data.get('parent_id')
-        parent_comment = get_object_or_404(Comment, id=parent_comment_id) if parent_comment_id else None
-        if parent_comment and Comment.objects.filter(writer=user, track=track, parent_comment=parent_comment):
-            raise ConflictError("Comment already exists on this parent.")
+    def validate(self, data):
+        data['writer'] = self.context['request'].user
+        data['track'] = self.context['track']
 
-        Comment.objects.create(writer=user,
-                               track=track,
-                               content=content,
-                               commented_at=datetime.now(),
-                               parent_comment=parent_comment)
+        parent_id = data.pop('parent_id', None)
+        if parent_id is not None:
+            data['parent_comment'] = self.context['queryset'].get(id=parent_id)
 
-        return status.HTTP_201_CREATED, "Comment created."
+        return data
 
-
-class DeleteCommentService(serializers.Serializer):
-
-    def execute(self):
-        current_comment = self.context['comment']
-        parent_comment = current_comment.parent_comment
-        child_comment = current_comment.reply
+    def delete(self):
+        current_comment = self.instance
+        parent_comment = getattr(current_comment, 'parent_comment', None)
+        child_comment = getattr(current_comment, 'reply', None)
         current_comment.delete()
+
         if child_comment:
             child_comment.parent_comment = parent_comment
             child_comment.save()
-
-        return status.HTTP_204_NO_CONTENT, "Comment deleted."
-
-
-class RetrieveCommentService(serializers.Serializer):
-
-    def execute(self):
-        track_id = self.context['track_id']
-        track = get_object_or_404(Track, id=track_id)
-        comments = Comment.objects.filter(track=track)
-
-        return status.HTTP_200_OK, comments
