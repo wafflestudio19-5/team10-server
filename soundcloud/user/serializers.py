@@ -1,12 +1,14 @@
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import update_last_login
+from django.contrib.contenttypes.models import ContentType
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
 from rest_framework_jwt.settings import api_settings
 from soundcloud.utils import ConflictError, MediaUploadMixin, get_presigned_url
 from datetime import date
+from track.models import Track
 from user.models import Follow
 
 # 토큰 사용을 위한 기본 세팅
@@ -95,6 +97,10 @@ class UserSerializer(serializers.ModelSerializer):
     image_header = serializers.SerializerMethodField()
     age = serializers.IntegerField(min_value=1, write_only=True, required=False)
     follower_count = serializers.SerializerMethodField()
+    following_count = serializers.SerializerMethodField()
+    track_count = serializers.SerializerMethodField()
+    like_track_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -106,11 +112,15 @@ class UserSerializer(serializers.ModelSerializer):
             'password',
             'image_profile',
             'image_header',
+            'follower_count',
+            'following_count',
+            'track_count',
+            'like_track_count',
+            'comment_count',
             'created_at',
             'last_login',
             'age',
             'birthday',
-            'follower_count',
             'is_active',
             'gender',
             'first_name',
@@ -146,6 +156,24 @@ class UserSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.INT)
     def get_follower_count(self, user):
         return user.followers.count()
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_following_count(self, user):
+        return user.followings.count()
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_track_count(self, user):
+        return user.owned_tracks.count()
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_like_track_count(self, user):
+        content_type = ContentType.objects.get_for_model(Track)
+
+        return user.likes.filter(content_type=content_type).count()
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_comment_count(self, user):
+        return user.comment_set.count()
 
     def validate_password(self, value):
         
@@ -191,6 +219,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 
     image_profile = serializers.SerializerMethodField()
     follower_count = serializers.SerializerMethodField()
+    track_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -198,8 +227,9 @@ class SimpleUserSerializer(serializers.ModelSerializer):
             'id',
             'permalink',
             'email',
-            'follower_count',
             'image_profile',
+            'follower_count',
+            'track_count',
             'first_name',
             'last_name',
         )
@@ -210,6 +240,10 @@ class SimpleUserSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.INT)
     def get_follower_count(self, user):
         return user.followers.count()
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_track_count(self, user):
+        return user.owned_tracks.count()
 
 
 class UserFollowService(serializers.Serializer):
