@@ -2,14 +2,14 @@ from rest_framework import viewsets, mixins
 from rest_framework.generics import get_object_or_404
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from comment.models import Comment
-from comment.serializers import CommentSerializer
+from comment.serializers import TrackCommentSerializer
 from track.models import Track
 
 @extend_schema_view(
     create=extend_schema(
         summary="Create Comment",
         responses={
-            201: OpenApiResponse(response=CommentSerializer, description='Created'),
+            201: OpenApiResponse(response=TrackCommentSerializer, description='Created'),
             400: OpenApiResponse(description='Bad Request'),
             401: OpenApiResponse(description='Unauthorized'),
             404: OpenApiResponse(description='Not Found'),
@@ -18,7 +18,7 @@ from track.models import Track
     list=extend_schema(
         summary="Get Comments on Track",
         responses={
-            200: OpenApiResponse(response=CommentSerializer, description='OK'),
+            200: OpenApiResponse(response=TrackCommentSerializer, description='OK'),
             404: OpenApiResponse(description='Not Found'),
         }
     ),
@@ -36,7 +36,7 @@ class CommentViewSet(mixins.CreateModelMixin,
                     mixins.DestroyModelMixin,
                     viewsets.GenericViewSet):
 
-    serializer_class = CommentSerializer
+    serializer_class = TrackCommentSerializer
     lookup_field = 'id'
     lookup_url_kwarg = 'comment_id'
 

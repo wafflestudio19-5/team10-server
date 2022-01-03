@@ -1,12 +1,14 @@
 from django.contrib.auth import get_user_model, logout
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status, permissions, viewsets
 from rest_framework.generics import GenericAPIView, CreateAPIView, RetrieveUpdateAPIView
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
-from user.serializers import *
+from comment.models import Comment
+from comment.serializers import UserCommentSerializer
 from track.serializers import SimpleTrackSerializer
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+from user.serializers import *
 
 User = get_user_model()
 
@@ -117,11 +119,19 @@ class UserLogoutView(APIView):
             404: OpenApiResponse(description='Not Found'),
         }
     ),
+    comments=extend_schema(
+        summary="Get User's Comments",
+        responses={
+            200: OpenApiResponse(response=UserCommentSerializer(many=True), description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
 )
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = User.objects.prefetch_related('followers', 'owned_tracks')
     track_queryset = Track.objects.prefetch_related('likes', 'reposts', 'comments')
+    comment_queryset = Comment.objects.select_related('track').prefetch_related('track__likes', 'track__reposts', 'track__comments')
     lookup_field = 'id'
     lookup_url_kwarg = 'user_id'
 
@@ -130,6 +140,8 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return SimpleUserSerializer
         elif self.action in [ 'tracks', 'likes_tracks', 'reposts_tracks' ]:
             return SimpleTrackSerializer
+        elif self.action in [ 'comments' ]:
+            return UserCommentSerializer
         else:
             return UserSerializer
 
@@ -164,6 +176,13 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, url_path='reposts/tracks')
     def reposts_tracks(self, *args, **kwargs):
         queryset = self.track_queryset.filter(reposts__user=self.get_object())
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response(serializer.data)
+
+    @action(detail=True)
+    def comments(self, *args, **kwargs):
+        queryset = self.comment_queryset.filter(writer=self.get_object())
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(serializer.data)
