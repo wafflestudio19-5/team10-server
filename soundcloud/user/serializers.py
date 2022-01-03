@@ -24,7 +24,6 @@ def jwt_token_of(user):
 
 
 class UserCreateSerializer(serializers.Serializer):
-
     # Read-only fields
     id = serializers.IntegerField(read_only=True)
     permalink = serializers.SlugField(read_only=True)
@@ -47,9 +46,8 @@ class UserCreateSerializer(serializers.Serializer):
         return value
 
     def validate(self, data):
-        age = data.pop('age', None)
-        if age is not None:
-            data['birthday'] = date(date.today().year-age, date.today().month, 1)
+        age = data.pop('age')
+        data['birthday'] = date(date.today().year - age, date.today().month, 1)
 
         return data
 
@@ -90,11 +88,7 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-
-    image_profile = serializers.SerializerMethodField()
-    image_header = serializers.SerializerMethodField()
-    age = serializers.IntegerField(min_value=1, write_only=True, required=False)
-    follower_count = serializers.SerializerMethodField()
+    age = serializers.IntegerField(min_value=1, write_only=True)
 
     class Meta:
         model = User
@@ -148,7 +142,7 @@ class UserSerializer(serializers.ModelSerializer):
         return user.followers.count()
 
     def validate_password(self, value):
-        
+
         return make_password(value)
 
     def validate(self, data):
@@ -160,7 +154,7 @@ class UserSerializer(serializers.ModelSerializer):
 
         age = data.pop('age', None)
         if age is not None:
-            data['birthday'] = date(date.today().year-age, date.today().month, 1)
+            data['birthday'] = date(date.today().year - age, date.today().month, 1)
 
         return data
 
@@ -188,9 +182,6 @@ class UserMediaUploadSerializer(MediaUploadMixin, UserSerializer):
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):
-
-    image_profile = serializers.SerializerMethodField()
-    follower_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -238,3 +229,16 @@ class UserFollowService(serializers.Serializer):
 
         follow.delete()
         return status.HTTP_204_NO_CONTENT, "Successful"
+
+class FollowerRetrieveService(serializers.Serializer):
+
+    def execute(self):
+        user = get_object_or_404(User, id=self.context['user_id'])
+        return status.HTTP_200_OK, user.followed_by.values_list('follower', flat=True)
+
+
+class FolloweeRetrieveService(serializers.Serializer):
+
+    def execute(self):
+        user = get_object_or_404(User, id=self.context['user_id'])
+        return status.HTTP_200_OK, user.follows.values_list('followee', flat=True)
