@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model, logout
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status, permissions, viewsets
-from rest_framework.generics import GenericAPIView, CreateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import GenericAPIView, CreateAPIView, RetrieveUpdateAPIView, get_object_or_404
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
@@ -129,10 +129,6 @@ class UserLogoutView(APIView):
 )
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
-    queryset = User.objects.prefetch_related('followers', 'owned_tracks')
-    user_track_queryset = Track.objects.prefetch_related('likes', 'reposts', 'comments')
-    simple_track_queryset = Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
-    comment_queryset = Comment.objects.select_related('track').prefetch_related('track__likes', 'track__reposts', 'track__comments')
     lookup_field = 'id'
     lookup_url_kwarg = 'user_id'
 
@@ -147,6 +143,25 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return UserCommentSerializer
         else:
             return UserSerializer
+
+    def get_queryset(self):
+        if self.action in [ 'list', 'followers', 'followings' ]:
+            return User.objects.prefetch_related('followers', 'owned_tracks')
+        elif self.action in [ 'tracks' ]:
+            return Track.objects.prefetch_related('likes', 'reposts', 'comments')
+        elif self.action in [ 'likes_tracks', 'reposts_tracks' ]:
+            return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
+        elif self.action in [ 'comments' ]:
+            return Comment.objects.select_related('track').prefetch_related('track__likes', 'track__reposts', 'track__comments')
+        else: 
+            return User.objects.all()
+
+    # Unlike GenericAPIView's get_object(self), this does not call self.get_queryset().
+    # Always returns User object referred by {user_id}.
+    def get_object(self):
+        user_id = self.kwargs[self.lookup_url_kwarg]
+
+        return get_object_or_404(User.objects.all(), id=user_id)
 
     @action(detail=True)
     def followers(self, *args, **kwargs):
@@ -164,28 +179,28 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True)
     def tracks(self, *args, **kwargs):
-        queryset = self.user_track_queryset.filter(artist=self.get_object())
+        queryset = self.get_queryset().filter(artist=self.get_object())
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(serializer.data)
 
     @action(detail=True, url_path='likes/tracks')
     def likes_tracks(self, *args, **kwargs):
-        queryset = self.simple_track_queryset.filter(likes__user=self.get_object())
+        queryset = self.get_queryset().filter(likes__user=self.get_object())
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(serializer.data)
 
     @action(detail=True, url_path='reposts/tracks')
     def reposts_tracks(self, *args, **kwargs):
-        queryset = self.simple_track_queryset.filter(reposts__user=self.get_object())
+        queryset = self.get_queryset().filter(reposts__user=self.get_object())
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(serializer.data)
 
     @action(detail=True)
     def comments(self, *args, **kwargs):
-        queryset = self.comment_queryset.filter(writer=self.get_object())
+        queryset = self.get_queryset().filter(writer=self.get_object())
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(serializer.data)
@@ -218,7 +233,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 )
 class UserSelfView(RetrieveUpdateAPIView):
 
-    queryset = User.objects.all()
+    queryset = User.objects.prefetch_related('followers', 'followings', 'owned_tracks', 'comments')
     permission_classes = (permissions.IsAuthenticated, )
 
     def get_serializer_class(self):
@@ -228,7 +243,8 @@ class UserSelfView(RetrieveUpdateAPIView):
             return UserSerializer
 
     def get_object(self):
-        return self.request.user
+
+        return get_object_or_404(self.get_queryset(), id=self.request.user.id)
 
 
 class UserFollowView(GenericAPIView):
