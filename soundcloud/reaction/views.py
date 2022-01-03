@@ -10,24 +10,6 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 
 
-@extend_schema_view(
-    likers_list=extend_schema(
-        summary="Get Track's Likers",
-        responses={
-            '200': OpenApiResponse(response=SimpleUserSerializer, description='OK'),
-            '404': OpenApiResponse(description='Not Found'),
-        }
-    ),
-    reposters_list=extend_schema(
-        summary="Get Track's Reposters",
-        responses={
-            '200': OpenApiResponse(response=SimpleUserSerializer, description='OK'),
-            '404': OpenApiResponse(description='Not Found'),
-        }
-    ),
-)
-
-
 class BaseReactionView(GenericAPIView):
 
     serializer_class = None
@@ -87,13 +69,12 @@ class BaseListView(ListAPIView):
     serializer_class = None
     queryset = None
     lookup_field = 'id'
-    lookup_url_kwarg = None
+    lookup_url_kwarg = 'track_id'
 
 
 class LikeView(BaseListView):
 
     serializer_class = SimpleUserSerializer
-    lookup_url_kwarg = 'track_id'
 
     def get_queryset(self):
         filter_kwargs = {self.lookup_field: self.kwargs[self.lookup_url_kwarg]}
@@ -104,11 +85,20 @@ class LikeView(BaseListView):
 
         return queryset
 
+    @extend_schema(
+        summary="Get Track's Likers",
+        responses={
+            200: OpenApiResponse(response=SimpleUserSerializer, description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
 
 class RepostView(BaseListView):
 
     serializer_class = SimpleUserSerializer
-    lookup_url_kwarg = 'track_id'
 
     def get_queryset(self):
         filter_kwargs = {self.lookup_field: self.kwargs[self.lookup_url_kwarg]}
@@ -118,3 +108,13 @@ class RepostView(BaseListView):
         queryset = User.objects.filter(id__in=repost_qs)
 
         return queryset
+
+    @extend_schema(
+        summary="Get Track's Reposters",
+        responses={
+            200: OpenApiResponse(response=SimpleUserSerializer, description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
