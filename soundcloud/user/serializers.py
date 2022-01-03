@@ -209,7 +209,7 @@ class UserMediaUploadSerializer(MediaUploadMixin, UserSerializer):
 
     def validate(self, data):
         data = super().validate(data)
-        data.update(self.get_unique_urls(**data))
+        data = self.filenames_to_urls(data)
 
         return data
 
