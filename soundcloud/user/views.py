@@ -110,17 +110,25 @@ class UserLogoutView(APIView):
             404: OpenApiResponse(description='Not Found'),
         }
     ),
+    reposts_tracks=extend_schema(
+        summary="Get User's Reposted Tracks",
+        responses={
+            200: OpenApiResponse(response=SimpleTrackSerializer(many=True), description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
 )
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = User.objects.prefetch_related('followers', 'owned_tracks')
+    track_queryset = Track.objects.prefetch_related('likes', 'reposts', 'comments')
     lookup_field = 'id'
     lookup_url_kwarg = 'user_id'
 
     def get_serializer_class(self):
         if self.action in [ 'list', 'followers', 'followings' ]:
             return SimpleUserSerializer
-        elif self.action in [ 'tracks', 'likes_tracks' ]:
+        elif self.action in [ 'tracks', 'likes_tracks', 'reposts_tracks' ]:
             return SimpleTrackSerializer
         else:
             return UserSerializer
@@ -141,17 +149,25 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True)
     def tracks(self, *args, **kwargs):
-        queryset = Track.objects.filter(artist=self.get_object()).prefetch_related('likes', 'reposts', 'comments')
+        queryset = self.track_queryset.filter(artist=self.get_object())
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(serializer.data)
 
     @action(detail=True, url_path='likes/tracks')
     def likes_tracks(self, *args, **kwargs):
-        queryset = Track.objects.filter(likes__user=self.get_object()).prefetch_related('likes', 'reposts', 'comments')
+        queryset = self.track_queryset.filter(likes__user=self.get_object())
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(serializer.data)
+
+    @action(detail=True, url_path='reposts/tracks')
+    def reposts_tracks(self, *args, **kwargs):
+        queryset = self.track_queryset.filter(reposts__user=self.get_object())
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response(serializer.data)
+
 
 
 @extend_schema_view(
