@@ -173,7 +173,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_comment_count(self, user):
-        return user.comment_set.count()
+        return user.comments.count()
 
     def validate_password(self, value):
         

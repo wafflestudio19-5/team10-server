@@ -76,7 +76,7 @@ class TrackSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_comment_count(self, track):
-        return track.comment_set.count()
+        return track.comments.count()
 
     def validate_permalink(self, value):
         if not any(c.isalpha() for c in value):
@@ -158,4 +158,4 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
         return track.reposts.count()
 
     def get_comment_count(self, track):
-        return track.comment_set.count()
+        return track.comments.count()
