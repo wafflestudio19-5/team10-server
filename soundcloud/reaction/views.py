@@ -7,6 +7,25 @@ from reaction.models import Like, Repost
 from .serializers import LikeService, RepostService
 from user.serializers import SimpleUserSerializer
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+
+
+@extend_schema_view(
+    likers_list=extend_schema(
+        summary="Get Track's Likers",
+        responses={
+            '200': OpenApiResponse(response=SimpleUserSerializer, description='OK'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    ),
+    reposters_list=extend_schema(
+        summary="Get Track's Reposters",
+        responses={
+            '200': OpenApiResponse(response=SimpleUserSerializer, description='OK'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    ),
+)
 
 
 class BaseReactionView(GenericAPIView):
@@ -70,12 +89,6 @@ class BaseListView(ListAPIView):
     lookup_field = 'id'
     lookup_url_kwarg = None
 
-    def get_serializer_context(self):
-        context = super(BaseListView, self).get_serializer_context()
-        context['target'] = self.get_object()
-
-        return context
-
 
 class LikeView(BaseListView):
 
@@ -86,13 +99,14 @@ class LikeView(BaseListView):
         filter_kwargs = {self.lookup_field: self.kwargs[self.lookup_url_kwarg]}
         track = get_object_or_404(Track.objects.all(), **filter_kwargs)
 
-        like_qs = Like.objects.filter(object_id=track.id).values('id')
+        like_qs = Like.objects.filter(object_id=track.id).values('user_id')
         queryset = User.objects.filter(id__in=like_qs)
 
         return queryset
 
 
 class RepostView(BaseListView):
+
     serializer_class = SimpleUserSerializer
     lookup_url_kwarg = 'track_id'
 
@@ -100,7 +114,7 @@ class RepostView(BaseListView):
         filter_kwargs = {self.lookup_field: self.kwargs[self.lookup_url_kwarg]}
         track = get_object_or_404(Track.objects.all(), **filter_kwargs)
 
-        repost_qs = Repost.objects.filter(object_id=track.id).values('id')
+        repost_qs = Repost.objects.filter(object_id=track.id).values('user_id')
         queryset = User.objects.filter(id__in=repost_qs)
 
         return queryset
