@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from comment.models import Comment
 from comment.serializers import UserCommentSerializer
-from track.serializers import SimpleTrackSerializer
+from track.serializers import SimpleTrackSerializer, UserTrackSerializer
 from user.serializers import *
 
 User = get_user_model()
@@ -101,7 +101,7 @@ class UserLogoutView(APIView):
     tracks=extend_schema(
         summary="Get User's Tracks",
         responses={
-            200: OpenApiResponse(response=SimpleTrackSerializer(many=True), description='OK'),
+            200: OpenApiResponse(response=UserTrackSerializer(many=True), description='OK'),
             404: OpenApiResponse(description='Not Found'),
         }
     ),
@@ -130,7 +130,8 @@ class UserLogoutView(APIView):
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = User.objects.prefetch_related('followers', 'owned_tracks')
-    track_queryset = Track.objects.prefetch_related('likes', 'reposts', 'comments')
+    user_track_queryset = Track.objects.prefetch_related('likes', 'reposts', 'comments')
+    simple_track_queryset = Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
     comment_queryset = Comment.objects.select_related('track').prefetch_related('track__likes', 'track__reposts', 'track__comments')
     lookup_field = 'id'
     lookup_url_kwarg = 'user_id'
@@ -138,7 +139,9 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     def get_serializer_class(self):
         if self.action in [ 'list', 'followers', 'followings' ]:
             return SimpleUserSerializer
-        elif self.action in [ 'tracks', 'likes_tracks', 'reposts_tracks' ]:
+        elif self.action in [ 'tracks' ]:
+            return UserTrackSerializer
+        elif self.action in [ 'likes_tracks', 'reposts_tracks' ]:
             return SimpleTrackSerializer
         elif self.action in [ 'comments' ]:
             return UserCommentSerializer
@@ -161,21 +164,21 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True)
     def tracks(self, *args, **kwargs):
-        queryset = self.track_queryset.filter(artist=self.get_object())
+        queryset = self.user_track_queryset.filter(artist=self.get_object())
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(serializer.data)
 
     @action(detail=True, url_path='likes/tracks')
     def likes_tracks(self, *args, **kwargs):
-        queryset = self.track_queryset.filter(likes__user=self.get_object())
+        queryset = self.simple_track_queryset.filter(likes__user=self.get_object())
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(serializer.data)
 
     @action(detail=True, url_path='reposts/tracks')
     def reposts_tracks(self, *args, **kwargs):
-        queryset = self.track_queryset.filter(reposts__user=self.get_object())
+        queryset = self.simple_track_queryset.filter(reposts__user=self.get_object())
         serializer = self.get_serializer(queryset, many=True)
 
         return Response(serializer.data)
