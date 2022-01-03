@@ -169,7 +169,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(serializer.data)
 
 
-
 @extend_schema_view(
     get=extend_schema(
         summary="Retrieve Me",
