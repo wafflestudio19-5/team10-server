@@ -1,5 +1,6 @@
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework import permissions, status
+from rest_framework.pagination import PageNumberPagination
 from django.conf import settings
 from guardian.shortcuts import assign_perm
 import boto3, os, re
@@ -170,3 +171,6 @@ class MediaUploadMixin:
     def check_filename(filename):
 
         return re.search(FILENAME_PATTERN, filename)
+
+class ReactionUserListPagination(PageNumberPagination):
+    page_size = 6

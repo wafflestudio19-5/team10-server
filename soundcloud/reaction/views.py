@@ -8,6 +8,7 @@ from .serializers import LikeService, RepostService
 from user.serializers import SimpleUserSerializer
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+from soundcloud.utils import ReactionUserListPagination
 
 
 class BaseReactionView(GenericAPIView):
@@ -67,6 +68,7 @@ class RepostSetView(BaseReactionView):
 class BaseListView(ListAPIView):
 
     serializer_class = None
+    pagination_class = ReactionUserListPagination
     queryset = None
     lookup_field = 'id'
     lookup_url_kwarg = 'track_id'
