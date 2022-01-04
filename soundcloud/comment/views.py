@@ -3,6 +3,7 @@ from rest_framework.generics import get_object_or_404
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from comment.models import Comment
 from comment.serializers import TrackCommentSerializer
+from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
 
 @extend_schema_view(
@@ -37,6 +38,7 @@ class CommentViewSet(mixins.CreateModelMixin,
                     viewsets.GenericViewSet):
 
     serializer_class = TrackCommentSerializer
+    permission_classes = (CustomObjectPermissions, )
     lookup_field = 'id'
     lookup_url_kwarg = 'comment_id'
 
