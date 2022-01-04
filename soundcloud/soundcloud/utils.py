@@ -121,18 +121,20 @@ class MediaUploadMixin:
 
         return value
 
-    def get_unique_urls(self, **kwargs):
+    def filenames_to_urls(self, data):
 
-        data = {}
-        for key, filename in kwargs.items():
+        new_data = data.copy()
+
+        for key, filename in data.items():
             if not key.endswith('_filename'):
                 continue
+            new_data.pop(key)
             field_name = key.replace('_filename', '')
             url = self._get_unique_url(filename, self.Meta.model._meta.model_name, field_name)
             if url is not None:
-                data[field_name] = url
+                new_data[field_name] = url
 
-        return data
+        return new_data
 
     def get_audio_presigned_url(self, instance):
         return self._get_presigned_url(instance, 'audio')

@@ -5,7 +5,7 @@ from rest_framework.validators import UniqueTogetherValidator
 from rest_framework.serializers import ValidationError
 from track.models import Track
 from tag.serializers import TagSerializer
-from user.serializers import UserSerializer
+from user.serializers import UserSerializer, SimpleUserSerializer
 from reaction.serializers import LikeSerializer, RepostSerializer
 from soundcloud.utils import assign_object_perms, get_presigned_url, MediaUploadMixin
 
@@ -30,15 +30,15 @@ class TrackSerializer(serializers.ModelSerializer):
             'permalink',
             'audio',
             'image',
+            'like_count',
+            'repost_count',
+            'comment_count',
             'description',
             'created_at',
             'count',
             'genre',
             'tags',
             'is_private',
-            'like_count',
-            'repost_count',
-            'comment_count',
         )
         extra_kwargs = {
             'permalink': {
@@ -76,7 +76,7 @@ class TrackSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_comment_count(self, track):
-        return track.comment_set.count()
+        return track.comments.count()
 
     def validate_permalink(self, value):
         if not any(c.isalpha() for c in value):
@@ -116,13 +116,14 @@ class TrackMediaUploadSerializer(MediaUploadMixin, TrackSerializer):
 
     def validate(self, data):
         data = super().validate(data)
-        data.update(self.get_unique_urls(**data))
+        data = self.filenames_to_urls(data)
 
         return data
 
 
 class SimpleTrackSerializer(serializers.ModelSerializer):
     
+    artist = SimpleUserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
     audio = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     like_count = serializers.SerializerMethodField()
@@ -138,11 +139,11 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
             'permalink',
             'audio',
             'image',
-            'genre',
-            'count',
             'like_count',
             'repost_count',
             'comment_count',
+            'genre',
+            'count',
         )
 
     def get_audio(self, track):
@@ -158,4 +159,54 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
         return track.reposts.count()
 
     def get_comment_count(self, track):
-        return track.comment_set.count()
+        return track.comments.count()
+
+
+class UserTrackSerializer(serializers.ModelSerializer):
+
+    audio = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    like_count = serializers.SerializerMethodField()
+    repost_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Track
+        fields = (
+            'id',
+            'title',
+            'permalink',
+            'audio',
+            'image',
+            'like_count',
+            'repost_count',
+            'comment_count',
+            'genre',
+            'count',
+        )
+
+    def get_audio(self, track):
+        return get_presigned_url(track.audio, 'get_object')
+
+    def get_image(self, track):
+        return get_presigned_url(track.image, 'get_object')
+
+    def get_like_count(self, track):
+        return track.likes.count()
+
+    def get_repost_count(self, track):
+        return track.reposts.count()
+
+    def get_comment_count(self, track):
+        return track.comments.count()
+
+
+class CommentTrackSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Track
+        fields = (
+            'id',
+            'title',
+            'permalink'
+        )

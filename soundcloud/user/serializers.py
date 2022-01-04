@@ -1,12 +1,14 @@
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import update_last_login
+from django.contrib.contenttypes.models import ContentType
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
 from rest_framework_jwt.settings import api_settings
 from soundcloud.utils import ConflictError, MediaUploadMixin, get_presigned_url
 from datetime import date
+from track.models import Track
 from user.models import Follow
 
 # 토큰 사용을 위한 기본 세팅
@@ -46,8 +48,9 @@ class UserCreateSerializer(serializers.Serializer):
         return value
 
     def validate(self, data):
-        age = data.pop('age')
-        data['birthday'] = date(date.today().year - age, date.today().month, 1)
+        age = data.pop('age', None)
+        if age is not None:
+            data['birthday'] = date(date.today().year-age, date.today().month, 1)
 
         return data
 
@@ -88,7 +91,15 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    age = serializers.IntegerField(min_value=1, write_only=True)
+
+    image_profile = serializers.SerializerMethodField()
+    image_header = serializers.SerializerMethodField()
+    age = serializers.IntegerField(min_value=1, write_only=True, required=False)
+    follower_count = serializers.SerializerMethodField()
+    following_count = serializers.SerializerMethodField()
+    track_count = serializers.SerializerMethodField()
+    like_track_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -100,6 +111,11 @@ class UserSerializer(serializers.ModelSerializer):
             'password',
             'image_profile',
             'image_header',
+            'follower_count',
+            'following_count',
+            'track_count',
+            'like_track_count',
+            'comment_count',
             'created_at',
             'last_login',
             'age',
@@ -141,6 +157,24 @@ class UserSerializer(serializers.ModelSerializer):
     def get_follower_count(self, user):
         return user.followers.count()
 
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_following_count(self, user):
+        return user.followings.count()
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_track_count(self, user):
+        return user.owned_tracks.count()
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_like_track_count(self, user):
+        content_type = ContentType.objects.get_for_model(Track)
+
+        return user.likes.filter(content_type=content_type).count()
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_comment_count(self, user):
+        return user.comments.count()
+
     def validate_password(self, value):
 
         return make_password(value)
@@ -176,12 +210,16 @@ class UserMediaUploadSerializer(MediaUploadMixin, UserSerializer):
 
     def validate(self, data):
         data = super().validate(data)
-        data.update(self.get_unique_urls(**data))
+        data = self.filenames_to_urls(data)
 
         return data
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):
+
+    image_profile = serializers.SerializerMethodField()
+    follower_count = serializers.SerializerMethodField()
+    track_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -189,8 +227,9 @@ class SimpleUserSerializer(serializers.ModelSerializer):
             'id',
             'permalink',
             'email',
-            'follower_count',
             'image_profile',
+            'follower_count',
+            'track_count',
             'first_name',
             'last_name',
         )
@@ -202,7 +241,11 @@ class SimpleUserSerializer(serializers.ModelSerializer):
     def get_follower_count(self, user):
         return user.followers.count()
 
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_track_count(self, user):
+        return user.owned_tracks.count()
 
+      
 class UserFollowService(serializers.Serializer):
 
     def create(self):
@@ -230,15 +273,3 @@ class UserFollowService(serializers.Serializer):
         follow.delete()
         return status.HTTP_204_NO_CONTENT, "Successful"
 
-class FollowerRetrieveService(serializers.Serializer):
-
-    def execute(self):
-        user = get_object_or_404(User, id=self.context['user_id'])
-        return status.HTTP_200_OK, user.followed_by.values_list('follower', flat=True)
-
-
-class FolloweeRetrieveService(serializers.Serializer):
-
-    def execute(self):
-        user = get_object_or_404(User, id=self.context['user_id'])
-        return status.HTTP_200_OK, user.follows.values_list('followee', flat=True)

@@ -53,13 +53,13 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
     list=extend_schema(
         summary="List Tracks",
         responses={
-            '200': OpenApiResponse(response=TrackSerializer, description='OK'),
+            '200': OpenApiResponse(response=SimpleTrackSerializer, description='OK'),
         }
     )
 )
 class TrackViewSet(viewsets.ModelViewSet):
 
-    queryset = Track.objects.all()
+    queryset = Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
     permission_classes = (CustomObjectPermissions, )
     lookup_field = 'id'
     lookup_url_kwarg = 'track_id'
