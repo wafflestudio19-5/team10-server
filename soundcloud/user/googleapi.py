@@ -9,10 +9,19 @@ from soundcloud.settings.common import *
 from django.db import transaction
 import copy
 from django.contrib.auth import login
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 
 User = get_user_model()
 
 class GoogleLoginApi(PermissionsMixin, APIView):
+    @extend_schema(
+        summary="Google Login",
+        tags=['auth', ],
+        responses={
+            301: OpenApiResponse(description='Redirect'),
+            400: OpenApiResponse(description='Bad Request'),
+        }
+    )
     def get(self, request, *args, **kwargs): 
         client_id = get_secret("SOCIAL_AUTH_GOOGLE_CLIENT_ID")
         scope = "https://www.googleapis.com/auth/userinfo.email " + \
@@ -60,7 +69,14 @@ class GoogleSigninCallBackApi(PermissionsMixin, APIView):
             return self.social_user_create(email=email, **extra_data)
 
 
-
+    @extend_schema(
+        summary="Google Login Callback",
+        tags=['auth', ],
+        responses={
+            200: OpenApiResponse(response=UserSocialLoginSerializer, description='OK'),
+            400: OpenApiResponse(description='Bad Request'),
+        }
+    )
     def get(self, request, *args, **kwargs): 
         code = request.GET.get('code') 
         google_token_api = "https://oauth2.googleapis.com/token" 

@@ -199,15 +199,3 @@ class UserFollowView(GenericAPIView):
 
         return Response(status=status, data=data)
 
-
-#auth 이용 방식 - 보류
-# from dj_rest_auth.registration.views import SocialLoginView
-# from allauth.socialaccount.providers.google import views as google_view
-# from allauth.socialaccount.providers.oauth2.client import OAuth2Client
-# from django.conf import settings
-# GOOGLE_CALLBACK_URI = settings.BASE_BACKEND_URL + "/google/callback" 
-
-# class GoogleLogin(SocialLoginView):
-#     adapter_class = google_view.GoogleOAuth2Adapter
-#     callback_url = GOOGLE_CALLBACK_URI
-#     client_class = OAuth2Client
