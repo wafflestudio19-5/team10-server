@@ -13,7 +13,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema
 
 User = get_user_model()
 
-class GoogleLoginApi(PermissionsMixin, APIView):
+class GoogleLoginApi(APIView):
     @extend_schema(
         summary="Google Login",
         tags=['auth', ],
@@ -34,9 +34,7 @@ class GoogleLoginApi(PermissionsMixin, APIView):
             
         return response
 
-class GoogleSigninCallBackApi(PermissionsMixin, APIView):
-    permission_classes = (permissions.AllowAny, )
-
+class GoogleSigninCallBackApi(APIView):
     def social_user_login(self, user, data): #jwt_login()
         login(self.request, user, 'user.googleapi.GoogleBackend')  # GoogleBackend 를 통한 인증 시도
         serializer = UserSocialLoginSerializer(user, data=data)
