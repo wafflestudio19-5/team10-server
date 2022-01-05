@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from soundcloud.utils import CustomObjectPermissions, CustomPagination
+from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
 from user.models import User
 from reaction.models import Like, Repost
@@ -79,16 +79,15 @@ class TrackViewSet(viewsets.ModelViewSet):
 
     queryset = Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
     permission_classes = (CustomObjectPermissions, )
-    pagination_class = CustomPagination
     lookup_field = 'id'
     lookup_url_kwarg = 'track_id'
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
             return TrackMediaUploadSerializer
-        elif (self.action in ['list']) and (not self.detail):
+        elif self.action in ['list']:
             return SimpleTrackSerializer
-        elif self.detail:
+        elif self.action in ['likers', 'reposters']:
             return SimpleUserSerializer
         else:
             return TrackSerializer
