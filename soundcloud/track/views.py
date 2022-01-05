@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from soundcloud.utils import CustomObjectPermissions
+from soundcloud.utils import CustomObjectPermissions, CustomPagination
 from track.models import Track
 from user.models import User
 from reaction.models import Like, Repost
@@ -9,7 +9,6 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from django.contrib.contenttypes.models import ContentType
 
 @extend_schema_view(
     create=extend_schema(
@@ -61,12 +60,27 @@ from django.contrib.contenttypes.models import ContentType
         responses={
             '200': OpenApiResponse(response=SimpleTrackSerializer, description='OK'),
         }
+    ),
+    likers=extend_schema(
+        summary="Get Track's Likers",
+        responses={
+            '200': OpenApiResponse(response=SimpleUserSerializer, description='OK'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    ),
+    reposters=extend_schema(
+        summary="Get Track's Reposters",
+        responses={
+            '200': OpenApiResponse(response=SimpleUserSerializer, description='OK'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
     )
 )
 class TrackViewSet(viewsets.ModelViewSet):
 
     queryset = Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
     permission_classes = (CustomObjectPermissions, )
+    pagination_class = CustomPagination
     lookup_field = 'id'
     lookup_url_kwarg = 'track_id'
 
@@ -87,7 +101,10 @@ class TrackViewSet(viewsets.ModelViewSet):
         like_qs = Like.objects.filter(track=track_id).select_related('user').values('user')
         queryset = User.objects.filter(id__in=like_qs)
 
-        return Response(self.get_serializer(queryset, many=True).data)
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+
+        return self.get_paginated_response(serializer.data)
 
     @action(methods=['GET'], detail=True)
     def reposters(self, request, track_id=None):
@@ -96,4 +113,7 @@ class TrackViewSet(viewsets.ModelViewSet):
         repost_qs = Repost.objects.filter(track=track_id).select_related('user').values('user')
         queryset = User.objects.filter(id__in=repost_qs)
 
-        return Response(self.get_serializer(queryset, many=True).data)
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+
+        return self.get_paginated_response(serializer.data)

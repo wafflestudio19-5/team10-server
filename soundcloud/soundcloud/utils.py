@@ -174,5 +174,5 @@ class MediaUploadMixin:
 
         return re.search(FILENAME_PATTERN, filename)
 
-class ReactionUserListPagination(PageNumberPagination):
-    page_size = 6
+class CustomPagination(PageNumberPagination):
+    page_size_query_param = 'page_size'

@@ -9,7 +9,6 @@ from user.serializers import SimpleUserSerializer
 from django.shortcuts import get_object_or_404
 from django.contrib.contenttypes.models import ContentType
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
-from soundcloud.utils import ReactionUserListPagination
 
 
 class BaseReactionView(GenericAPIView):
@@ -64,58 +63,3 @@ class RepostSetView(BaseReactionView):
     serializer_class = RepostService
     queryset = Set.objects.all()
     lookup_url_kwarg = 'set_id'
-
-
-# class BaseListView(ListAPIView):
-#
-#     serializer_class = SimpleUserSerializer
-#     pagination_class = ReactionUserListPagination
-#     queryset = None
-#     lookup_field = 'id'
-#     lookup_url_kwarg = 'track_id'
-#
-#
-# class LikeView(BaseListView):
-#
-#     def get_queryset(self):
-#         filter_kwargs = {self.lookup_field: self.kwargs[self.lookup_url_kwarg]}
-#         track = get_object_or_404(Track.objects.all(), **filter_kwargs)
-#         content_type = ContentType.objects.get_for_model(track)
-#
-#         like_qs = Like.objects.filter(content_type=content_type, object_id=track.id).values('user_id')
-#         queryset = User.objects.filter(id__in=like_qs)
-#
-#         return queryset
-#
-#     @extend_schema(
-#         summary="Get Track's Likers",
-#         responses={
-#             200: OpenApiResponse(response=SimpleUserSerializer, description='OK'),
-#             404: OpenApiResponse(description='Not Found'),
-#         }
-#     )
-#     def get(self, request, *args, **kwargs):
-#         return self.list(request, *args, **kwargs)
-#
-#
-# class RepostView(BaseListView):
-#
-#     def get_queryset(self):
-#         filter_kwargs = {self.lookup_field: self.kwargs[self.lookup_url_kwarg]}
-#         track = get_object_or_404(Track.objects.all(), **filter_kwargs)
-#         content_type = ContentType.objects.get_for_model(track)
-#
-#         repost_qs = Repost.objects.filter(content_type=content_type, object_id=track.id).values('user_id')
-#         queryset = User.objects.filter(id__in=repost_qs)
-#
-#         return queryset
-#
-#     @extend_schema(
-#         summary="Get Track's Reposters",
-#         responses={
-#             200: OpenApiResponse(response=SimpleUserSerializer, description='OK'),
-#             404: OpenApiResponse(description='Not Found'),
-#         }
-#     )
-#     def get(self, request, *args, **kwargs):
-#         return self.list(request, *args, **kwargs)
