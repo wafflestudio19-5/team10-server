@@ -10,6 +10,7 @@ djangorestframework-jwt
 django-rest-authtoken
 django-extensions
 gunicorn
+django-environ #social
 boto3
 drf-spectacular
 django-guardian

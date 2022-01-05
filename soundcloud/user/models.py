@@ -13,10 +13,14 @@ class CustomUserManager(BaseUserManager):
     def _create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError('이메일을 설정해주세요.')
+        path = extra_fields.get('path')
         email = self.normalize_email(email)
         permalink = self.create_permalink()
         user = self.model(email=email, permalink=permalink, **extra_fields)
-        user.set_password(password)
+        if (password == settings.GOOGLE_PASSWORD) and (path == "google"):
+            user.set_unusable_password()
+        else:
+            user.set_password(password)
         user.save(using=self._db)
 
         return user
@@ -61,6 +65,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     city = models.CharField(max_length=20, blank=True)
     country = models.CharField(max_length=20, blank=True)
     bio = models.TextField(blank=True)
+    path = models.TextField(blank=True) #add for sociallogin
+    #is_staff field err
 
     objects = CustomUserManager()
 

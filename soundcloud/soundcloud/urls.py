@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
-from django.conf.urls import url
+from user.googleapi import *
 from drf_spectacular.views import SpectacularJSONAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
