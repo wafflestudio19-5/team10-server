@@ -145,65 +145,50 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return UserSerializer
 
     def get_queryset(self):
-        if self.action in [ 'list', 'followers', 'followings' ]:
-            return User.objects.prefetch_related('followers', 'owned_tracks')
-        elif self.action in [ 'tracks' ]:
-            return Track.objects.prefetch_related('likes', 'reposts', 'comments')
-        elif self.action in [ 'likes_tracks', 'reposts_tracks' ]:
-            return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
-        elif self.action in [ 'comments' ]:
-            return Comment.objects.select_related('track').prefetch_related('track__likes', 'track__reposts', 'track__comments')
-        else: 
+        if self.action in ['followers', 'followings', 'tracks', 'likes_tracks', 'reposts_tracks', 'comments']:
+            self.user = getattr(self, 'user', None) or get_object_or_404(User, id=self.kwargs[self.lookup_url_kwarg])
+
+            if self.action == 'followers':
+                return User.objects.prefetch_related('followers', 'owned_tracks').filter(followings__followee=self.user)
+            if self.action == 'followings':
+                return User.objects.prefetch_related('followers', 'owned_tracks').filter(followers__follower=self.user)
+            if self.action == 'tracks':
+                return Track.objects.prefetch_related('likes', 'reposts', 'comments').filter(artist=self.user)
+            if self.action == 'likes_tracks':
+                return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks').filter(likes__user=self.user)
+            if self.action == 'reposts_tracks':
+                return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks').filter(reposts__user=self.user)
+            if self.action == 'comments':
+                return Comment.objects.select_related('track').filter(writer=self.user)
+
+        if self.action in ['list']:
+            return User.objects.prefetch_related('followers', 'owned_tracks')   
+        else:
             return User.objects.all()
 
-    # Unlike GenericAPIView's get_object(self), this does not call self.get_queryset().
-    # Always returns User object referred by {user_id}.
-    def get_object(self):
-        user_id = self.kwargs[self.lookup_url_kwarg]
-
-        return get_object_or_404(User.objects.all(), id=user_id)
+    @action(detail=True)
+    def followers(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(detail=True)
-    def followers(self, *args, **kwargs):
-        queryset = self.get_queryset().filter(followings__followee=self.get_object())
-        serializer = self.get_serializer(queryset, many=True)
-
-        return Response(serializer.data)
+    def followings(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(detail=True)
-    def followings(self, *args, **kwargs):
-        queryset = self.get_queryset().filter(followers__follower=self.get_object())
-        serializer = self.get_serializer(queryset, many=True)
-
-        return Response(serializer.data)
-
-    @action(detail=True)
-    def tracks(self, *args, **kwargs):
-        queryset = self.get_queryset().filter(artist=self.get_object())
-        serializer = self.get_serializer(queryset, many=True)
-
-        return Response(serializer.data)
+    def tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(detail=True, url_path='likes/tracks')
-    def likes_tracks(self, *args, **kwargs):
-        queryset = self.get_queryset().filter(likes__user=self.get_object())
-        serializer = self.get_serializer(queryset, many=True)
-
-        return Response(serializer.data)
+    def likes_tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(detail=True, url_path='reposts/tracks')
-    def reposts_tracks(self, *args, **kwargs):
-        queryset = self.get_queryset().filter(reposts__user=self.get_object())
-        serializer = self.get_serializer(queryset, many=True)
-
-        return Response(serializer.data)
+    def reposts_tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(detail=True)
-    def comments(self, *args, **kwargs):
-        queryset = self.get_queryset().filter(writer=self.get_object())
-        serializer = self.get_serializer(queryset, many=True)
-
-        return Response(serializer.data)
+    def comments(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 @extend_schema_view(
