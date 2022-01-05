@@ -35,7 +35,7 @@ class TrackCommentSerializer(serializers.ModelSerializer):
         except Comment.DoesNotExist:
             raise ValidationError("Parent comment id does not exist on the track.")
 
-        if self.context['queryset'].filter(parent_comment=parent_comment).exists():
+        if getattr(parent_comment, 'reply', None) is not None:
             raise ValidationError("Comment already exists on this parent.")
 
         self.context['parent_comment'] = parent_comment
@@ -52,12 +52,18 @@ class TrackCommentSerializer(serializers.ModelSerializer):
         return data
 
     def get_children(self, comment):
-        replies = []
-        child_comment = getattr(comment, 'reply', None)
-        while child_comment:
-            replies.append(child_comment.id)
-            child_comment = getattr(child_comment, 'reply', None)
-        return SimpleTrackCommentSerializer(Comment.objects.filter(id__in=replies).order_by('created_at'), many=True).data
+        queryset = Comment.objects.filter(track=self.context['track'])
+        replies = Comment.objects.none()
+        reply = queryset.filter(parent_comment=comment)
+        obj = reply.first()
+
+        while obj:
+            replies |= reply
+            reply = queryset.filter(parent_comment=obj)
+            obj = reply.first()
+        replies = replies.select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks').order_by('created_at')
+
+        return SimpleTrackCommentSerializer(replies, many=True).data
 
     def delete(self):
         current_comment = self.instance
