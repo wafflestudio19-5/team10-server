@@ -3,10 +3,6 @@ from django.core.exceptions import ValidationError
 from soundcloud.settings.common import *
 import requests
 
-GOOGLE_ACCESS_TOKEN_OBTAIN_URL = 'https://oauth2.googleapis.com/token' 
-GOOGLE_USER_INFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo'
-
-
 def google_get_access_token(google_token_api, code): #성공해서 받은 code를 가지고 access_token을 
     client_id = get_secret("SOCIAL_AUTH_GOOGLE_CLIENT_ID")
     client_secret = get_secret("SOCIAL_AUTH_GOOGLE_SECRET")
