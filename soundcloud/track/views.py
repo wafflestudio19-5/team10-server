@@ -7,7 +7,6 @@ from track.serializers import SimpleTrackSerializer, TrackSerializer, TrackMedia
 from user.serializers import SimpleUserSerializer
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
 @extend_schema_view(

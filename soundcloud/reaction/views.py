@@ -1,14 +1,8 @@
-from rest_framework.generics import GenericAPIView, CreateAPIView, ListAPIView
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from set.models import Set
 from track.models import Track
-from user.models import User
-from reaction.models import Like, Repost
 from .serializers import LikeService, RepostService
-from user.serializers import SimpleUserSerializer
-from django.shortcuts import get_object_or_404
-from django.contrib.contenttypes.models import ContentType
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 
 
 class BaseReactionView(GenericAPIView):
