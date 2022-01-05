@@ -244,7 +244,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
     def get_track_count(self, user):
         return user.owned_tracks.count()
 
-
+      
 class UserFollowService(serializers.Serializer):
 
     def create(self):
@@ -271,3 +271,4 @@ class UserFollowService(serializers.Serializer):
 
         follow.delete()
         return status.HTTP_204_NO_CONTENT, "Successful"
+

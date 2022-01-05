@@ -1,4 +1,4 @@
-from rest_framework.generics import GenericAPIView, CreateAPIView
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from set.models import Set
 from track.models import Track
