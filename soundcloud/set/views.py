@@ -2,9 +2,12 @@ from rest_framework import status, viewsets
 from rest_framework.response import Response
 from set.models import Set, SetTrack
 from set.serializers import *
+from soundcloud.utils import CustomObjectPermissions
 
 class SetViewSet(viewsets.GenericViewSet):
     query_set = Set.objects.all()
+    permission_classes = (CustomObjectPermissions, )
+
     #serializer_class = SetSerializer
     def get_sealizer_class(self):
         if self.action in ['create', 'update']:
@@ -40,6 +43,6 @@ class SetViewSet(viewsets.GenericViewSet):
             return Response({"error": "set of others"}, status=403)
         SetTrack.objects.filter(set=set).delete() #트랙은 남아있음
         set.delete()
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
