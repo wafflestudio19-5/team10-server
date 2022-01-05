@@ -17,7 +17,7 @@ class CustomUserManager(BaseUserManager):
         email = self.normalize_email(email)
         permalink = self.create_permalink()
         user = self.model(email=email, permalink=permalink, **extra_fields)
-        if (password == "googlepassword") and (path == "google"):
+        if (password == settings.GOOGLE_PASSWORD) and (path == "google"):
             user.set_unusable_password()
         else:
             user.set_password(password)
