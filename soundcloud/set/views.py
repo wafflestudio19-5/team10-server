@@ -52,7 +52,7 @@ class SetViewSet(viewsets.GenericViewSet):
         set = self.get_object()
         if set.creator != request.user:
             return Response({"error": "set of others"}, status=403)
-        SetTrack.objects.filter(set=set).delete() #트랙은 남아있음
+        SetTrack.objects.filter(set=set).delete() #관계도 지우기. 트랙은 남아있음
         set.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

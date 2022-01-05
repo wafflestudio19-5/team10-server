@@ -1,20 +1,17 @@
 from re import T
 from set.models import Set, SetTrack
-from reaction.models import Like, Repost
 from track.models import Track
 from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.validators import UniqueTogetherValidator
 from user.serializers import UserSerializer
 from tag.serializers import TagSerializer
-from reaction.serializers import RepostSerializer
 from django.conf import settings
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
-from soundcloud.utils import get_presigned_url
+from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from rest_framework.serializers import ValidationError
-from django.contrib.contenttypes.models import ContentType
-
+from track.serializers import SetTrackSerializer, TrackMediaUploadSerializer
 
 class SetSerializer(serializers.ModelSerializer):
     creator = UserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
@@ -87,83 +84,44 @@ class SetSerializer(serializers.ModelSerializer):
 
         return data
 
-class SetTrackSerializer(serializers.ModelSerializer):
 
-    class Meta:
-        model = Track
-        fields = (
-            'id'
-            'title',
-            'artist',
-            'permalink',
-            'audio',
-            'image',
-            'count',
-            'is_like',
-            'repost',
-        )
-
-    def get_audio(self, track):
-        return get_presigned_url(track.audio, 'get_object')
-
-    def get_image(self, track):
-        return get_presigned_url(track.image, 'get_object')
-
-    def get_is_like(self, track):
-        if self.context['request'].user.is_authenticated:
-            try:                	
-                contenttype_obj = ContentType.objects.get_for_model(track)
-                Like.objects.get(user=self.context['request'].user, object_id=track.id, content_type=contenttype_obj)
-                return True
-            except Like.DoesNotExist:
-                return False
-        else: 
-            return False 
-
-    def get_repost(self, track):
-        if self.context['request'].user.is_authenticated:
-            try:                	
-                contenttype_obj = ContentType.objects.get_for_model(track)
-                repost = Repost.objects.get(user=self.context['request'].user, object_id=track.id, content_type=contenttype_obj)
-                return RepostSerializer(repost, context=self.context).data
-            except Repost.DoesNotExist:
-                return None
-        else: 
-            return None 
-
-
-
-
-
-
-class SetUploadSerializer(SetSerializer):
+class SetUploadSerializer(MediaUploadMixin, SetSerializer):
+    image_filename = serializers.CharField(write_only=True, required=False)
     image_presigned_url = serializers.SerializerMethodField()
+    upload_tracks = serializers.SerializerMethodField()
+
     class Meta(SetSerializer.Meta):
         fields = SetSerializer.Meta.fields + (
+            'image_filename',
             'image_presigned_url',
+            'upload_tracks',
         )
-    
-    #트랙 시리얼라이저에서 가져옴
-    def get_image_presigned_url(self, track):
-        if track.image is not None:
-            image_filename = track.image.replace(settings.S3_BASE_URL, '')
 
-            image_presigned_url = boto3.client(
-                's3',
-                region_name=settings.S3_REGION_NAME,
-                aws_access_key_id=settings.AWS_ACCESS_KEY,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
-            ).generate_presigned_url(
-                ClientMethod='put_object',
-                Params={'Bucket': settings.S3_BUCKET_NAME,
-                        'Key': settings.S3_IMAGES_TRACK_DIR + image_filename},
-                ExpiresIn=300
-            )
-        else:
-            image_presigned_url = None
+    def validate(self, data):
+        data = super().validate(data)
+        data = self.filenames_to_urls(data)
 
-        return image_presigned_url
+        return data
 
-    
+    def get_upload_tracks(self, data, set):
+        tracks_data = data['tracks']
+        for track_data in tracks_data:
+            data_track = {}
+            data_track['title']=track_data['title']
+            data_track['permalink']=track_data['permalink']
+            data_track['description']=data['description'] #set과 동일
+            data_track['is_private']=data['is_private'] #set과 동일
+            data_track['image_filename']=data['image_filename'] #set과 동일
+            data_track['audio_filename']=track_data['audio_filename']
+            # 장르, 태그는 set 따라. 일단 track request body에 없어서 뺌.
 
-    #track/settrack 생성까지.
+            track = TrackMediaUploadSerializer(data_track).save()
+            SetTrack.objects.create(set=set, track=track)
+
+        
+        queryset = Track.objects.none()
+        setTracks = SetTrack.objects.filter(set=set)
+        for setTrack in setTracks:
+            queryset |= setTrack.track
+
+        return SetTrackSerializer(queryset, many=True).data

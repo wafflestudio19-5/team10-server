@@ -7,8 +7,9 @@ from track.models import Track
 from tag.serializers import TagSerializer
 from user.serializers import UserSerializer, SimpleUserSerializer
 from reaction.serializers import LikeSerializer, RepostSerializer
+from reaction.models import Like, Repost
 from soundcloud.utils import assign_object_perms, get_presigned_url, MediaUploadMixin
-
+from django.contrib.contenttypes.models import ContentType
 
 class TrackSerializer(serializers.ModelSerializer):
 
@@ -204,3 +205,47 @@ class CommentTrackSerializer(serializers.ModelSerializer):
             'title',
             'permalink'
         )
+
+class SetTrackSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Track
+        fields = (
+            'id'
+            'title',
+            'artist',
+            'permalink',
+            'audio',
+            'image',
+            'count',
+            'is_like',
+            'repost',
+        )
+
+    def get_audio(self, track):
+        return get_presigned_url(track.audio, 'get_object')
+
+    def get_image(self, track):
+        return get_presigned_url(track.image, 'get_object')
+
+    def get_is_like(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                contenttype_obj = ContentType.objects.get_for_model(track)
+                Like.objects.get(user=self.context['request'].user, object_id=track.id, content_type=contenttype_obj)
+                return True
+            except Like.DoesNotExist:
+                return False
+        else: 
+            return False 
+
+    def get_repost(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                contenttype_obj = ContentType.objects.get_for_model(track)
+                repost = Repost.objects.get(user=self.context['request'].user, object_id=track.id, content_type=contenttype_obj)
+                return RepostSerializer(repost, context=self.context).data
+            except Repost.DoesNotExist:
+                return None
+        else: 
+            return None 
