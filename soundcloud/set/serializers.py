@@ -2,49 +2,60 @@ from set.models import Set, SetTrack
 from track.models import Track
 from rest_framework import serializers
 from rest_framework.response import Response
+from rest_framework.validators import UniqueTogetherValidator
 from user.serializers import UserSerializer
 from tag.serializers import TagSerializer
-from reaction.serializers import LikeSerializer, RepostSerializer
 from django.conf import settings
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
+from soundcloud.utils import get_presigned_url
+from rest_framework.serializers import ValidationError
 
 class SetSerializer(serializers.ModelSerializer):
-    creator = UserSerializer(read_only=True)
+    creator = UserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
+    image = serializers.SerializerMethodField()
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     tracks = serializers.SerializerMethodField()
-
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
 
-    likes = LikeSerializer(many=True, read_only=True)
-    reposts = RepostSerializer(many=True, read_only=True)
-
-    image_filename = serializers.CharField(write_only=True, required=False)
     class Meta:
         model = Set
         fields = (
             'id',
             'title',
             'creator',
+            'permalink',
             'type',
             'description',
+            'genre',
             'tags',
             'is_private',
-            'likes',
-            'reposts',
             'like_count',
             'repost_count',
             'image',
-            'image_filename',
-            'tracks',
+            'tracks', #tracks in set
         )        
         extra_kwargs = {
-            'image' : {'read_only': True},
+            'permalink': {
+                'max_length': 255,
+                'min_length': 3,
+            },
             'created_at': {'read_only': True},
-            'count': {'read_only': True},
         }
+
+        # Since 'creator' is read-only field, ModelSerializer wouldn't generate UniqueTogetherValidator automatically.
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Set.objects.all(),
+                fields=('creator', 'permalink'),
+                message="Already existing set permalink for the requested user."
+            ),
+        ]
+
+    def get_image(self, set):
+        return get_presigned_url(set.image, 'get_object')
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_like_count(self, set):
@@ -58,6 +69,19 @@ class SetSerializer(serializers.ModelSerializer):
         tracks = set.set_tracks.all()
         return SetTrackSerializer(tracks, many=True, context=self.context).data
 
+    def validate_permalink(self, value):
+        if not any(c.isalpha() for c in value):
+            raise ValidationError("Permalink must contain at least one alphabetic character.")
+
+        return value
+
+    def validate(self, data):
+
+        # Although it has default value, should manually include 'creator' to the data because it is read-only field.
+        if self.instance is None:
+            data['creator'] = self.context['request'].user
+
+        return data
 
 class SetTrackSerializer(serializers.ModelSerializer):
 

@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from set.models import Set, SetTrack
 from set.serializers import *
 from soundcloud.utils import CustomObjectPermissions
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 
 class SetViewSet(viewsets.GenericViewSet):
     query_set = Set.objects.all()
@@ -16,6 +17,16 @@ class SetViewSet(viewsets.GenericViewSet):
             return SetSerializer
     
     # 1. POST /sets/
+    @extend_schema_view( #수정 필요
+        create=extend_schema(
+            summary="Signup",
+            responses={
+                201: OpenApiResponse(response=SetUploadSerializer, description='Created'),
+                400: OpenApiResponse(description='Bad Request'),
+                401: OpenApiResponse(description='Unauthorized'),
+            }
+        )
+    )
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
