@@ -35,7 +35,7 @@ class TrackCommentSerializer(serializers.ModelSerializer):
         except Comment.DoesNotExist:
             raise ValidationError("Parent comment id does not exist on the track.")
 
-        if self.context['queryset'].filter(parent_comment=parent_comment).exists():
+        if getattr(parent_comment, 'reply', None) is not None:
             raise ValidationError("Comment already exists on this parent.")
 
         self.context['parent_comment'] = parent_comment
