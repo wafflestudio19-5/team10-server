@@ -46,14 +46,14 @@ class CommentViewSet(mixins.CreateModelMixin,
         self.track = getattr(self, 'track', None) or get_object_or_404(Track, id=self.kwargs['track_id'])
 
         if self.action in ['list']:
-            return Comment.objects.filter(track=track, parent_comment=None).order_by('-created_at').select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
+            return Comment.objects.filter(track=self.track, parent_comment=None).order_by('-created_at').select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
         else:
-            return Comment.objects.filter(track=track).select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
+            return Comment.objects.filter(track=self.track).select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['queryset'] = self.get_queryset()
-        context['track'] = getattr(self, 'track', None)
+        context['track'] = self.track
 
         return context
 
