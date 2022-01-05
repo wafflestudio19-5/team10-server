@@ -73,11 +73,11 @@ class UserSocialLoginSerializer(serializers.Serializer):
 
     def validate(self, data):
         email = data.pop('email')
-        user = User.objects.filter(email=email).first()
-        if user is None:
-            raise serializers.ValidationError("이메일이 잘못되었습니다.")
-        else:
+        try:
+            user = User.objects.get(email=email)
             self.instance = user
+        except User.DoesNotExist:
+            raise serializers.ValidationError("이메일이 잘못되었습니다.")
 
         return data
 
