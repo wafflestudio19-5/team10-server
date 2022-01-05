@@ -1,7 +1,8 @@
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
-from django.shortcuts import get_object_or_404
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
 from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
 from track.serializers import SimpleTrackSerializer, TrackSerializer, TrackMediaUploadSerializer
@@ -61,21 +62,31 @@ from user.serializers import SimpleUserSerializer
     ),
     likers=extend_schema(
         summary="Get Track's Likers",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
         responses={
-            '200': OpenApiResponse(response=SimpleUserSerializer, description='OK'),
+            '200': OpenApiResponse(response=SimpleUserSerializer(many=True), description='OK'),
             '404': OpenApiResponse(description='Not Found'),
         }
     ),
     reposters=extend_schema(
         summary="Get Track's Reposters",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
         responses={
-            '200': OpenApiResponse(response=SimpleUserSerializer, description='OK'),
+            '200': OpenApiResponse(response=SimpleUserSerializer(many=True), description='OK'),
             '404': OpenApiResponse(description='Not Found'),
         }
     )
 )
 class TrackViewSet(viewsets.ModelViewSet):
 
+    serializer_class = TrackSerializer
+    queryset = Track.objects.all()
     permission_classes = (CustomObjectPermissions, )
     lookup_field = 'id'
     lookup_url_kwarg = 'track_id'
@@ -88,7 +99,7 @@ class TrackViewSet(viewsets.ModelViewSet):
         if self.action in ['likers', 'reposters']:
             return SimpleUserSerializer
         else:
-            return TrackSerializer
+            return super().get_serializer_class()
 
     def get_queryset(self):
         if self.action in ['likers', 'reposters']:
@@ -98,8 +109,10 @@ class TrackViewSet(viewsets.ModelViewSet):
                 return User.objects.prefetch_related('followers', 'owned_tracks').filter(likes__track=self.track)
             if self.action == 'reposters':
                 return User.objects.prefetch_related('followers', 'owned_tracks').filter(reposts__track=self.track)
-        else:
+        if self.action in ['create', 'retrieve', 'list', 'update', 'partial_update']:
             return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
+        else:
+            return super().get_queryset()
 
     @action(detail=True)
     def likers(self, request, *args, **kwargs):
