@@ -1,9 +1,15 @@
 from rest_framework import viewsets
 from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
+from user.models import User
+from reaction.models import Like, Repost
 from track.serializers import SimpleTrackSerializer, TrackSerializer, TrackMediaUploadSerializer
+from user.serializers import SimpleUserSerializer
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
-
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from django.contrib.contenttypes.models import ContentType
 
 @extend_schema_view(
     create=extend_schema(
@@ -67,7 +73,27 @@ class TrackViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
             return TrackMediaUploadSerializer
-        elif self.action in ['list']:
+        elif (self.action in ['list']) and (not self.detail):
             return SimpleTrackSerializer
+        elif self.detail:
+            return SimpleUserSerializer
         else:
             return TrackSerializer
+
+    @action(methods=['GET'], detail=True)
+    def likers(self, request, track_id=None):
+        get_object_or_404(self.get_queryset(), id=track_id)
+
+        like_qs = Like.objects.filter(track=track_id).select_related('user').values('user')
+        queryset = User.objects.filter(id__in=like_qs)
+
+        return Response(self.get_serializer(queryset, many=True).data)
+
+    @action(methods=['GET'], detail=True)
+    def reposters(self, request, track_id=None):
+        get_object_or_404(self.get_queryset(), id=track_id)
+
+        repost_qs = Repost.objects.filter(track=track_id).select_related('user').values('user')
+        queryset = User.objects.filter(id__in=repost_qs)
+
+        return Response(self.get_serializer(queryset, many=True).data)
