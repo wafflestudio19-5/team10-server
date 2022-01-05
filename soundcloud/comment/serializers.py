@@ -57,7 +57,7 @@ class TrackCommentSerializer(serializers.ModelSerializer):
         while child_comment:
             replies.append(child_comment.id)
             child_comment = getattr(child_comment, 'reply', None)
-        return SimpleTrackCommentSerializer(Comment.objects.filter(id__in=replies), many=True).data
+        return SimpleTrackCommentSerializer(Comment.objects.filter(id__in=replies).order_by('created_at'), many=True).data
 
     def delete(self):
         current_comment = self.instance

@@ -47,7 +47,7 @@ class CommentViewSet(mixins.CreateModelMixin,
         self.track = track
 
         if self.action in ['list']:
-            self.queryset = Comment.objects.filter(track=track, parent_comment=None).order_by('-id').select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
+            self.queryset = Comment.objects.filter(track=track, parent_comment=None).order_by('-created_at').select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
         else:
             self.queryset = Comment.objects.filter(track=track).select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
 
