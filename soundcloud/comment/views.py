@@ -3,6 +3,7 @@ from rest_framework.generics import get_object_or_404
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from comment.models import Comment
 from comment.serializers import TrackCommentSerializer
+from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
 
 @extend_schema_view(
@@ -32,18 +33,23 @@ from track.models import Track
     ),
 )
 class CommentViewSet(mixins.CreateModelMixin,
-                    mixins.ListModelMixin,
-                    mixins.DestroyModelMixin,
-                    viewsets.GenericViewSet):
+                     mixins.ListModelMixin,
+                     mixins.DestroyModelMixin,
+                     viewsets.GenericViewSet):
 
     serializer_class = TrackCommentSerializer
+    permission_classes = (CustomObjectPermissions, )
     lookup_field = 'id'
     lookup_url_kwarg = 'comment_id'
 
     def get_queryset(self):
         track = getattr(self, 'track', None) or get_object_or_404(Track, id=self.kwargs['track_id'])
-        self.queryset = Comment.objects.filter(track=track).select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
         self.track = track
+
+        if self.action in ['list']:
+            self.queryset = Comment.objects.filter(track=track, parent_comment=None).order_by('-created_at').select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
+        else:
+            self.queryset = Comment.objects.filter(track=track).select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
 
         return self.queryset
 
