@@ -10,6 +10,7 @@ from django.db import transaction
 import copy
 from django.contrib.auth import login
 from drf_spectacular.utils import OpenApiResponse, extend_schema
+from django.contrib.auth.backends import ModelBackend
 
 User = get_user_model()
 
@@ -47,7 +48,7 @@ class GoogleSigninCallBackApi(APIView):
     def social_user_create(self, email, **extra_fields):
         data = copy.deepcopy(extra_fields)
         data["email"]=email
-        data["password"]="googlepassword"
+        data["password"]=settings.GOOGLE_PASSWORD
 
         serializer = UserCreateSerializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -60,11 +61,12 @@ class GoogleSigninCallBackApi(APIView):
         data = copy.deepcopy(extra_data)
         data["email"]=email
 
-        if User.objects.filter(email=email).exists(): #이미 존재하는 이메일이면 소셜로그인.
-            user = User.objects.filter(email=email).first()
+        try: #이미 존재하는 이메일이면 소셜로그인.
+            user = User.objects.get(email=email)
             return self.social_user_login(user, data)
-        else: #회원가입부터
-            return self.social_user_create(email=email, **extra_data)
+            
+        except User.DoesNotExist: #회원가입부터
+            return self.social_user_create(email=email, **extra_data)            
 
 
     @extend_schema(
@@ -84,9 +86,7 @@ class GoogleSigninCallBackApi(APIView):
             'email': user_data['email'],  #username->email
             'first_name': user_data.get('given_name', ''), 
             'last_name': user_data.get('family_name', ''), 
-            'nickname': user_data.get('nickname', ''), 
             'display_name': user_data.get('name', ''), 
-            #'image': user_data.get('picture', None), 
             'path': "google", 
             'age':1, #왜 필수인가
             }  #구글이 넘겨주는 거.
@@ -94,13 +94,6 @@ class GoogleSigninCallBackApi(APIView):
         
         return self.social_user_get_or_create(**profile_data) 
 
-
-
-from django.contrib.auth import get_user_model
-from django.contrib.auth.backends import ModelBackend
-#from django.contrib.auth.models import AnonymousUser
-
-User = get_user_model()
 
 class GoogleBackend(ModelBackend):
     def authenticate(self, request, email=None, **kwargs):
