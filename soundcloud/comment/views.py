@@ -41,16 +41,14 @@ class CommentViewSet(mixins.CreateModelMixin,
     lookup_url_kwarg = 'comment_id'
 
     def get_queryset(self):
-        track = getattr(self, 'track', None) or get_object_or_404(Track, id=self.kwargs['track_id'])
-        self.queryset = Comment.objects.filter(track=track).select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
-        self.track = track
+        self.track = getattr(self, 'track', None) or get_object_or_404(Track, id=self.kwargs['track_id'])
 
-        return self.queryset
+        return Comment.objects.filter(track=self.track).select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['queryset'] = getattr(self, 'queryset', None) or self.get_queryset()
-        context['track'] = getattr(self, 'track', None) or get_object_or_404(Track, id=self.kwargs['track_id'])
+        context['queryset'] = self.get_queryset()
+        context['track'] = getattr(self, 'track', None)
 
         return context
 
