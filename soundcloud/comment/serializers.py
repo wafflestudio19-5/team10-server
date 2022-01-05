@@ -9,6 +9,7 @@ class TrackCommentSerializer(serializers.ModelSerializer):
 
     writer = SimpleUserSerializer(read_only=True)
     parent_id = serializers.IntegerField(required=False, allow_null=True, write_only=True)
+    children = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Comment
@@ -20,6 +21,7 @@ class TrackCommentSerializer(serializers.ModelSerializer):
             'commented_at',
             'parent_id',
             'parent_comment',
+            'children',
         )
         read_only_fields = (
             'created_at',
@@ -49,6 +51,14 @@ class TrackCommentSerializer(serializers.ModelSerializer):
 
         return data
 
+    def get_children(self, comment):
+        replies = []
+        child_comment = getattr(comment, 'reply', None)
+        while child_comment:
+            replies.append(child_comment.id)
+            child_comment = getattr(child_comment, 'reply', None)
+        return SimpleTrackCommentSerializer(Comment.objects.filter(id__in=replies).order_by('created_at'), many=True).data
+
     def delete(self):
         current_comment = self.instance
         parent_comment = getattr(current_comment, 'parent_comment', None)
@@ -58,6 +68,21 @@ class TrackCommentSerializer(serializers.ModelSerializer):
         if child_comment:
             child_comment.parent_comment = parent_comment
             child_comment.save()
+
+
+class SimpleTrackCommentSerializer(serializers.ModelSerializer):
+    writer = SimpleUserSerializer(read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = (
+            'id',
+            'writer',
+            'content',
+            'created_at',
+            'commented_at',
+            'parent_comment',
+        )
 
 
 class UserCommentSerializer(serializers.ModelSerializer):
