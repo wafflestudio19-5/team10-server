@@ -16,6 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
+from django.conf.urls import url
 from drf_spectacular.views import SpectacularJSONAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
@@ -24,9 +25,11 @@ urlpatterns = [
     path('docs/swagger', SpectacularSwaggerView.as_view(url_name='schema-json'), name='swagger-ui'),
     path('docs/redoc', SpectacularRedocView.as_view(url_name='schema-json'), name='redoc'),
     path('', include('user.urls')),
+    path('', include('comment.urls')),
     path('', include('track.urls')),
     path('', include('reaction.urls')),
     path('', include('utility.urls')),
+    path('', include('track.urls')),
 ]
 
 if settings.DEBUG:
