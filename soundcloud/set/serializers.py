@@ -1,15 +1,20 @@
+from re import T
 from set.models import Set, SetTrack
+from reaction.models import Like, Repost
 from track.models import Track
 from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.validators import UniqueTogetherValidator
 from user.serializers import UserSerializer
 from tag.serializers import TagSerializer
+from reaction.serializers import RepostSerializer
 from django.conf import settings
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from soundcloud.utils import get_presigned_url
 from rest_framework.serializers import ValidationError
+from django.contrib.contenttypes.models import ContentType
+
 
 class SetSerializer(serializers.ModelSerializer):
     creator = UserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
@@ -72,7 +77,6 @@ class SetSerializer(serializers.ModelSerializer):
     def validate_permalink(self, value):
         if not any(c.isalpha() for c in value):
             raise ValidationError("Permalink must contain at least one alphabetic character.")
-
         return value
 
     def validate(self, data):
@@ -95,12 +99,39 @@ class SetTrackSerializer(serializers.ModelSerializer):
             'audio',
             'image',
             'count',
+            'is_like',
+            'repost',
         )
-        extra_kwargs = {
-            'audio': {'read_only': True},
-            'image': {'read_only': True},
-            'count': {'read_only': True},
-        }
+
+    def get_audio(self, track):
+        return get_presigned_url(track.audio, 'get_object')
+
+    def get_image(self, track):
+        return get_presigned_url(track.image, 'get_object')
+
+    def get_is_like(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                contenttype_obj = ContentType.objects.get_for_model(track)
+                Like.objects.get(user=self.context['request'].user, object_id=track.id, content_type=contenttype_obj)
+                return True
+            except Like.DoesNotExist:
+                return False
+        else: 
+            return False 
+
+    def get_repost(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                contenttype_obj = ContentType.objects.get_for_model(track)
+                repost = Repost.objects.get(user=self.context['request'].user, object_id=track.id, content_type=contenttype_obj)
+                return RepostSerializer(repost, context=self.context).data
+            except Repost.DoesNotExist:
+                return None
+        else: 
+            return None 
+
+
 
 
 
