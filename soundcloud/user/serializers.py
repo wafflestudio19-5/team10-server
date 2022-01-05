@@ -120,7 +120,6 @@ class UserSerializer(serializers.ModelSerializer):
             'last_login',
             'age',
             'birthday',
-            'follower_count',
             'is_active',
             'gender',
             'first_name',
