@@ -172,7 +172,7 @@ REST_FRAMEWORK = {
 
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'soundcloud.utils.CustomPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': 10
 }
 
 AUTHENTICATION_BACKENDS = (

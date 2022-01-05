@@ -174,5 +174,6 @@ class MediaUploadMixin:
 
         return re.search(FILENAME_PATTERN, filename)
 
+
 class CustomPagination(PageNumberPagination):
     page_size_query_param = 'page_size'

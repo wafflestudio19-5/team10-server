@@ -91,12 +91,6 @@ class TrackSerializer(serializers.ModelSerializer):
 
         return data
 
-    def create(self, validated_data):
-        instance = super().create(validated_data=validated_data)
-        assign_object_perms(instance.artist, instance)
-
-        return instance
-    
 
 class TrackMediaUploadSerializer(MediaUploadMixin, TrackSerializer):
 
