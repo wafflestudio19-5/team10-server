@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
-from set.views import *
+from set.views import SetViewSet
 
 router = SimpleRouter(trailing_slash=False)
 router.register('sets', SetViewSet, basename='sets')   # /sets
