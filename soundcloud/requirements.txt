@@ -13,3 +13,4 @@ gunicorn
 boto3
 drf-spectacular
 django-guardian
+requests
