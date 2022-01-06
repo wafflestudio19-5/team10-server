@@ -7,14 +7,10 @@ from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from tag.serializers import TagSerializer
 from track.models import Track
 from user.serializers import UserSerializer, SimpleUserSerializer
-<<<<<<< HEAD
-from reaction.serializers import LikeSerializer, RepostSerializer
+from reaction.serializers import LikeService, RepostService
 from reaction.models import Like, Repost
 from soundcloud.utils import assign_object_perms, get_presigned_url, MediaUploadMixin
 from django.contrib.contenttypes.models import ContentType
-=======
-
->>>>>>> master
 
 class TrackSerializer(serializers.ModelSerializer):
 
@@ -253,7 +249,7 @@ class SetTrackSerializer(serializers.ModelSerializer):
             try:                	
                 contenttype_obj = ContentType.objects.get_for_model(track)
                 repost = Repost.objects.get(user=self.context['request'].user, object_id=track.id, content_type=contenttype_obj)
-                return RepostSerializer(repost, context=self.context).data
+                return RepostService(repost, context=self.context).data
             except Repost.DoesNotExist:
                 return None
         else: 
