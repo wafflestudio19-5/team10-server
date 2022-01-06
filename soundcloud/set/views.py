@@ -137,8 +137,8 @@ class SetViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-    # 5. POST /sets/{set_id}/track/ (add to playlist)
-    # 6. DELETE /sets/{set_id}/track/ (remove from playlist)
+    # 5. POST /sets/{set_id}/track/ (add track to playlist)
+    # 6. DELETE /sets/{set_id}/track/ (remove track from playlist)
     @action(methods=['POST', 'DELETE'], detail=True)
     def track(self, request, *args, **kwargs):
         user = self.request.user #CustomObjectPerm 이 커버가능한지 확인하기 - x
@@ -181,12 +181,12 @@ class SetViewSet(viewsets.ModelViewSet):
         set_track.delete()
         return Response({"removed from playlist"}, status=status.HTTP_200_OK)
 
-    #7. GET /sets/{set_id}/likers
+    # 7. GET /sets/{set_id}/likers
     @action(detail=True)
     def likers(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    #8. /sets/{set_id}/reposters
+    # 8. GET /sets/{set_id}/reposters
     @action(detail=True)
     def reposters(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
