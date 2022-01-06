@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model, logout
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status, permissions, viewsets
 from rest_framework.generics import GenericAPIView, CreateAPIView, RetrieveUpdateAPIView, get_object_or_404
 from rest_framework.response import Response
@@ -86,6 +86,10 @@ class UserLogoutView(APIView):
     ),
     followers=extend_schema(
         summary="Get User's Followers",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
         responses={
             200: OpenApiResponse(response=SimpleUserSerializer(many=True), description='OK'),
             404: OpenApiResponse(description='Not Found'),
@@ -93,6 +97,10 @@ class UserLogoutView(APIView):
     ),
     followings=extend_schema(
         summary="Get User's Followings",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
         responses={
             200: OpenApiResponse(response=SimpleUserSerializer(many=True), description='OK'),
             404: OpenApiResponse(description='Not Found'),
@@ -100,6 +108,10 @@ class UserLogoutView(APIView):
     ),
     tracks=extend_schema(
         summary="Get User's Tracks",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
         responses={
             200: OpenApiResponse(response=UserTrackSerializer(many=True), description='OK'),
             404: OpenApiResponse(description='Not Found'),
@@ -107,6 +119,10 @@ class UserLogoutView(APIView):
     ),
     likes_tracks=extend_schema(
         summary="Get User's Liked Tracks",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
         responses={
             200: OpenApiResponse(response=SimpleTrackSerializer(many=True), description='OK'),
             404: OpenApiResponse(description='Not Found'),
@@ -114,6 +130,10 @@ class UserLogoutView(APIView):
     ),
     reposts_tracks=extend_schema(
         summary="Get User's Reposted Tracks",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
         responses={
             200: OpenApiResponse(response=SimpleTrackSerializer(many=True), description='OK'),
             404: OpenApiResponse(description='Not Found'),
@@ -121,6 +141,10 @@ class UserLogoutView(APIView):
     ),
     comments=extend_schema(
         summary="Get User's Comments",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
         responses={
             200: OpenApiResponse(response=UserCommentSerializer(many=True), description='OK'),
             404: OpenApiResponse(description='Not Found'),
@@ -129,6 +153,8 @@ class UserLogoutView(APIView):
 )
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
     lookup_field = 'id'
     lookup_url_kwarg = 'user_id'
 
@@ -142,68 +168,53 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         elif self.action in [ 'comments' ]:
             return UserCommentSerializer
         else:
-            return UserSerializer
+            return super().get_serializer_class()
 
     def get_queryset(self):
-        if self.action in [ 'list', 'followers', 'followings' ]:
-            return User.objects.prefetch_related('followers', 'owned_tracks')
-        elif self.action in [ 'tracks' ]:
-            return Track.objects.prefetch_related('likes', 'reposts', 'comments')
-        elif self.action in [ 'likes_tracks', 'reposts_tracks' ]:
-            return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
-        elif self.action in [ 'comments' ]:
-            return Comment.objects.select_related('track').prefetch_related('track__likes', 'track__reposts', 'track__comments')
-        else: 
-            return User.objects.all()
+        if self.action in ['followers', 'followings', 'tracks', 'likes_tracks', 'reposts_tracks', 'comments']:
+            self.user = getattr(self, 'user', None) or get_object_or_404(User, id=self.kwargs[self.lookup_url_kwarg])
 
-    # Unlike GenericAPIView's get_object(self), this does not call self.get_queryset().
-    # Always returns User object referred by {user_id}.
-    def get_object(self):
-        user_id = self.kwargs[self.lookup_url_kwarg]
+            if self.action == 'followers':
+                return User.objects.prefetch_related('followers', 'owned_tracks').filter(followings__followee=self.user)
+            if self.action == 'followings':
+                return User.objects.prefetch_related('followers', 'owned_tracks').filter(followers__follower=self.user)
+            if self.action == 'tracks':
+                return Track.objects.prefetch_related('likes', 'reposts', 'comments').filter(artist=self.user)
+            if self.action == 'likes_tracks':
+                return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks').filter(likes__user=self.user)
+            if self.action == 'reposts_tracks':
+                return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks').filter(reposts__user=self.user)
+            if self.action == 'comments':
+                return Comment.objects.select_related('track').filter(writer=self.user)
 
-        return get_object_or_404(User.objects.all(), id=user_id)
-
-    @action(detail=True)
-    def followers(self, *args, **kwargs):
-        queryset = self.get_queryset().filter(followings__followee=self.get_object())
-        serializer = self.get_serializer(queryset, many=True)
-
-        return Response(serializer.data)
+        if self.action in ['list']:
+            return User.objects.prefetch_related('followers', 'owned_tracks')   
+        else:
+            return super().get_queryset()
 
     @action(detail=True)
-    def followings(self, *args, **kwargs):
-        queryset = self.get_queryset().filter(followers__follower=self.get_object())
-        serializer = self.get_serializer(queryset, many=True)
-
-        return Response(serializer.data)
+    def followers(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(detail=True)
-    def tracks(self, *args, **kwargs):
-        queryset = self.get_queryset().filter(artist=self.get_object())
-        serializer = self.get_serializer(queryset, many=True)
+    def followings(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
-        return Response(serializer.data)
+    @action(detail=True)
+    def tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(detail=True, url_path='likes/tracks')
-    def likes_tracks(self, *args, **kwargs):
-        queryset = self.get_queryset().filter(likes__user=self.get_object())
-        serializer = self.get_serializer(queryset, many=True)
-
-        return Response(serializer.data)
+    def likes_tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(detail=True, url_path='reposts/tracks')
-    def reposts_tracks(self, *args, **kwargs):
-        queryset = self.get_queryset().filter(reposts__user=self.get_object())
-        serializer = self.get_serializer(queryset, many=True)
-
-        return Response(serializer.data)
+    def reposts_tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(detail=True)
-    def comments(self, *args, **kwargs):
-        queryset = self.get_queryset().filter(writer=self.get_object())
-        serializer = self.get_serializer(queryset, many=True)
-
-        return Response(serializer.data)
+    def comments(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 @extend_schema_view(
@@ -233,6 +244,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 )
 class UserSelfView(RetrieveUpdateAPIView):
 
+    serializer_class = UserSerializer
     queryset = User.objects.prefetch_related('followers', 'followings', 'owned_tracks', 'comments')
     permission_classes = (permissions.IsAuthenticated, )
 
@@ -240,7 +252,7 @@ class UserSelfView(RetrieveUpdateAPIView):
         if self.request.method in [ 'PUT', 'PATCH' ]:
             return UserMediaUploadSerializer
         else:
-            return UserSerializer
+            return super().get_serializer_class()
 
     def get_object(self):
 

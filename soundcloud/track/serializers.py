@@ -3,11 +3,10 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from rest_framework.serializers import ValidationError
-from track.models import Track
-from tag.serializers import TagSerializer
-from user.serializers import UserSerializer, SimpleUserSerializer
-from reaction.serializers import LikeSerializer, RepostSerializer
 from soundcloud.utils import assign_object_perms, get_presigned_url, MediaUploadMixin
+from tag.serializers import TagSerializer
+from track.models import Track
+from user.serializers import UserSerializer, SimpleUserSerializer
 
 
 class TrackSerializer(serializers.ModelSerializer):

@@ -1,31 +1,8 @@
-from rest_framework import serializers
+from django.contrib.contenttypes.models import ContentType
+from rest_framework import serializers, status
+from rest_framework.exceptions import NotFound
 from reaction.models import Like, Repost
 from soundcloud.utils import ConflictError
-from rest_framework import status
-from django.contrib.contenttypes.models import ContentType
-from rest_framework.exceptions import NotFound
-
-
-class LikeSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Like
-        fields = '__all__'
-
-    def validate(self, data):
-        
-        return data
-
-
-class RepostSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Repost
-        fields = '__all__'
-
-    def validate(self, data):
-        
-        return data
 
 
 class BaseReactionService(serializers.Serializer):

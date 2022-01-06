@@ -24,3 +24,6 @@ DATABASES = {
         'PASSWORD': get_secret("DB_PASSWORD"),
     }
 }
+
+BASE_BACKEND_URL = 'http://localhost:8000'
+

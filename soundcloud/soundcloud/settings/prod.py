@@ -27,3 +27,5 @@ DATABASES = {
         'PASSWORD': get_secret("DB_PASSWORD"),
     }
 }
+
+BASE_BACKEND_URL = 'https://api.soundwaffle.com'
