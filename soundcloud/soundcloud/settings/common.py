@@ -188,7 +188,7 @@ JWT_AUTH = {
     'JWT_SECRET_KEY': SECRET_KEY,
     'JWT_ALGORITHM': 'HS256',
     'JWT_ALLOW_REFRESH': True,
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=2),
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=10),
     'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=3),
 }
 

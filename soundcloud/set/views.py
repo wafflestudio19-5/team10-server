@@ -7,14 +7,29 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
 
 @extend_schema_view( #수정 필요
     create=extend_schema(
-        summary="Signup",
+        summary="Create Set",
         responses={
-            201: OpenApiResponse(response=SetUploadSerializer, description='Created'),
+            201: OpenApiResponse(response=SetSerializer, description='Created'),
             400: OpenApiResponse(description='Bad Request'),
             401: OpenApiResponse(description='Unauthorized'),
         }
     ),
-
+    retrieve=extend_schema(
+        summary="Retrieve Set",
+        responses={
+            '200': OpenApiResponse(response=SetSerializer, description='OK'),
+            '404': OpenApiResponse(description='Not Found')
+        }
+    ),
+    destroy=extend_schema(
+        summary="Delete Set",
+        responses={
+            '204': OpenApiResponse(description='No Content'),
+            '401': OpenApiResponse(description='Unauthorized'),
+            '403': OpenApiResponse(description='Permission Denied'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    )
 )
 class SetViewSet(viewsets.GenericViewSet):
     queryset = Set.objects.all()
@@ -56,8 +71,6 @@ class SetViewSet(viewsets.GenericViewSet):
     # 4. DELETE /sets/{set_id}
     def destroy(self, request, pk):
         set = self.get_object()
-        if set.creator != request.user:
-            return Response({"error": "set of others"}, status=403)
         SetTrack.objects.filter(set=set).delete() #관계도 지우기. 트랙은 남아있음
         set.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
