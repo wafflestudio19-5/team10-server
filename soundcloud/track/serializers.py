@@ -3,7 +3,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from rest_framework.serializers import ValidationError
-from soundcloud.utils import assign_object_perms, get_presigned_url, MediaUploadMixin
+from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from tag.serializers import TagSerializer
 from track.models import Track
 from user.serializers import UserSerializer, SimpleUserSerializer
@@ -137,6 +137,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
             'comment_count',
             'genre',
             'count',
+            'is_private',
         )
 
     def get_audio(self, track):
@@ -176,6 +177,7 @@ class UserTrackSerializer(serializers.ModelSerializer):
             'comment_count',
             'genre',
             'count',
+            'is_private',
         )
 
     def get_audio(self, track):
@@ -201,5 +203,6 @@ class CommentTrackSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'title',
-            'permalink'
+            'permalink',
+            'is_private'
         )
