@@ -93,16 +93,15 @@ class SetSerializer(serializers.ModelSerializer):
 
 
 
-class SetUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서만 쓰기. 이미지 수정용
+class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서만 쓰기. 이미지 수정용 
+
     image_filename = serializers.CharField(write_only=True, required=False)
     image_presigned_url = serializers.SerializerMethodField()
-    upload_tracks = serializers.SerializerMethodField()
 
     class Meta(SetSerializer.Meta):
         fields = SetSerializer.Meta.fields + (
             'image_filename',
             'image_presigned_url',
-            'upload_tracks',
         )
 
     def validate(self, data):
@@ -111,27 +110,4 @@ class SetUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서
 
         return data
 
-    def get_upload_tracks(self, data):
-        tracks_data = data['tracks']
-        for track_data in tracks_data:
-            data_track = {}
-            data_track['artist']=data['creator']
-            data_track['title']=track_data['title']
-            data_track['permalink']=track_data['permalink']
-            data_track['description']=data['description'] #set과 동일
-            data_track['is_private']=data['is_private'] #set과 동일
-            data_track['image_filename']=data['image_filename'] #set과 동일
-            data_track['audio_filename']=track_data['audio_filename']
-            # 장르, 태그는 set 따라. 일단 track request body에 없어서 뺌.
-            set = self.save()
 
-            track = TrackMediaUploadSerializer(data_track).save()
-            SetTrack.objects.create(set=set, track=track)
-
-        
-        queryset = Track.objects.none()
-        setTracks = SetTrack.objects.filter(set=set)
-        for setTrack in setTracks:
-            queryset |= setTrack.track
-
-        return SetTrackSerializer(queryset, many=True).data

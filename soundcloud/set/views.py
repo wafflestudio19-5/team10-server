@@ -17,6 +17,16 @@ from user.models import User
             401: OpenApiResponse(description='Unauthorized'),
         }
     ),
+    update=extend_schema(
+        summary="Update Set",
+        responses={
+            '200': OpenApiResponse(response=SetMediaUploadSerializer, description='OK'),
+            '400': OpenApiResponse(description='Bad Request'),
+            '401': OpenApiResponse(description='Unauthorized'),
+            '403': OpenApiResponse(description='Permission Denied'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    ),
     retrieve=extend_schema(
         summary="Retrieve Set",
         responses={
@@ -76,7 +86,7 @@ class SetViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action in ['update']:
-            return SetUploadSerializer
+            return SetMediaUploadSerializer
         if self.action in ['likers', 'reposters']:
             return SimpleUserSerializer
         else:
