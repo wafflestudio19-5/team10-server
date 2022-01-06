@@ -3,8 +3,10 @@ from rest_framework.response import Response
 from set.models import Set, SetTrack
 from set.serializers import *
 from soundcloud.utils import CustomObjectPermissions
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
+from user.models import User
 
 @extend_schema_view( #수정 필요
     create=extend_schema(
@@ -33,6 +35,9 @@ from rest_framework.decorators import action
     ),
     track=extend_schema(
         summary="Add/Remove Track in Set",
+        parameters=[
+            OpenApiParameter("track_id", OpenApiTypes.INT, OpenApiParameter.QUERY, description='track id'),
+        ],
         responses={
             '200': OpenApiResponse(description='OK'),
             '400': OpenApiResponse(description="Bad Request"),
@@ -40,19 +45,53 @@ from rest_framework.decorators import action
             '403': OpenApiResponse(description='Permission Denied'),
             '404': OpenApiResponse(description='Not Found'),
         }
+    ),
+    likers=extend_schema(
+        summary="Get Set's Likers",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
+        responses={
+            '200': OpenApiResponse(response=SimpleUserSerializer(many=True), description='OK'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    ),
+    reposters=extend_schema(
+        summary="Get Set's Reposters",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
+        responses={
+            '200': OpenApiResponse(response=SimpleUserSerializer(many=True), description='OK'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
     )
 
 )
-class SetViewSet(viewsets.GenericViewSet):
-    queryset = Set.objects.all()
+class SetViewSet(viewsets.ModelViewSet):
     permission_classes = (CustomObjectPermissions, )
+    lookup_url_kwarg = 'set_id'
 
-    #serializer_class = SetSerializer
     def get_serializer_class(self):
         if self.action in ['update']:
             return SetUploadSerializer
+        if self.action in ['likers', 'reposters']:
+            return SimpleUserSerializer
         else:
             return SetSerializer
+
+    def get_queryset(self):
+        if self.action in ['likers', 'reposters']:
+            self.set = getattr(self, 'set', None) or get_object_or_404(Set, id=self.kwargs[self.lookup_url_kwarg])
+
+            if self.action == 'likers':
+                return User.objects.prefetch_related('followers', 'owned_sets').filter(likes__set=self.set)
+            if self.action == 'reposters':
+                return User.objects.prefetch_related('followers', 'owned_sets').filter(reposts__set=self.set)
+        else:
+            return Set.objects.all()
     
     # 1. POST /sets/ 한 곡으로 playlist 생성 시
     def create(self, request):
@@ -68,7 +107,7 @@ class SetViewSet(viewsets.GenericViewSet):
 
 
     # 2. PUT /sets/{set_id}
-    def update(self, request, pk):
+    def update(self, request, *args, **kwargs):
         set = self.get_object()
         serializer = self.get_serializer(set, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -76,12 +115,12 @@ class SetViewSet(viewsets.GenericViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     # 3. GET /sets/{set_id}
-    def retrieve(self, request, pk):
+    def retrieve(self, request, *args, **kwargs):
         set = self.get_object()
         return Response(self.get_serializer(set).data, status=status.HTTP_200_OK)
 
     # 4. DELETE /sets/{set_id}
-    def destroy(self, request, pk):
+    def destroy(self, request, *args, **kwargs):
         set = self.get_object()
         SetTrack.objects.filter(set=set).delete() #관계도 지우기. 트랙은 남아있음
         set.delete()
@@ -91,10 +130,10 @@ class SetViewSet(viewsets.GenericViewSet):
     # 5. POST /sets/{set_id}/track/ (add to playlist)
     # 6. DELETE /sets/{set_id}/track/ (remove from playlist)
     @action(methods=['POST', 'DELETE'], detail=True)
-    def track(self, request, pk):
+    def track(self, request, *args, **kwargs):
         user = self.request.user #CustomObjectPerm 이 커버가능한지 확인하기 - x
         try:
-            set = Set.objects.get(id=pk)
+            set = Set.objects.get(id=self.kwargs[self.lookup_url_kwarg])
         except Set.DoesNotExist:
             return Response({"error": "해당 셋은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
         
@@ -132,4 +171,13 @@ class SetViewSet(viewsets.GenericViewSet):
         set_track.delete()
         return Response({"removed from playlist"}, status=status.HTTP_200_OK)
 
+    #7. GET /sets/{set_id}/likers
+    @action(detail=True)
+    def likers(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    #8. /sets/{set_id}/reposters
+    @action(detail=True)
+    def reposters(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
