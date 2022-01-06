@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 import json
 import datetime
+from re import DEBUG
 from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -171,11 +172,14 @@ REST_FRAMEWORK = {
     ),
 
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PAGINATION_CLASS': 'soundcloud.utils.CustomPagination',
+    'PAGE_SIZE': 10
 }
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend', # this is default
     'guardian.backends.ObjectPermissionBackend',
+    'user.googleapi.GoogleBackend', 
 )
 
 # JWT Authorization
@@ -219,3 +223,14 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_NO_READ_ONLY_REQUIRED': True,
     'COMPONENT_SPLIT_REQUEST': False,
 }
+
+
+# for Sociallogin
+import environ
+env = environ.Env(
+    DEBUG=(int,0)
+)
+environ.Env.read_env('.env')
+BASE_BACKEND_URL = env.str('DJANGO_BASE_BACKEND_URL', default='http://localhost:8000')
+BASE_FRONTEND_URL = env.str('DJANGO_BASE_FRONTEND_URL', default='http://localhost:8000') #3000인지 확인
+GOOGLE_PASSWORD = "googlepassword"

@@ -1,9 +1,13 @@
 from rest_framework import viewsets
 from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
+from user.models import User
+from reaction.models import Like, Repost
 from track.serializers import SimpleTrackSerializer, TrackSerializer, TrackMediaUploadSerializer
+from user.serializers import SimpleUserSerializer
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
-
+from rest_framework.decorators import action
+from django.shortcuts import get_object_or_404
 
 @extend_schema_view(
     create=extend_schema(
@@ -55,6 +59,20 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
         responses={
             '200': OpenApiResponse(response=SimpleTrackSerializer, description='OK'),
         }
+    ),
+    likers=extend_schema(
+        summary="Get Track's Likers",
+        responses={
+            '200': OpenApiResponse(response=SimpleUserSerializer, description='OK'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    ),
+    reposters=extend_schema(
+        summary="Get Track's Reposters",
+        responses={
+            '200': OpenApiResponse(response=SimpleUserSerializer, description='OK'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
     )
 )
 class TrackViewSet(viewsets.ModelViewSet):
@@ -69,5 +87,31 @@ class TrackViewSet(viewsets.ModelViewSet):
             return TrackMediaUploadSerializer
         elif self.action in ['list']:
             return SimpleTrackSerializer
+        elif self.action in ['likers', 'reposters']:
+            return SimpleUserSerializer
         else:
             return TrackSerializer
+
+    @action(methods=['GET'], detail=True)
+    def likers(self, request, track_id=None):
+        get_object_or_404(self.get_queryset(), id=track_id)
+
+        like_qs = Like.objects.filter(track=track_id).select_related('user').values('user')
+        queryset = User.objects.filter(id__in=like_qs)
+
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+
+        return self.get_paginated_response(serializer.data)
+
+    @action(methods=['GET'], detail=True)
+    def reposters(self, request, track_id=None):
+        get_object_or_404(self.get_queryset(), id=track_id)
+
+        repost_qs = Repost.objects.filter(track=track_id).select_related('user').values('user')
+        queryset = User.objects.filter(id__in=repost_qs)
+
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+
+        return self.get_paginated_response(serializer.data)

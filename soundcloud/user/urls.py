@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
+from .googleapi import *
 from .views import UserSelfView, UserLoginView, UserSignUpView, UserLogoutView, UserViewSet, UserFollowView
 
 router = SimpleRouter(trailing_slash=False)
@@ -12,4 +13,6 @@ urlpatterns = [
     path('users/me/followings/<int:user_id>', UserFollowView.as_view(), name='user-follow'),  # /users/me/followings/{user_id}
     path('users/me', UserSelfView.as_view(), name='user-self'), # /users/me
     path('', include(router.urls), name='user'),                # /users/{user_id}
+    path('google', GoogleLoginApi.as_view(), name='google_login'),
+    path('google/callback', GoogleSigninCallBackApi.as_view(), name='google_login_callback'),
 ]
