@@ -207,11 +207,13 @@ class CommentTrackSerializer(serializers.ModelSerializer):
         )
 
 class SetTrackSerializer(serializers.ModelSerializer):
+    is_like = serializers.BooleanField(read_only=True)
+    repost = serializers.SerializerMethodField()
 
     class Meta:
         model = Track
         fields = (
-            'id'
+            'id',
             'title',
             'artist',
             'permalink',

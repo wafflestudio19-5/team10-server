@@ -69,7 +69,12 @@ class SetSerializer(serializers.ModelSerializer):
         return set.reposts.count()
 
     def get_tracks(self, set):
-        tracks = set.set_tracks.all()
+        set_tracks = set.set_tracks.all()
+        tracks = []
+        for set_track in set_tracks:
+            tracks.append(set_track.track)
+        if not set_tracks.count():
+            return None
         return SetTrackSerializer(tracks, many=True, context=self.context).data
 
     def validate_permalink(self, value):
@@ -85,10 +90,7 @@ class SetSerializer(serializers.ModelSerializer):
 
         return data
 
-#class SetCreateSerializer(SetSerializer):
-
-
-class SetUploadSerializer(MediaUploadMixin, SetSerializer):
+class SetUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서만 쓰기. 이미지 수정용
     image_filename = serializers.CharField(write_only=True, required=False)
     image_presigned_url = serializers.SerializerMethodField()
     upload_tracks = serializers.SerializerMethodField()

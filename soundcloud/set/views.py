@@ -22,17 +22,22 @@ class SetViewSet(viewsets.GenericViewSet):
 
     #serializer_class = SetSerializer
     def get_serializer_class(self):
-        if self.action in ['create', 'update']:
+        if self.action in ['update']:
             return SetUploadSerializer
         else:
             return SetSerializer
     
-    # 1. POST /sets/
+    # 1. POST /sets/ 한 곡으로 playlist 생성 시
     def create(self, request):
+        track_id = request.data["track_id"]
+        track = Track.objects.get(id=track_id)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        set = serializer.save()
+        SetTrack.objects.create(set=set, track=track)
+        set.image = track.image
+        set.save()
+        return Response(self.get_serializer(set).data, status=status.HTTP_201_CREATED)
 
 
     # 2. PUT /sets/{set_id}
