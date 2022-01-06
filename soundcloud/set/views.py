@@ -30,7 +30,18 @@ from rest_framework.decorators import action
             '403': OpenApiResponse(description='Permission Denied'),
             '404': OpenApiResponse(description='Not Found'),
         }
+    ),
+    track=extend_schema(
+        summary="Add/Remove Track in Set",
+        responses={
+            '200': OpenApiResponse(description='OK'),
+            '400': OpenApiResponse(description="Bad Request"),
+            '401': OpenApiResponse(description='Unauthorized'),
+            '403': OpenApiResponse(description='Permission Denied'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
     )
+
 )
 class SetViewSet(viewsets.GenericViewSet):
     queryset = Set.objects.all()
@@ -97,7 +108,6 @@ class SetViewSet(viewsets.GenericViewSet):
         except Track.DoesNotExist:
             return Response({"error": "해당 트랙은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
         
-        
         if request.method == 'POST':
             return self._add(set, track)
         else:
@@ -111,7 +121,7 @@ class SetViewSet(viewsets.GenericViewSet):
         if set.set_tracks.count() == 1:
             set.image = track.image
             set.save()
-        return Response({"added to playlist."}, status=status.HTTP_201_CREATED) 
+        return Response({"added to playlist."}, status=status.HTTP_200_OK) 
 
     def _remove(self, set, track):
         try:
