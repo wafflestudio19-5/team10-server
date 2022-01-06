@@ -226,11 +226,4 @@ SPECTACULAR_SETTINGS = {
 
 
 # for Sociallogin
-import environ
-env = environ.Env(
-    DEBUG=(int,0)
-)
-environ.Env.read_env('.env')
-BASE_BACKEND_URL = env.str('DJANGO_BASE_BACKEND_URL', default='http://localhost:8000')
-BASE_FRONTEND_URL = env.str('DJANGO_BASE_FRONTEND_URL', default='http://localhost:8000') #3000인지 확인
 GOOGLE_PASSWORD = "googlepassword"
