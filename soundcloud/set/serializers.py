@@ -90,6 +90,9 @@ class SetSerializer(serializers.ModelSerializer):
 
         return data
 
+
+
+
 class SetUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서만 쓰기. 이미지 수정용
     image_filename = serializers.CharField(write_only=True, required=False)
     image_presigned_url = serializers.SerializerMethodField()

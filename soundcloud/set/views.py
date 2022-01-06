@@ -4,6 +4,7 @@ from set.models import Set, SetTrack
 from set.serializers import *
 from soundcloud.utils import CustomObjectPermissions
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+from rest_framework.decorators import action
 
 @extend_schema_view( #수정 필요
     create=extend_schema(
@@ -74,5 +75,51 @@ class SetViewSet(viewsets.GenericViewSet):
         SetTrack.objects.filter(set=set).delete() #관계도 지우기. 트랙은 남아있음
         set.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+    # 5. POST /sets/{set_id}/track/ (add to playlist)
+    # 6. DELETE /sets/{set_id}/track/ (remove from playlist)
+    @action(methods=['POST', 'DELETE'], detail=True)
+    def track(self, request, pk):
+        user = self.request.user #CustomObjectPerm 이 커버가능한지 확인하기 - x
+        try:
+            set = Set.objects.get(id=pk)
+        except Set.DoesNotExist:
+            return Response({"error": "해당 셋은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+        
+        if user != set.creator:
+            return Response({"error": "해당 셋의 creator가 아닙니다."}, status=status.HTTP_403_FORBIDDEN)
+        
+        data = request.data
+        track_id = data["track_id"]
+        try:
+            track = Track.objects.get(id=track_id)
+        except Track.DoesNotExist:
+            return Response({"error": "해당 트랙은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+        
+        
+        if request.method == 'POST':
+            return self._add(set, track)
+        else:
+            return self._remove(set, track)
+
+    def _add(self, set, track):
+        if set.set_tracks.filter(track=track).exists():
+            return Response({"error": "이미 셋에 추가되어 있습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        SetTrack.objects.create(set=set, track=track)
+        if set.set_tracks.count() == 1:
+            set.image = track.image
+            set.save()
+        return Response({"added to playlist."}, status=status.HTTP_201_CREATED) 
+
+    def _remove(self, set, track):
+        try:
+            set_track = set.set_tracks.get(track=track)
+        except: 
+            return Response({"error": "셋에 추가된 트랙이 아닙니다."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        set_track.delete()
+        return Response({"removed from playlist"}, status=status.HTTP_200_OK)
 
 

@@ -56,3 +56,4 @@ class Set(models.Model):
 class SetTrack(models.Model):
     set = models.ForeignKey(Set, related_name='set_tracks', on_delete=models.CASCADE)
     track = models.ForeignKey(Track, related_name='set_tracks', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
