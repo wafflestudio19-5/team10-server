@@ -14,14 +14,14 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
             401: OpenApiResponse(description='Unauthorized'),
         }
     ),
-    
+
 )
 class SetViewSet(viewsets.GenericViewSet):
     queryset = Set.objects.all()
     permission_classes = (CustomObjectPermissions, )
 
     #serializer_class = SetSerializer
-    def get_sealizer_class(self):
+    def get_serializer_class(self):
         if self.action in ['create', 'update']:
             return SetUploadSerializer
         else:

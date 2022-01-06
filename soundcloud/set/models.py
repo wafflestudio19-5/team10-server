@@ -10,7 +10,7 @@ class CustomSetManager(models.Manager):
 
     def create(self, **kwargs):
         instance = super().create(**kwargs)
-        assign_object_perms(instance.artist, instance)
+        assign_object_perms(instance.creator, instance)
 
         return instance
 
@@ -41,7 +41,10 @@ class Set(models.Model):
     is_private = models.BooleanField(default=False)
     likes = GenericRelation(Like, related_query_name="set") 
     reposts = GenericRelation(Repost, related_query_name="set") 
-    #image = models.ImageField(null=True, blank=True, upload_to=?)
+    image = models.URLField(null=True, unique=True)
+
+    objects = CustomSetManager()
+
     class Meta:
         constraints=[
             models.UniqueConstraint(

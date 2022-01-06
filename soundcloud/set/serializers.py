@@ -4,7 +4,7 @@ from track.models import Track
 from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.validators import UniqueTogetherValidator
-from user.serializers import UserSerializer
+from user.serializers import SimpleUserSerializer
 from tag.serializers import TagSerializer
 from django.conf import settings
 from drf_spectacular.types import OpenApiTypes
@@ -14,7 +14,7 @@ from rest_framework.serializers import ValidationError
 from track.serializers import SetTrackSerializer, TrackMediaUploadSerializer
 
 class SetSerializer(serializers.ModelSerializer):
-    creator = UserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
+    creator = SimpleUserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
     image = serializers.SerializerMethodField()
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
@@ -38,6 +38,7 @@ class SetSerializer(serializers.ModelSerializer):
             'repost_count',
             'image',
             'tracks', #tracks in set
+            'created_at',
         )        
         extra_kwargs = {
             'permalink': {
@@ -84,6 +85,8 @@ class SetSerializer(serializers.ModelSerializer):
 
         return data
 
+#class SetCreateSerializer(SetSerializer):
+
 
 class SetUploadSerializer(MediaUploadMixin, SetSerializer):
     image_filename = serializers.CharField(write_only=True, required=False)
@@ -103,10 +106,11 @@ class SetUploadSerializer(MediaUploadMixin, SetSerializer):
 
         return data
 
-    def get_upload_tracks(self, data, set):
+    def get_upload_tracks(self, data):
         tracks_data = data['tracks']
         for track_data in tracks_data:
             data_track = {}
+            data_track['artist']=data['creator']
             data_track['title']=track_data['title']
             data_track['permalink']=track_data['permalink']
             data_track['description']=data['description'] #set과 동일
@@ -114,6 +118,7 @@ class SetUploadSerializer(MediaUploadMixin, SetSerializer):
             data_track['image_filename']=data['image_filename'] #set과 동일
             data_track['audio_filename']=track_data['audio_filename']
             # 장르, 태그는 set 따라. 일단 track request body에 없어서 뺌.
+            set = self.save()
 
             track = TrackMediaUploadSerializer(data_track).save()
             SetTrack.objects.create(set=set, track=track)
