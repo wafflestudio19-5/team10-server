@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import PermissionsMixin
 from rest_framework.views import APIView
 from django.conf import settings
 from django.shortcuts import redirect
@@ -11,6 +10,7 @@ import copy
 from django.contrib.auth import login
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from django.contrib.auth.backends import ModelBackend
+
 
 User = get_user_model()
 

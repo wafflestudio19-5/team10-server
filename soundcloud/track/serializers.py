@@ -3,13 +3,18 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from rest_framework.serializers import ValidationError
-from track.models import Track
+from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from tag.serializers import TagSerializer
+from track.models import Track
 from user.serializers import UserSerializer, SimpleUserSerializer
+<<<<<<< HEAD
 from reaction.serializers import LikeSerializer, RepostSerializer
 from reaction.models import Like, Repost
 from soundcloud.utils import assign_object_perms, get_presigned_url, MediaUploadMixin
 from django.contrib.contenttypes.models import ContentType
+=======
+
+>>>>>>> master
 
 class TrackSerializer(serializers.ModelSerializer):
 
@@ -139,6 +144,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
             'comment_count',
             'genre',
             'count',
+            'is_private',
         )
 
     def get_audio(self, track):
@@ -178,6 +184,7 @@ class UserTrackSerializer(serializers.ModelSerializer):
             'comment_count',
             'genre',
             'count',
+            'is_private',
         )
 
     def get_audio(self, track):
@@ -195,7 +202,6 @@ class UserTrackSerializer(serializers.ModelSerializer):
     def get_comment_count(self, track):
         return track.comments.count()
 
-
 class CommentTrackSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -203,9 +209,10 @@ class CommentTrackSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'title',
-            'permalink'
+            'permalink',
+            'is_private'
         )
-
+        
 class SetTrackSerializer(serializers.ModelSerializer):
     is_like = serializers.BooleanField(read_only=True)
     repost = serializers.SerializerMethodField()

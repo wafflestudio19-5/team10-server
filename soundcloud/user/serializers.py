@@ -252,6 +252,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'permalink',
+            'display_name',
             'email',
             'image_profile',
             'follower_count',
