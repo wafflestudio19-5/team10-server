@@ -28,6 +28,7 @@ from track.models import Track
         responses={
             204: OpenApiResponse(description='No Content'),
             401: OpenApiResponse(description='Unauthorized'),
+            403: OpenApiResponse(description='Permission Denied'),
             404: OpenApiResponse(description='Not Found'),
         }
     ),
@@ -46,14 +47,19 @@ class CommentViewSet(mixins.CreateModelMixin,
         self.track = getattr(self, 'track', None) or get_object_or_404(Track, id=self.kwargs['track_id'])
 
         if self.action in ['list']:
-            return Comment.objects.filter(track=self.track, parent_comment=None).order_by('-created_at').select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
+            queryset = Comment.objects\
+                .filter(track=self.track)\
+                .order_by('-group__created_at', 'created_at')\
+                .select_related('writer')\
+                .prefetch_related('writer__followers', 'writer__owned_tracks')
         else:
-            return Comment.objects.filter(track=self.track).select_related('writer').prefetch_related('writer__followers', 'writer__owned_tracks')
+            queryset = Comment.objects.filter(track=self.track)
+
+        return queryset
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['queryset'] = self.get_queryset()
-        context['track'] = self.track
+        context['track'] = getattr(self, 'track', None) or get_object_or_404(Track, id=self.kwargs['track_id'])
 
         return context
 
