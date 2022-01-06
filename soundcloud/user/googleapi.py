@@ -12,6 +12,7 @@ from django.contrib.auth import login
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from django.contrib.auth.backends import ModelBackend
 
+
 User = get_user_model()
 
 class GoogleLoginApi(APIView):
