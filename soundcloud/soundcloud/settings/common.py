@@ -196,7 +196,8 @@ JWT_AUTH = {
 CORS_ALLOWED_ORIGINS = [
 	# 허용할 Origin 추가
     "https://www.soundwaffle.com",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
+    "https://accounts.google.com",
 ]
 CORS_ALLOW_CREDENTIALS = True
 # CORS_ORIGIN_WHITELIST = (
