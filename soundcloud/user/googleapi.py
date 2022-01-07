@@ -75,10 +75,12 @@ class GoogleSigninCallBackApi(APIView):
         }
     )
     def get(self, request, *args, **kwargs): 
-        code = request.GET.get('code') 
-        google_token_api = "https://oauth2.googleapis.com/token" 
-        access_token = google_get_access_token(google_token_api, code) 
-        user_data = google_get_user_info(access_token=access_token) # services.py method
+        # code = request.GET.get('code') 
+        # google_token_api = "https://oauth2.googleapis.com/token" 
+        # access_token = google_get_access_token(google_token_api, code) 
+        # user_data = google_get_user_info(access_token=access_token) # services.py method
+
+        user_data = request.data
         profile_data = { 
             'email': user_data['email'],  #username->email
             'first_name': user_data.get('given_name', ''), 
