@@ -59,9 +59,9 @@ from django.db import transaction
     ),
     track=extend_schema(
         summary="Add/Remove Track in Set",
-        parameters=[
-            OpenApiParameter("track_id", OpenApiTypes.INT, OpenApiParameter.QUERY, description='track id'),
-        ],
+        # parameters=[
+        #     OpenApiParameter("track_id", OpenApiTypes.INT, OpenApiParameter.QUERY, description='track id'),
+        # ],
         responses={
             '200': OpenApiResponse(description='OK'),
             '400': OpenApiResponse(description="Bad Request"),

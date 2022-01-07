@@ -56,9 +56,9 @@ class UserCommentSerializer(serializers.ModelSerializer):
         model = Comment
         fields = (
             'id',
+            'group',
             'track',
             'content',
             'created_at',
             'commented_at',
-            'parent_comment',
         )

@@ -1,6 +1,6 @@
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework import permissions, status
-from rest_framework.pagination import PageNumberPagination
+from rest_framework.pagination import CursorPagination, PageNumberPagination
 from django.conf import settings
 from guardian.shortcuts import assign_perm
 import boto3, os, re
@@ -178,3 +178,8 @@ class MediaUploadMixin:
 
 class CustomPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
+
+
+class CommentPagination(CursorPagination):
+    page_size_query_param = 'page_size'
+    ordering = ('created_at', )
