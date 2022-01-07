@@ -44,7 +44,7 @@ class CommentViewSet(mixins.CreateModelMixin,
     permission_classes = (CustomObjectPermissions, )
     lookup_field = 'id'
     lookup_url_kwarg = 'comment_id'
-    pagination_class = CommentPagination
+    # pagination_class = CommentPagination
     filter_backends = (OrderingFilter, )
     ordering_fields = []
     ordering = ['-group_created_at', 'created_at']
