@@ -1,9 +1,11 @@
-from rest_framework import viewsets, mixins
-from rest_framework.generics import get_object_or_404
+from django.db.models import F
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+from rest_framework import viewsets, mixins
+from rest_framework.filters import OrderingFilter
+from rest_framework.generics import get_object_or_404
 from comment.models import Comment
 from comment.serializers import TrackCommentSerializer
-from soundcloud.utils import CustomObjectPermissions
+from soundcloud.utils import CommentPagination, CustomObjectPermissions
 from track.models import Track
 
 @extend_schema_view(
@@ -42,16 +44,20 @@ class CommentViewSet(mixins.CreateModelMixin,
     permission_classes = (CustomObjectPermissions, )
     lookup_field = 'id'
     lookup_url_kwarg = 'comment_id'
+    pagination_class = CommentPagination
+    filter_backends = (OrderingFilter, )
+    ordering_fields = []
+    ordering = ['-group_created_at', 'created_at']
 
     def get_queryset(self):
         self.track = getattr(self, 'track', None) or get_object_or_404(Track, id=self.kwargs['track_id'])
 
         if self.action in ['list']:
             queryset = Comment.objects\
-                .filter(track=self.track)\
-                .order_by('-group__created_at', 'created_at')\
                 .select_related('writer')\
-                .prefetch_related('writer__followers', 'writer__owned_tracks')
+                .prefetch_related('writer__followers', 'writer__owned_tracks')\
+                .filter(track=self.track)\
+                .annotate(group_created_at=F('group__created_at'))
         else:
             queryset = Comment.objects.filter(track=self.track)
 
