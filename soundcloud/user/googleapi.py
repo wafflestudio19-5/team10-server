@@ -19,7 +19,7 @@ class GoogleLoginApi(APIView):
         summary="Google Login",
         tags=['auth', ],
         responses={
-            301: OpenApiResponse(description='Redirect'),
+            302: OpenApiResponse(description='Redirect'),
             400: OpenApiResponse(description='Bad Request'),
         }
     )
@@ -27,7 +27,7 @@ class GoogleLoginApi(APIView):
         client_id = get_secret("SOCIAL_AUTH_GOOGLE_CLIENT_ID")
         scope = "https://www.googleapis.com/auth/userinfo.email " + \
                 "https://www.googleapis.com/auth/userinfo.profile" 
-        redirect_uri = settings.BASE_BACKEND_URL + "/google/callback" 
+        redirect_uri = settings.BASE_FRONTEND_URL + "/google/callback" 
         google_auth_api = "https://accounts.google.com/o/oauth2/v2/auth" 
         response = redirect( 
             f"{google_auth_api}?client_id={client_id}&response_type=code&redirect_uri={redirect_uri}&scope={scope}" 

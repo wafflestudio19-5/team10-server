@@ -29,3 +29,4 @@ DATABASES = {
 }
 
 BASE_BACKEND_URL = 'https://api.soundwaffle.com'
+BASE_FRONTEND_URL = 'https://www.soundwaffle.com'
