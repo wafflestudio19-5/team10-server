@@ -99,7 +99,7 @@ class SetViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = 'set_id'
 
     def get_serializer_class(self):
-        if self.action in ['update']:
+        if self.action in ['update', 'partial_update']:
             return SetMediaUploadSerializer
         if self.action in ['likers', 'reposters']:
             return SimpleUserSerializer
@@ -140,8 +140,9 @@ class SetViewSet(viewsets.ModelViewSet):
 
     # 2. PUT /sets/{set_id} - PATCH 는 상속 그대로
     def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
         set = self.get_object()
-        serializer = self.get_serializer(set, data=request.data)
+        serializer = self.get_serializer(set, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.update(set, serializer.validated_data)
         return Response(serializer.data, status=status.HTTP_200_OK)
