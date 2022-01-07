@@ -19,7 +19,7 @@ class GoogleLoginApi(APIView):
         summary="Google Login",
         tags=['auth', ],
         responses={
-            302: OpenApiResponse(description='Redirect'),
+            200: OpenApiResponse(description='OK'),
             400: OpenApiResponse(description='Bad Request'),
         }
     )
@@ -29,11 +29,8 @@ class GoogleLoginApi(APIView):
                 "https://www.googleapis.com/auth/userinfo.profile" 
         redirect_uri = settings.BASE_BACKEND_URL + "/google/callback" 
         google_auth_api = "https://accounts.google.com/o/oauth2/v2/auth" 
-        response = redirect( 
-            f"{google_auth_api}?client_id={client_id}&response_type=code&redirect_uri={redirect_uri}&scope={scope}" 
-            ) 
-            
-        return response
+        url = f"{google_auth_api}?client_id={client_id}&response_type=code&redirect_uri={redirect_uri}&scope={scope}" 
+        return Response(data={"url":url}, status=status.HTTP_200_OK)
 
 class GoogleSigninCallBackApi(APIView):
     def social_user_login(self, user, data): #jwt_login()
