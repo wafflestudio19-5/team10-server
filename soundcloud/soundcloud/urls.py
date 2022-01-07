@@ -30,6 +30,7 @@ urlpatterns = [
     path('', include('reaction.urls')),
     path('', include('utility.urls')),
     path('', include('track.urls')),
+    path('', include('set.urls')),
 ]
 
 if settings.DEBUG:

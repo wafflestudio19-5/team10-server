@@ -7,7 +7,10 @@ from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from tag.serializers import TagSerializer
 from track.models import Track
 from user.serializers import UserSerializer, SimpleUserSerializer
-
+from reaction.serializers import LikeService, RepostService
+from reaction.models import Like, Repost
+from soundcloud.utils import assign_object_perms, get_presigned_url, MediaUploadMixin
+from django.contrib.contenttypes.models import ContentType
 
 class TrackSerializer(serializers.ModelSerializer):
 
@@ -195,7 +198,6 @@ class UserTrackSerializer(serializers.ModelSerializer):
     def get_comment_count(self, track):
         return track.comments.count()
 
-
 class CommentTrackSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -206,3 +208,49 @@ class CommentTrackSerializer(serializers.ModelSerializer):
             'permalink',
             'is_private'
         )
+        
+class SetTrackSerializer(serializers.ModelSerializer):
+    audio = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField(read_only=True)
+    is_reposted = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Track
+        fields = (
+            'id',
+            'title',
+            'artist',
+            'permalink',
+            'audio',
+            'image',
+            'count',
+            'is_liked',
+            'is_reposted',
+        )
+
+    def get_audio(self, track):
+        return get_presigned_url(track.audio, 'get_object')
+
+    def get_image(self, track):
+        return get_presigned_url(track.image, 'get_object')
+
+    def get_is_liked(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Like.objects.get(user=self.context['request'].user, track=track)
+                return True
+            except Like.DoesNotExist:
+                return False
+        else: 
+            return False 
+
+    def get_is_reposted(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Repost.objects.get(user=self.context['request'].user, track=track)
+                return True
+            except Repost.DoesNotExist:
+                return False
+        else: 
+            return False 
