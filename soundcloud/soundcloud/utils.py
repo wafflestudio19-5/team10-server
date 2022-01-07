@@ -66,6 +66,7 @@ def assign_object_perms(user, instance):
 
     assign_perm('%(app_label)s.change_%(model_name)s' % kwargs, user, instance)
     assign_perm('%(app_label)s.delete_%(model_name)s' % kwargs, user, instance)
+    #assign_perm('%(app_label)s.add_%(model_name)s' % kwargs, user, instance)
 
 
 class CustomObjectPermissions(permissions.IsAuthenticatedOrReadOnly, permissions.DjangoObjectPermissions):

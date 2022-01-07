@@ -21,7 +21,7 @@ class SetSerializer(serializers.ModelSerializer):
     tracks = serializers.SerializerMethodField()
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
-
+    
     class Meta:
         model = Set
         fields = (
@@ -46,6 +46,7 @@ class SetSerializer(serializers.ModelSerializer):
                 'min_length': 3,
             },
             'created_at': {'read_only': True},
+        
         }
 
         # Since 'creator' is read-only field, ModelSerializer wouldn't generate UniqueTogetherValidator automatically.
@@ -89,7 +90,6 @@ class SetSerializer(serializers.ModelSerializer):
             data['creator'] = self.context['request'].user
 
         return data
-
 
 
 

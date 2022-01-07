@@ -210,8 +210,10 @@ class CommentTrackSerializer(serializers.ModelSerializer):
         )
         
 class SetTrackSerializer(serializers.ModelSerializer):
-    is_like = serializers.BooleanField(read_only=True)
-    repost = serializers.SerializerMethodField()
+    audio = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField(read_only=True)
+    is_reposted = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Track
@@ -223,8 +225,8 @@ class SetTrackSerializer(serializers.ModelSerializer):
             'audio',
             'image',
             'count',
-            'is_like',
-            'repost',
+            'is_liked',
+            'is_reposted',
         )
 
     def get_audio(self, track):
@@ -233,24 +235,22 @@ class SetTrackSerializer(serializers.ModelSerializer):
     def get_image(self, track):
         return get_presigned_url(track.image, 'get_object')
 
-    def get_is_like(self, track):
+    def get_is_liked(self, track):
         if self.context['request'].user.is_authenticated:
             try:                	
-                contenttype_obj = ContentType.objects.get_for_model(track)
-                Like.objects.get(user=self.context['request'].user, object_id=track.id, content_type=contenttype_obj)
+                Like.objects.get(user=self.context['request'].user, track=track)
                 return True
             except Like.DoesNotExist:
                 return False
         else: 
             return False 
 
-    def get_repost(self, track):
+    def get_is_reposted(self, track):
         if self.context['request'].user.is_authenticated:
             try:                	
-                contenttype_obj = ContentType.objects.get_for_model(track)
-                repost = Repost.objects.get(user=self.context['request'].user, object_id=track.id, content_type=contenttype_obj)
-                return RepostService(repost, context=self.context).data
+                Repost.objects.get(user=self.context['request'].user, track=track)
+                return True
             except Repost.DoesNotExist:
-                return None
+                return False
         else: 
-            return None 
+            return False 

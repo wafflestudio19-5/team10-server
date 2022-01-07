@@ -7,10 +7,14 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_sche
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from user.models import User
+from django.db import transaction
 
 @extend_schema_view( #수정 필요
     create=extend_schema(
         summary="Create Set",
+        parameters=[
+            OpenApiParameter("track_id", OpenApiTypes.INT, OpenApiParameter.QUERY, description='track id'),
+        ],
         responses={
             201: OpenApiResponse(response=SetSerializer, description='Created'),
             400: OpenApiResponse(description='Bad Request'),
@@ -19,6 +23,16 @@ from user.models import User
     ),
     update=extend_schema(
         summary="Update Set",
+        responses={
+            '200': OpenApiResponse(response=SetMediaUploadSerializer, description='OK'),
+            '400': OpenApiResponse(description='Bad Request'),
+            '401': OpenApiResponse(description='Unauthorized'),
+            '403': OpenApiResponse(description='Permission Denied'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    ),
+    partial_update=extend_schema(
+        summary="Partial Update Set",
         responses={
             '200': OpenApiResponse(response=SetMediaUploadSerializer, description='OK'),
             '400': OpenApiResponse(description='Bad Request'),
@@ -104,9 +118,17 @@ class SetViewSet(viewsets.ModelViewSet):
             return Set.objects.all()
     
     # 1. POST /sets/ 한 곡으로 playlist 생성 시
+    @transaction.atomic
     def create(self, request):
-        track_id = request.data["track_id"]
-        track = Track.objects.get(id=track_id)
+        try:
+            track_id = request.data["track_id"]
+        except:
+            return Response({"error": "track_id is required data."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            track = Track.objects.get(id=track_id)
+        except Track.DoesNotExist:
+            return Response({"error": "해당 트랙은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+        
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         set = serializer.save()
@@ -116,10 +138,10 @@ class SetViewSet(viewsets.ModelViewSet):
         return Response(self.get_serializer(set).data, status=status.HTTP_201_CREATED)
 
 
-    # 2. PUT /sets/{set_id}
+    # 2. PUT /sets/{set_id} - PATCH 는 상속 그대로
     def update(self, request, *args, **kwargs):
         set = self.get_object()
-        serializer = self.get_serializer(set, data=request.data, partial=True)
+        serializer = self.get_serializer(set, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.update(set, serializer.validated_data)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -132,7 +154,7 @@ class SetViewSet(viewsets.ModelViewSet):
     # 4. DELETE /sets/{set_id}
     def destroy(self, request, *args, **kwargs):
         set = self.get_object()
-        SetTrack.objects.filter(set=set).delete() #관계도 지우기. 트랙은 남아있음
+        set.set_tracks.all().delete() #관계도 지우기. 트랙은 남아있음
         set.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -142,6 +164,7 @@ class SetViewSet(viewsets.ModelViewSet):
     @action(methods=['POST', 'DELETE'], detail=True)
     def track(self, request, *args, **kwargs):
         user = self.request.user #CustomObjectPerm 이 커버가능한지 확인하기 - x
+        #set = self.get_object()
         try:
             set = Set.objects.get(id=self.kwargs[self.lookup_url_kwarg])
         except Set.DoesNotExist:
@@ -167,7 +190,7 @@ class SetViewSet(viewsets.ModelViewSet):
             return Response({"error": "이미 셋에 추가되어 있습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         SetTrack.objects.create(set=set, track=track)
-        if set.set_tracks.count() == 1:
+        if set.image is None:
             set.image = track.image
             set.save()
         return Response({"added to playlist."}, status=status.HTTP_200_OK) 
@@ -175,10 +198,13 @@ class SetViewSet(viewsets.ModelViewSet):
     def _remove(self, set, track):
         try:
             set_track = set.set_tracks.get(track=track)
-        except: 
+        except SetTrack.DoesNotExist: 
             return Response({"error": "셋에 추가된 트랙이 아닙니다."}, status=status.HTTP_400_BAD_REQUEST)
-        
         set_track.delete()
+
+        if set.set_tracks.count() == 0:
+            set.image = None
+            set.save()
         return Response({"removed from playlist"}, status=status.HTTP_200_OK)
 
     # 7. GET /sets/{set_id}/likers
