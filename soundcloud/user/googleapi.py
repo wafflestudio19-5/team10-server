@@ -33,19 +33,16 @@ class GoogleLoginApi(APIView):
         return Response(data={"url":url}, status=status.HTTP_200_OK)
 
 class GoogleSigninCallBackApi(APIView):
-    def social_user_login(self, response, user, data): #jwt_login()
+    def social_user_login(self, user, data): #jwt_login()
         login(self.request, user, 'user.googleapi.GoogleBackend')  # GoogleBackend 를 통한 인증 시도
         serializer = UserSocialLoginSerializer(user, data=data)
         serializer.is_valid(raise_exception=True)
         serializer.execute()
 
-        data = serializer.data
-        response.data = data
-
-        return response
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
         
     @transaction.atomic
-    def social_user_create(self, response, email, **extra_fields):
+    def social_user_create(self, email, **extra_fields):
         data = copy.deepcopy(extra_fields)
         data["email"]=email
         data["password"]=settings.GOOGLE_PASSWORD
@@ -54,19 +51,19 @@ class GoogleSigninCallBackApi(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         
-        return self.social_user_login(response, user, data) #회원가입 후 소셜로그인
+        return self.social_user_login(user, data) #회원가입 후 소셜로그인
 
     @transaction.atomic
-    def social_user_get_or_create(self, response, email, **extra_data):
+    def social_user_get_or_create(self, email, **extra_data):
         data = copy.deepcopy(extra_data)
         data["email"]=email
 
         try: #이미 존재하는 이메일이면 소셜로그인.
             user = User.objects.get(email=email)
-            return self.social_user_login(response, user, data)
+            return self.social_user_login(user, data)
             
         except User.DoesNotExist: #회원가입부터
-            return self.social_user_create(response, email=email, **extra_data)            
+            return self.social_user_create(email=email, **extra_data)            
 
 
     @extend_schema(
@@ -93,8 +90,8 @@ class GoogleSigninCallBackApi(APIView):
             'age':1, #왜 필수인가
             }  #구글이 넘겨주는 거.
 
-        response = redirect(settings.BASE_FRONT_URL)
-        return self.social_user_get_or_create(response, **profile_data) 
+
+        return self.social_user_get_or_create(**profile_data) 
 
 
 class GoogleBackend(ModelBackend):
