@@ -1,3 +1,4 @@
+from django.db.models import Q
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import viewsets
@@ -109,8 +110,13 @@ class TrackViewSet(viewsets.ModelViewSet):
                 return User.objects.prefetch_related('followers', 'owned_tracks').filter(likes__track=self.track)
             if self.action == 'reposters':
                 return User.objects.prefetch_related('followers', 'owned_tracks').filter(reposts__track=self.track)
-        if self.action in ['create', 'retrieve', 'list', 'update', 'partial_update']:
+        if self.action in ['create', 'retrieve', 'update', 'partial_update']:
             return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
+        if self.action in ['list']:
+            if self.request.user.is_authenticated:
+                return Track.objects.exclude(~Q(artist=self.request.user), is_private=True).select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
+            else:
+                return Track.objects.exclude(is_private=True).select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
         else:
             return super().get_queryset()
 
