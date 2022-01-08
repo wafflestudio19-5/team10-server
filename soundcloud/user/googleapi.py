@@ -70,9 +70,6 @@ class GoogleSigninCallBackApi(APIView):
     @extend_schema(
         summary="Google Login Callback",
         tags=['auth', ],
-        parameters=[
-            OpenApiParameter("email", OpenApiTypes.EMAIL, OpenApiParameter.QUERY, description='email'),
-        ],
         responses={
             200: OpenApiResponse(response=UserSocialLoginSerializer, description='OK'),
             400: OpenApiResponse(description='Bad Request'),
