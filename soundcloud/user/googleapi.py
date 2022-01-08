@@ -69,6 +69,9 @@ class GoogleSigninCallBackApi(APIView):
     @extend_schema(
         summary="Google Login Callback",
         tags=['auth', ],
+        parameters=[
+            OpenApiParameter("email", OpenApiTypes.EMAIL, OpenApiParameter.QUERY, description='email'),
+        ],
         responses={
             200: OpenApiResponse(response=UserSocialLoginSerializer, description='OK'),
             400: OpenApiResponse(description='Bad Request'),
@@ -80,7 +83,7 @@ class GoogleSigninCallBackApi(APIView):
         # access_token = google_get_access_token(google_token_api, code) 
         # user_data = google_get_user_info(access_token=access_token) # services.py method
 
-        user_data = request.data
+        user_data = request.data.copy()
         profile_data = { 
             'email': user_data['email'],  #username->email
             'first_name': user_data.get('given_name', ''), 
