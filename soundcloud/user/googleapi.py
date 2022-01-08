@@ -33,6 +33,7 @@ class GoogleLoginApi(APIView):
         return Response(data={"url":url}, status=status.HTTP_200_OK)
 
 class GoogleSigninCallBackApi(APIView):
+    permission_classes = (permissions.AllowAny, )
     def social_user_login(self, user, data): #jwt_login()
         login(self.request, user, 'user.googleapi.GoogleBackend')  # GoogleBackend 를 통한 인증 시도
         serializer = UserSocialLoginSerializer(user, data=data)
@@ -77,12 +78,11 @@ class GoogleSigninCallBackApi(APIView):
             400: OpenApiResponse(description='Bad Request'),
         }
     )
-    def get(self, request, *args, **kwargs): 
+    def put(self, request, *args, **kwargs): 
         # code = request.GET.get('code') 
         # google_token_api = "https://oauth2.googleapis.com/token" 
         # access_token = google_get_access_token(google_token_api, code) 
         # user_data = google_get_user_info(access_token=access_token) # services.py method
-
         user_data = request.data.copy()
         profile_data = { 
             'email': user_data['email'],  #username->email
