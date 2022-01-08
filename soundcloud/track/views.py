@@ -3,6 +3,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
@@ -89,6 +90,9 @@ class TrackViewSet(viewsets.ModelViewSet):
     serializer_class = TrackSerializer
     queryset = Track.objects.all()
     permission_classes = (CustomObjectPermissions, )
+    filter_backends = (OrderingFilter, )
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
     lookup_field = 'id'
     lookup_url_kwarg = 'track_id'
 

@@ -1,4 +1,5 @@
 from rest_framework import status, viewsets
+from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 from set.models import Set, SetTrack
 from set.serializers import *
@@ -96,6 +97,9 @@ from django.db import transaction
 )
 class SetViewSet(viewsets.ModelViewSet):
     permission_classes = (CustomObjectPermissions, )
+    filter_backends = (OrderingFilter, )
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
     lookup_url_kwarg = 'set_id'
 
     def get_serializer_class(self):
