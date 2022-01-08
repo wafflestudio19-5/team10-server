@@ -85,9 +85,8 @@ class GoogleSigninCallBackApi(APIView):
             'email': user_data['email'],  #username->email
             'first_name': user_data.get('given_name', ''), 
             'last_name': user_data.get('family_name', ''), 
-            'display_name': user_data.get('name', ''), 
+            'display_name': user_data.get('name', 'NoName'), 
             'path': "google", 
-            'age':1, #왜 필수인가
             }  #구글이 넘겨주는 거.
 
 
