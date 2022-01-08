@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from drf_spectacular.utils import OpenApiResponse, OpenApiParameter, extend_schema
-from utility.serializers import ResolveSerializer, ResolveService
+from utility.serializers import ResolveService
 
 User = get_user_model()
 
@@ -23,7 +23,7 @@ class ResolveView(APIView):
             )
         ],
         responses={
-            200: OpenApiResponse(response=ResolveSerializer, description='OK'),
+            302: OpenApiResponse(description='Found'),
             400: OpenApiResponse(description='Bad Request'),
             404: OpenApiResponse(description='Not Found'),
         }

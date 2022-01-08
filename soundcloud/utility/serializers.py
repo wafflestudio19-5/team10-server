@@ -10,10 +10,6 @@ from set.models import Set
 User = get_user_model()
 
 
-class ResolveSerializer(serializers.Serializer):
-    Location = serializers.CharField()
-
-
 class ResolveService(serializers.Serializer):
 
     def execute(self):
