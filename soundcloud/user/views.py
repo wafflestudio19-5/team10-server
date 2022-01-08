@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model, logout
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status, permissions, viewsets
+from rest_framework.filters import OrderingFilter
 from rest_framework.generics import GenericAPIView, CreateAPIView, RetrieveUpdateAPIView, get_object_or_404
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -157,6 +158,9 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all()
     lookup_field = 'id'
     lookup_url_kwarg = 'user_id'
+    filter_backends = (OrderingFilter, )
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
 
     def get_serializer_class(self):
         if self.action in [ 'list', 'followers', 'followings' ]:
@@ -179,7 +183,10 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             if self.action == 'followings':
                 return User.objects.prefetch_related('followers', 'owned_tracks').filter(followers__follower=self.user)
             if self.action == 'tracks':
-                return Track.objects.prefetch_related('likes', 'reposts', 'comments').filter(artist=self.user)
+                if self.request.user.is_authenticated and self.request.user == self.user:
+                    return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments')
+                else:
+                    return Track.objects.exclude(is_private=True).select_related('artist').prefetch_related('likes', 'reposts', 'comments').filter(artist=self.user)
             if self.action == 'likes_tracks':
                 return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks').filter(likes__user=self.user)
             if self.action == 'reposts_tracks':
