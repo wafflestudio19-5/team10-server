@@ -11,6 +11,7 @@ if DEBUG:
 
 ALLOWED_HOSTS = [
     'api.soundwaffle.com',
+    '127.0.0.1',
 ]
 
 
