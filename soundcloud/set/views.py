@@ -167,7 +167,7 @@ class SetViewSet(viewsets.ModelViewSet):
     # 5. POST /sets/{set_id}/track/ (add track to playlist)
     # 6. DELETE /sets/{set_id}/track/ (remove track from playlist)
     @action(methods=['POST', 'DELETE'], detail=True)
-    def track(self, request, *args, **kwargs):
+    def tracks(self, request, *args, **kwargs):
         user = self.request.user #CustomObjectPerm 이 커버가능한지 확인하기 - x
         #set = self.get_object()
         try:
