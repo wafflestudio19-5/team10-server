@@ -184,7 +184,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 return User.objects.prefetch_related('followers', 'owned_tracks').filter(followers__follower=self.user)
             if self.action == 'tracks':
                 if self.request.user.is_authenticated and self.request.user == self.user:
-                    return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments')
+                    return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments').filter(artist=self.user)
                 else:
                     return Track.objects.exclude(is_private=True).select_related('artist').prefetch_related('likes', 'reposts', 'comments').filter(artist=self.user)
             if self.action == 'likes_tracks':
@@ -195,7 +195,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 return Comment.objects.select_related('track').filter(writer=self.user)
 
         if self.action in ['list']:
-            return User.objects.prefetch_related('followers', 'owned_tracks')   
+            return User.objects.prefetch_related('followers', 'owned_tracks')
         else:
             return super().get_queryset()
 
