@@ -13,8 +13,7 @@ MEDIA_PATHS = {
         'image': settings.S3_BASE_URL + settings.S3_IMAGES_TRACK_DIR,
     },
     'set': {
-        'image_profile': settings.S3_BASE_URL + settings.S3_IMAGES_SET_PROFILE_DIR,
-        'image_header': settings.S3_BASE_URL + settings.S3_IMAGES_SET_HEADER_DIR,
+        'image': settings.S3_BASE_URL + settings.S3_IMAGES_SET_DIR,
     },
     'user': {
         'image_profile': settings.S3_BASE_URL + settings.S3_IMAGES_USER_PROFILE_DIR,

@@ -41,8 +41,7 @@ class Set(models.Model):
     is_private = models.BooleanField(default=False)
     likes = GenericRelation(Like, related_query_name="set") 
     reposts = GenericRelation(Repost, related_query_name="set") 
-    image_profile = models.URLField(null=True, unique=True)
-    image_header = models.URLField(null=True, unique=True)
+    image = models.URLField(null=True, unique=True)
 
     objects = CustomSetManager()
 
