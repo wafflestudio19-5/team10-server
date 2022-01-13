@@ -123,20 +123,8 @@ class SetViewSet(viewsets.ModelViewSet):
     
     # 1. POST /sets/ - 빈 playlist 생성 - mixin 이용
     # 2. PUT /sets/{set_id} - mixin 이용
-
-
-    # 3. GET /sets/{set_id}
-    def retrieve(self, request, *args, **kwargs):
-        set = self.get_object()
-        return Response(self.get_serializer(set).data, status=status.HTTP_200_OK)
-
-    # 4. DELETE /sets/{set_id}
-    def destroy(self, request, *args, **kwargs):
-        set = self.get_object()
-        set.set_tracks.all().delete() #관계도 지우기. 트랙은 남아있음
-        set.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
+    # 3. GET /sets/{set_id} - mixin 이용
+    # 4. DELETE /sets/{set_id} - mixin 이용
 
     # 5. POST /sets/{set_id}/track/ (add track to playlist)
     # 6. DELETE /sets/{set_id}/track/ (remove track from playlist)
@@ -185,6 +173,7 @@ class SetViewSet(viewsets.ModelViewSet):
             set.image = None
             set.save()
         return Response({"removed from playlist"}, status=status.HTTP_200_OK)
+
 
     # 7. GET /sets/{set_id}/likers
     @action(detail=True)
