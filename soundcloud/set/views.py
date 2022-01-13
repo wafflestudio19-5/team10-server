@@ -58,7 +58,7 @@ from django.db import transaction
             '404': OpenApiResponse(description='Not Found'),
         }
     ),
-    track=extend_schema(
+    tracks=extend_schema(
         summary="Add/Remove Track in Set",
         # parameters=[
         #     OpenApiParameter("track_id", OpenApiTypes.INT, OpenApiParameter.QUERY, description='track id'),
@@ -121,25 +121,7 @@ class SetViewSet(viewsets.ModelViewSet):
         else:
             return Set.objects.all()
     
-    # 1. POST /sets/ 한 곡으로 playlist 생성 시
-    @transaction.atomic
-    def create(self, request):
-        try:
-            track_id = request.data["track_id"]
-        except:
-            return Response({"error": "track_id is required data."}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            track = Track.objects.get(id=track_id)
-        except Track.DoesNotExist:
-            return Response({"error": "해당 트랙은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
-        
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        set = serializer.save()
-        SetTrack.objects.create(set=set, track=track)
-        set.image = track.image
-        set.save()
-        return Response(self.get_serializer(set).data, status=status.HTTP_201_CREATED)
+    # 1. POST /sets/ - 빈 playlist 생성 - mixin 이용
 
 
     # 2. PUT /sets/{set_id} - PATCH 는 상속 그대로
