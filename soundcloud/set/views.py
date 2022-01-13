@@ -10,12 +10,9 @@ from rest_framework.generics import get_object_or_404
 from user.models import User
 from django.db import transaction
 
-@extend_schema_view( #수정 필요
+@extend_schema_view( 
     create=extend_schema(
         summary="Create Set",
-        parameters=[
-            OpenApiParameter("track_id", OpenApiTypes.INT, OpenApiParameter.QUERY, description='track id'),
-        ],
         responses={
             201: OpenApiResponse(response=SetSerializer, description='Created'),
             400: OpenApiResponse(description='Bad Request'),
@@ -131,11 +128,11 @@ class SetViewSet(viewsets.ModelViewSet):
     @action(methods=['POST', 'DELETE'], detail=True)
     def tracks(self, request, *args, **kwargs):
         user = self.request.user #CustomObjectPerm 이 커버가능한지 확인하기 - x
-        #set = self.get_object()
-        try:
-            set = Set.objects.get(id=self.kwargs[self.lookup_url_kwarg])
-        except Set.DoesNotExist:
-            return Response({"error": "해당 셋은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+        set = self.get_object()
+        # try:
+        #     set = Set.objects.get(id=self.kwargs[self.lookup_url_kwarg])
+        # except Set.DoesNotExist:
+        #     return Response({"error": "해당 셋은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
         
         if user != set.creator:
             return Response({"error": "해당 셋의 creator가 아닙니다."}, status=status.HTTP_403_FORBIDDEN)
