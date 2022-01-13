@@ -22,10 +22,10 @@ MEDIA_PATHS = {
 }
 MEDIA_TYPES = ('audio', 'image',)
 EXTENSIONS = {
-    'audio': ('.wav', '.flac', '.aiff', '.alac', 'mp3', '.aac', '.ogg', '.oga', '.mp4', '.mp2', '.m4a', '.3gp', '.3g2', '.mj2', '.amr', '.wma',),
-    'image': ('.jpg', '.png',),
+    'audio': ('wav', 'flac', 'aiff', 'alac', 'mp3', 'aac', 'ogg', 'oga', 'mp4', 'mp2', 'm4a', '3gp', '3g2', 'mj2', 'amr', 'wma',),
+    'image': ('jpg', 'png',),
 }
-FILENAME_PATTERN = re.compile('^[a-zA-Z0-9\/\!\-\_\.\*\'\(\)]+$')
+# FILENAME_PATTERN = re.compile('^[a-zA-Z0-9\/\!\-\_\.\*\'\(\)]+$')
 
 
 def get_presigned_url(url, method, full_url=True):
@@ -108,30 +108,38 @@ class MediaUploadMixin:
         return url
 
     def _get_presigned_url(self, instance, field_name):
-        if self.context['request'].data.get(field_name+'_filename') is None:
+        if self.context['request'].data.get(field_name+'_extension') is None:
             return None
 
         return get_presigned_url(getattr(instance, field_name, None), 'put_object')
 
-    def _validate_filename(self, value, media_type):
+    def _validate_extension(self, value, media_type):
         if not self.check_extension(value, media_type):
             raise ValidationError(f"Unsupported {media_type} file extension.")
 
-        if not self.check_filename(value):
-            raise ValidationError(f"Incorrect {media_type} filename format.")
-
         return value
 
-    def filenames_to_urls(self, data):
+    def extensions_to_urls(self, data):
+        instance = getattr(self, 'instance', None)
+        permalink = getattr(instance, 'permalink', None)
+
+        if permalink is None:
+            return data
 
         new_data = data.copy()
 
-        for key, filename in data.items():
-            if not key.endswith('_filename'):
+        for key, extension in data.items():
+            if not key.endswith('_extension'):
                 continue
+            field_name = key.replace('_extension', '')
+            old_url = getattr(instance, field_name, None)
+    
+            if isinstance(old_url, str) and old_url.endswith('.'+extension):
+                url = old_url
+            else:  
+                url = self._get_unique_url(permalink + '.' + extension, self.Meta.model._meta.model_name, field_name)
+
             new_data.pop(key)
-            field_name = key.replace('_filename', '')
-            url = self._get_unique_url(filename, self.Meta.model._meta.model_name, field_name)
             if url is not None:
                 new_data[field_name] = url
 
@@ -149,31 +157,31 @@ class MediaUploadMixin:
     def get_image_header_presigned_url(self, instance):
         return self._get_presigned_url(instance, 'image_header')
 
-    def validate_audio_filename(self, value):
-        return self._validate_filename(value, 'audio')
+    def validate_audio_extension(self, value):
+        return self._validate_extension(value, 'audio')
 
-    def validate_image_filename(self, value):
-        return self._validate_filename(value, 'image')
+    def validate_image_extension(self, value):
+        return self._validate_extension(value, 'image')
 
-    def validate_image_profile_filename(self, value):
-        return self._validate_filename(value, 'image')
-
-    def validate_image_header_filename(self, value):
-        return self._validate_filename(value, 'image')
+    def validate_image_profile_extension(self, value):
+        return self._validate_extension(value, 'image')
+        
+    def validate_image_header_extension(self, value):
+        return self._validate_extension(value, 'image')
 
     @staticmethod
-    def check_extension(filename, media_type):
+    def check_extension(extension, media_type):
         try:
             valid_extensions = EXTENSIONS[media_type]
         except KeyError:
             raise ValueError(f"media_type choices: {MEDIA_TYPES}")
 
-        return filename.lower().endswith(valid_extensions)
+        return extension in valid_extensions
 
-    @staticmethod
-    def check_filename(filename):
+    # @staticmethod
+    # def check_filename(filename):
 
-        return re.search(FILENAME_PATTERN, filename)
+    #     return re.search(FILENAME_PATTERN, filename)
 
 
 class CustomPagination(PageNumberPagination):

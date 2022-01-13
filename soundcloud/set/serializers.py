@@ -95,18 +95,18 @@ class SetSerializer(serializers.ModelSerializer):
 
 class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서만 쓰기. 이미지 수정용 
 
-    image_filename = serializers.CharField(write_only=True, required=False)
+    image_extension = serializers.CharField(write_only=True, required=False)
     image_presigned_url = serializers.SerializerMethodField()
 
     class Meta(SetSerializer.Meta):
         fields = SetSerializer.Meta.fields + (
-            'image_filename',
+            'image_extension',
             'image_presigned_url',
         )
 
     def validate(self, data):
         data = super().validate(data)
-        data = self.filenames_to_urls(data)
+        data = self.extensions_to_urls(data)
 
         return data
 
