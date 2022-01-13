@@ -15,7 +15,8 @@ from track.serializers import SetTrackSerializer, TrackMediaUploadSerializer
 
 class SetSerializer(serializers.ModelSerializer):
     creator = SimpleUserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
-    image = serializers.SerializerMethodField()
+    image_profile = serializers.SerializerMethodField()
+    image_header = serializers.SerializerMethodField()
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     tracks = serializers.SerializerMethodField()
@@ -36,7 +37,8 @@ class SetSerializer(serializers.ModelSerializer):
             'is_private',
             'like_count',
             'repost_count',
-            'image',
+            'image_profile',
+            'image_header',
             'tracks', #tracks in set
             'created_at',
         )        
@@ -58,8 +60,12 @@ class SetSerializer(serializers.ModelSerializer):
             ),
         ]
 
-    def get_image(self, set):
-        return get_presigned_url(set.image, 'get_object')
+    def get_image_profile(self, set):
+        return get_presigned_url(set.image_profile, 'get_object')
+
+    def get_image_header(self, set):
+        return get_presigned_url(set.image_header, 'get_object')
+
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_like_count(self, set):
@@ -95,18 +101,18 @@ class SetSerializer(serializers.ModelSerializer):
 
 class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서만 쓰기. 이미지 수정용 
     
-    image_info_filename = serializers.CharField(write_only=True, required=False)
+    image_profile_filename = serializers.CharField(write_only=True, required=False)
     image_header_filename = serializers.CharField(write_only=True, required=False)
-    image_info_presigned_url = serializers.SerializerMethodField()
+    image_profile_presigned_url = serializers.SerializerMethodField()
     image_header_presigned_url = serializers.SerializerMethodField()
 
 
     class Meta(SetSerializer.Meta):
         fields = SetSerializer.Meta.fields + (
-            'image_info_filename',
-            'image_info_presigned_url',
+            'image_profile_filename',
+            'image_profile_presigned_url',
             'image_header_filename',
-            'image_header_presigned_url'
+            'image_header_presigned_url',
         )
 
     def validate(self, data):

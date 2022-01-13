@@ -122,16 +122,8 @@ class SetViewSet(viewsets.ModelViewSet):
             return Set.objects.all()
     
     # 1. POST /sets/ - 빈 playlist 생성 - mixin 이용
+    # 2. PUT /sets/{set_id} - mixin 이용
 
-
-    # 2. PUT /sets/{set_id} - PATCH 는 상속 그대로
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        set = self.get_object()
-        serializer = self.get_serializer(set, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        serializer.update(set, serializer.validated_data)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
     # 3. GET /sets/{set_id}
     def retrieve(self, request, *args, **kwargs):
