@@ -97,22 +97,22 @@ class TrackSerializer(serializers.ModelSerializer):
 
 class TrackMediaUploadSerializer(MediaUploadMixin, TrackSerializer):
 
-    audio_filename = serializers.CharField(write_only=True)
-    image_filename = serializers.CharField(write_only=True, required=False)
+    audio_extension = serializers.CharField(write_only=True)
+    image_extension = serializers.CharField(write_only=True, required=False)
     audio_presigned_url = serializers.SerializerMethodField()
     image_presigned_url = serializers.SerializerMethodField()
 
     class Meta(TrackSerializer.Meta):
         fields = TrackSerializer.Meta.fields + (
-            'audio_filename',
-            'image_filename',
+            'audio_extension',
+            'image_extension',
             'audio_presigned_url',
             'image_presigned_url',
         )
 
     def validate(self, data):
         data = super().validate(data)
-        data = self.filenames_to_urls(data)
+        data = self.extensions_to_urls(data)
 
         return data
 

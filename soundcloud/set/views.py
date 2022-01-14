@@ -1,14 +1,15 @@
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from set.models import Set, SetTrack
 from set.serializers import *
 from soundcloud.utils import CustomObjectPermissions
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
-from rest_framework.decorators import action
-from rest_framework.generics import get_object_or_404
+from track.models import Track
 from user.models import User
-from django.db import transaction
+
 
 @extend_schema_view( #수정 필요
     create=extend_schema(
@@ -58,7 +59,7 @@ from django.db import transaction
             '404': OpenApiResponse(description='Not Found'),
         }
     ),
-    track=extend_schema(
+    tracks=extend_schema(
         summary="Add/Remove Track in Set",
         # parameters=[
         #     OpenApiParameter("track_id", OpenApiTypes.INT, OpenApiParameter.QUERY, description='track id'),
@@ -122,23 +123,11 @@ class SetViewSet(viewsets.ModelViewSet):
             return Set.objects.all()
     
     # 1. POST /sets/ 한 곡으로 playlist 생성 시
-    @transaction.atomic
     def create(self, request):
-        try:
-            track_id = request.data["track_id"]
-        except:
-            return Response({"error": "track_id is required data."}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            track = Track.objects.get(id=track_id)
-        except Track.DoesNotExist:
-            return Response({"error": "해당 트랙은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
-        
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         set = serializer.save()
-        SetTrack.objects.create(set=set, track=track)
-        set.image = track.image
-        set.save()
+
         return Response(self.get_serializer(set).data, status=status.HTTP_201_CREATED)
 
 
@@ -193,11 +182,8 @@ class SetViewSet(viewsets.ModelViewSet):
     def _add(self, set, track):
         if set.set_tracks.filter(track=track).exists():
             return Response({"error": "이미 셋에 추가되어 있습니다."}, status=status.HTTP_400_BAD_REQUEST)
-
         SetTrack.objects.create(set=set, track=track)
-        if set.image is None:
-            set.image = track.image
-            set.save()
+
         return Response({"added to playlist."}, status=status.HTTP_200_OK) 
 
     def _remove(self, set, track):
@@ -207,9 +193,6 @@ class SetViewSet(viewsets.ModelViewSet):
             return Response({"error": "셋에 추가된 트랙이 아닙니다."}, status=status.HTTP_400_BAD_REQUEST)
         set_track.delete()
 
-        if set.set_tracks.count() == 0:
-            set.image = None
-            set.save()
         return Response({"removed from playlist"}, status=status.HTTP_200_OK)
 
     # 7. GET /sets/{set_id}/likers
@@ -221,4 +204,3 @@ class SetViewSet(viewsets.ModelViewSet):
     @action(detail=True)
     def reposters(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
-

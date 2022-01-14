@@ -1,17 +1,14 @@
-from re import T
-from set.models import Set, SetTrack
-from track.models import Track
-from rest_framework import serializers
-from rest_framework.response import Response
-from rest_framework.validators import UniqueTogetherValidator
-from user.serializers import SimpleUserSerializer
-from tag.serializers import TagSerializer
-from django.conf import settings
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
-from soundcloud.utils import get_presigned_url, MediaUploadMixin
+from rest_framework import serializers
 from rest_framework.serializers import ValidationError
-from track.serializers import SetTrackSerializer, TrackMediaUploadSerializer
+from rest_framework.validators import UniqueTogetherValidator
+from set.models import Set
+from soundcloud.utils import get_presigned_url, MediaUploadMixin
+from tag.serializers import TagSerializer
+from track.serializers import SetTrackSerializer
+from user.serializers import SimpleUserSerializer
+
 
 class SetSerializer(serializers.ModelSerializer):
     creator = SimpleUserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
@@ -92,21 +89,20 @@ class SetSerializer(serializers.ModelSerializer):
         return data
 
 
-
 class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서만 쓰기. 이미지 수정용 
 
-    image_filename = serializers.CharField(write_only=True, required=False)
+    image_extension = serializers.CharField(write_only=True, required=False)
     image_presigned_url = serializers.SerializerMethodField()
 
     class Meta(SetSerializer.Meta):
         fields = SetSerializer.Meta.fields + (
-            'image_filename',
+            'image_extension',
             'image_presigned_url',
         )
 
     def validate(self, data):
         data = super().validate(data)
-        data = self.filenames_to_urls(data)
+        data = self.extensions_to_urls(data)
 
         return data
 

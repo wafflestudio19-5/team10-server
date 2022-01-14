@@ -221,22 +221,22 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserMediaUploadSerializer(MediaUploadMixin, UserSerializer):
 
-    image_profile_filename = serializers.CharField(write_only=True, required=False)
-    image_header_filename = serializers.CharField(write_only=True, required=False)
+    image_profile_extension = serializers.CharField(write_only=True, required=False)
+    image_header_extension = serializers.CharField(write_only=True, required=False)
     image_profile_presigned_url = serializers.SerializerMethodField()
     image_header_presigned_url = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + (
-            'image_profile_filename',
-            'image_header_filename',
+            'image_profile_extension',
+            'image_header_extension',
             'image_profile_presigned_url',
             'image_header_presigned_url',
         )
 
     def validate(self, data):
         data = super().validate(data)
-        data = self.filenames_to_urls(data)
+        data = self.extensions_to_urls(data)
 
         return data
 
