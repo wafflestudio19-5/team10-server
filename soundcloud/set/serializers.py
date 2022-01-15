@@ -1,17 +1,15 @@
-from re import T
-from set.models import Set, SetTrack
-from track.models import Track
-from rest_framework import serializers, status
-from rest_framework.response import Response
-from rest_framework.validators import UniqueTogetherValidator
-from user.serializers import SimpleUserSerializer
-from tag.serializers import TagSerializer
-from django.conf import settings
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
-from soundcloud.utils import get_presigned_url, MediaUploadMixin
+from rest_framework import serializers, status
 from rest_framework.serializers import ValidationError
-from track.serializers import TrackInSetSerializer, TrackMediaUploadSerializer
+from rest_framework.validators import UniqueTogetherValidator
+from set.models import Set
+from track.models import Track
+from soundcloud.utils import get_presigned_url, MediaUploadMixin
+from tag.serializers import TagSerializer
+from track.serializers import TrackInSetSerializer
+from user.serializers import SimpleUserSerializer
+
 
 class SetSerializer(serializers.ModelSerializer):
     creator = SimpleUserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
@@ -93,22 +91,21 @@ class SetSerializer(serializers.ModelSerializer):
         return data
 
 
-
 class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서만 쓰기. 이미지 수정용 
-    
-    image_filename = serializers.CharField(write_only=True, required=False)
+
+    image_extension = serializers.CharField(write_only=True, required=False)
     image_presigned_url = serializers.SerializerMethodField()
 
 
     class Meta(SetSerializer.Meta):
         fields = SetSerializer.Meta.fields + (
-            'image_filename',
+            'image_extension',
             'image_presigned_url',
         )
 
     def validate(self, data):
         data = super().validate(data)
-        data = self.filenames_to_urls(data)
+        data = self.extensions_to_urls(data)
 
         return data
 
@@ -117,9 +114,7 @@ class SetTrackService(serializers.Serializer):
     set = SetSerializer()
     track = serializers.PrimaryKeyRelatedField(queryset=Track.objects.all(), required=True)
 
-    def create(self):
-        #set = self.set
-        #track = self.track
+    def create(self, set, track):
         set = self.context.get('set')
         if set.tracks.filter(id=track.id).exists():
             return status.HTTP_400_BAD_REQUEST, {"error": "이미 셋에 추가되어 있습니다."}
@@ -128,7 +123,7 @@ class SetTrackService(serializers.Serializer):
         set.save()
         return status.HTTP_200_OK, {"added to playlist."}
     
-    def delete(self):
+    def delete(self, set, track):
         set = self.set
         track = self.track
         if set.tracks.filter(id=track.id).exists():

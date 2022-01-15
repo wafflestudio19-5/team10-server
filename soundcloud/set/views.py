@@ -1,14 +1,15 @@
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from set.models import Set, SetTrack
 from set.serializers import *
 from soundcloud.utils import CustomObjectPermissions
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
-from rest_framework.decorators import action
-from rest_framework.generics import get_object_or_404
+from track.models import Track
 from user.models import User
-from django.db import transaction
+
 
 @extend_schema_view( 
     create=extend_schema(
@@ -176,7 +177,6 @@ class SetTrackViewSet(viewsets.GenericViewSet):
         status, data = service.delete()
         return Response(status=status, data=data)
         #return Response({"removed from playlist"}, status=status.HTTP_200_OK)
-
 
 
 
