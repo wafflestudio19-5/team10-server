@@ -92,8 +92,6 @@ class SetViewSet(viewsets.ModelViewSet):
             return SetMediaUploadSerializer
         if self.action in ['likers', 'reposters']:
             return SimpleUserSerializer
-        if self.action in ['tracks']:
-            return SetTrackService
         else:
             return SetSerializer
 
