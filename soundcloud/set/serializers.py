@@ -107,7 +107,8 @@ class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put�
         return data
 
 class SetTrackService(serializers.Serializer):
-
+    track_id = serializers.IntegerField(write_only=True)
+    
     def create(self):
         set = self.context['set']
         track = self.context['track']
@@ -118,6 +119,7 @@ class SetTrackService(serializers.Serializer):
 
         set.tracks.add(track)
         set.save()
+
         return status.HTTP_200_OK, {"added to playlist."}
     
     def delete(self):
@@ -125,6 +127,7 @@ class SetTrackService(serializers.Serializer):
         track = self.context['track']
         if track is None:
             return status.HTTP_400_BAD_REQUEST, {"error": "track_id 는 필수입니다."}
+
         if set.tracks.filter(id=track.id).exists():
             set.tracks.remove(track)
             return status.HTTP_204_NO_CONTENT, None
