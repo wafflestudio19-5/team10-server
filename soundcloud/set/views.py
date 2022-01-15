@@ -56,19 +56,6 @@ from user.models import User
             '404': OpenApiResponse(description='Not Found'),
         }
     ),
-    tracks=extend_schema(
-        summary="Add/Remove Track in Set",
-        # parameters=[
-        #     OpenApiParameter("track_id", OpenApiTypes.INT, OpenApiParameter.QUERY, description='track id'),
-        # ],
-        responses={
-            '200': OpenApiResponse(description='OK'),
-            '400': OpenApiResponse(description="Bad Request"),
-            '401': OpenApiResponse(description='Unauthorized'),
-            '403': OpenApiResponse(description='Permission Denied'),
-            '404': OpenApiResponse(description='Not Found'),
-        }
-    ),
     likers=extend_schema(
         summary="Get Set's Likers",
         parameters=[
@@ -134,18 +121,45 @@ class SetViewSet(viewsets.ModelViewSet):
     def reposters(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-class SetTrackViewSet(viewsets.GenericViewSet):
+
+@extend_schema_view( 
+    tracks=extend_schema(
+        summary="Add/Remove Track in Set",
+        # parameters=[
+        #     OpenApiParameter("track_id", OpenApiTypes.INT, OpenApiParameter.QUERY, description='track id'),
+        # ],
+        responses={
+            '200': OpenApiResponse(description='OK'),
+            '400': OpenApiResponse(description="Bad Request"),
+            '401': OpenApiResponse(description='Unauthorized'),
+            '403': OpenApiResponse(description='Permission Denied'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    )
+)
+class SetTrackViewSet(viewsets.GenericViewSet): #GenericAPIView
     permission_classes = (CustomObjectPermissions, )
     lookup_url_kwarg = 'set_id'
     serializer_class = SetTrackService
+    queryset = Set.objects.all()
     
-
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['set'] = self.get_object()
+        track_id=self.request.data.get('track_id')
+        if track_id is None:
+            context['track'] = None
+            return context
+        context['track'] = get_object_or_404(Track, id=track_id)
+        return context
+    
     # 5. POST /sets/{set_id}/track/ (add track to playlist)
     # 6. DELETE /sets/{set_id}/track/ (remove track from playlist)
     @action(methods=['POST', 'DELETE'], detail=True)
     def tracks(self, request, *args, **kwargs):
-        user = self.request.user 
-        set = self.get_object()
+        #user = self.request.user 
+        #set = self.get_object()
+        #track_id = request.data.get("track_id", None)
         service = self.get_serializer()
 
         # data = request.data
@@ -173,7 +187,6 @@ class SetTrackViewSet(viewsets.GenericViewSet):
         #return Response({"added to playlist."}, status=status.HTTP_200_OK) 
 
     def _remove(self, service):
-        #set.tracks.remove(track)
         status, data = service.delete()
         return Response(status=status, data=data)
         #return Response({"removed from playlist"}, status=status.HTTP_200_OK)

@@ -4,6 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.serializers import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 from set.models import Set
+from set.models import SetTrack
 from track.models import Track
 from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from tag.serializers import TagSerializer
@@ -69,11 +70,8 @@ class SetSerializer(serializers.ModelSerializer):
         return set.reposts.count()
 
     def get_tracks(self, set):
-        set_tracks = set.set_tracks.all()
-        tracks = []
-        for set_track in set_tracks:
-            tracks.append(set_track.track)
-        if not set_tracks.count():
+        tracks = set.tracks.all()
+        if not tracks:
             return None
         return TrackInSetSerializer(tracks, many=True, context=self.context).data
 
@@ -92,7 +90,6 @@ class SetSerializer(serializers.ModelSerializer):
 
 
 class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서만 쓰기. 이미지 수정용 
-
     image_extension = serializers.CharField(write_only=True, required=False)
     image_presigned_url = serializers.SerializerMethodField()
 
@@ -109,13 +106,21 @@ class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put�
 
         return data
 
+# class SetTrackService(serializers.ModelSerializer):
+#     track = serializers.PrimaryKeyRelatedField(queryset=Track.objects.all(), required=True)
+#     set = SetSerializer(read_only=True)
+
+# class TrackPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
+#     def display_value(self, instance):
+#         return 'Track: %s' % (instance.title)
+
 class SetTrackService(serializers.Serializer):
 
-    set = SetSerializer()
-    track = serializers.PrimaryKeyRelatedField(queryset=Track.objects.all(), required=True)
-
-    def create(self, set, track):
-        set = self.context.get('set')
+    def create(self):
+        set = self.context['set']
+        track = self.context['track']
+        if track is None:
+            return status.HTTP_400_BAD_REQUEST, {"error": "track_id 는 필수입니다."}
         if set.tracks.filter(id=track.id).exists():
             return status.HTTP_400_BAD_REQUEST, {"error": "이미 셋에 추가되어 있습니다."}
 
@@ -123,14 +128,18 @@ class SetTrackService(serializers.Serializer):
         set.save()
         return status.HTTP_200_OK, {"added to playlist."}
     
-    def delete(self, set, track):
-        set = self.set
-        track = self.track
+    def delete(self):
+        set = self.context['set']
+        track = self.context['track']
+        if track is None:
+            return status.HTTP_400_BAD_REQUEST, {"error": "track_id 는 필수입니다."}
         if set.tracks.filter(id=track.id).exists():
             set.tracks.remove(track)
-            return status.HTTP_204_NO_CONTENT, {}
+            return status.HTTP_204_NO_CONTENT, None
     
         return status.HTTP_400_BAD_REQUEST, {"error": "셋에 없는 트랙입니다."}
+
+
 
 
 
