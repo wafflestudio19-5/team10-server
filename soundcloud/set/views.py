@@ -111,12 +111,13 @@ class SetViewSet(viewsets.ModelViewSet):
     # 2. PUT /sets/{set_id} - mixin 이용
     # 3. GET /sets/{set_id} - mixin 이용
     # 4. DELETE /sets/{set_id} - mixin 이용
-    # 7. GET /sets/{set_id}/likers
+
+    # 5. GET /sets/{set_id}/likers
     @action(detail=True)
     def likers(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    # 8. GET /sets/{set_id}/reposters
+    # 6. GET /sets/{set_id}/reposters
     @action(detail=True)
     def reposters(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -125,9 +126,6 @@ class SetViewSet(viewsets.ModelViewSet):
 @extend_schema_view( 
     tracks=extend_schema(
         summary="Add/Remove Track in Set",
-        # parameters=[
-        #     OpenApiParameter("track_id", OpenApiTypes.INT, OpenApiParameter.QUERY, description='track id'),
-        # ],
         responses={
             '200': OpenApiResponse(description='OK'),
             '400': OpenApiResponse(description="Bad Request"),
@@ -137,7 +135,7 @@ class SetViewSet(viewsets.ModelViewSet):
         }
     )
 )
-class SetTrackViewSet(viewsets.GenericViewSet): #GenericAPIView
+class SetTrackViewSet(viewsets.GenericViewSet): 
     permission_classes = (CustomObjectPermissions, )
     lookup_url_kwarg = 'set_id'
     serializer_class = SetTrackService
@@ -153,43 +151,20 @@ class SetTrackViewSet(viewsets.GenericViewSet): #GenericAPIView
         context['track'] = get_object_or_404(Track, id=track_id)
         return context
     
-    # 5. POST /sets/{set_id}/track/ (add track to playlist)
-    # 6. DELETE /sets/{set_id}/track/ (remove track from playlist)
+    # 7. POST /sets/{set_id}/track/ (add track to playlist)
+    # 8. DELETE /sets/{set_id}/track/ (remove track from playlist)
     @action(methods=['POST', 'DELETE'], detail=True)
     def tracks(self, request, *args, **kwargs):
-        #user = self.request.user 
-        #set = self.get_object()
-        #track_id = request.data.get("track_id", None)
         service = self.get_serializer()
-
-        # data = request.data
-        # track_id = data["track_id"] #track_id 필수.
-        # try:
-        #     track = Track.objects.get(id=track_id)
-        # except Track.DoesNotExist:
-        #     return Response({"error": "해당 트랙은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
-        
         if request.method == 'POST':
             return self._add(service)
         else:
             return self._remove(service)
 
-
     def _add(self, service):
         status, data = service.create()
-
-        # if set.set_tracks.filter(track=track).exists():
-        #     return Response({"error": "이미 셋에 추가되어 있습니다."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # set.tracks.add(track)
-        # set.save()
         return Response(status=status, data=data)
-        #return Response({"added to playlist."}, status=status.HTTP_200_OK) 
 
     def _remove(self, service):
         status, data = service.delete()
         return Response(status=status, data=data)
-        #return Response({"removed from playlist"}, status=status.HTTP_200_OK)
-
-
-

@@ -106,14 +106,6 @@ class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put�
 
         return data
 
-# class SetTrackService(serializers.ModelSerializer):
-#     track = serializers.PrimaryKeyRelatedField(queryset=Track.objects.all(), required=True)
-#     set = SetSerializer(read_only=True)
-
-# class TrackPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
-#     def display_value(self, instance):
-#         return 'Track: %s' % (instance.title)
-
 class SetTrackService(serializers.Serializer):
 
     def create(self):
