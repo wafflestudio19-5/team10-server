@@ -104,13 +104,14 @@ class SetViewSet(viewsets.ModelViewSet):
             return SetMediaUploadSerializer
         if self.action in ['likers', 'reposters']:
             return SimpleUserSerializer
+        if self.action in ['tracks']:
+            return SetTrackService
         else:
             return SetSerializer
 
     def get_queryset(self):
         if self.action in ['likers', 'reposters']:
             self.set = getattr(self, 'set', None) or get_object_or_404(Set, id=self.kwargs[self.lookup_url_kwarg])
-
             if self.action == 'likers':
                 return User.objects.prefetch_related('followers', 'owned_sets').filter(likes__set=self.set)
             if self.action == 'reposters':
@@ -122,56 +123,6 @@ class SetViewSet(viewsets.ModelViewSet):
     # 2. PUT /sets/{set_id} - mixin 이용
     # 3. GET /sets/{set_id} - mixin 이용
     # 4. DELETE /sets/{set_id} - mixin 이용
-
-    # 5. POST /sets/{set_id}/track/ (add track to playlist)
-    # 6. DELETE /sets/{set_id}/track/ (remove track from playlist)
-    @action(methods=['POST', 'DELETE'], detail=True)
-    def tracks(self, request, *args, **kwargs):
-        user = self.request.user #CustomObjectPerm 이 커버가능한지 확인하기 - x
-        set = self.get_object()
-        # try:
-        #     set = Set.objects.get(id=self.kwargs[self.lookup_url_kwarg])
-        # except Set.DoesNotExist:
-        #     return Response({"error": "해당 셋은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
-        
-        if user != set.creator:
-            return Response({"error": "해당 셋의 creator가 아닙니다."}, status=status.HTTP_403_FORBIDDEN)
-        
-        data = request.data
-        track_id = data["track_id"]
-        try:
-            track = Track.objects.get(id=track_id)
-        except Track.DoesNotExist:
-            return Response({"error": "해당 트랙은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
-        
-        if request.method == 'POST':
-            return self._add(set, track)
-        else:
-            return self._remove(set, track)
-
-    def _add(self, set, track):
-        if set.set_tracks.filter(track=track).exists():
-            return Response({"error": "이미 셋에 추가되어 있습니다."}, status=status.HTTP_400_BAD_REQUEST)
-
-        SetTrack.objects.create(set=set, track=track)
-        if set.image is None:
-            set.image = track.image
-            set.save()
-        return Response({"added to playlist."}, status=status.HTTP_200_OK) 
-
-    def _remove(self, set, track):
-        try:
-            set_track = set.set_tracks.get(track=track)
-        except SetTrack.DoesNotExist: 
-            return Response({"error": "셋에 추가된 트랙이 아닙니다."}, status=status.HTTP_400_BAD_REQUEST)
-        set_track.delete()
-
-        if set.set_tracks.count() == 0:
-            set.image = None
-            set.save()
-        return Response({"removed from playlist"}, status=status.HTTP_200_OK)
-
-
     # 7. GET /sets/{set_id}/likers
     @action(detail=True)
     def likers(self, request, *args, **kwargs):
@@ -181,4 +132,51 @@ class SetViewSet(viewsets.ModelViewSet):
     @action(detail=True)
     def reposters(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+class SetTrackViewSet(viewsets.GenericViewSet):
+    permission_classes = (CustomObjectPermissions, )
+    lookup_url_kwarg = 'set_id'
+    serializer_class = SetTrackService
+    
+
+    # 5. POST /sets/{set_id}/track/ (add track to playlist)
+    # 6. DELETE /sets/{set_id}/track/ (remove track from playlist)
+    @action(methods=['POST', 'DELETE'], detail=True)
+    def tracks(self, request, *args, **kwargs):
+        user = self.request.user 
+        set = self.get_object()
+        service = self.get_serializer()
+
+        # data = request.data
+        # track_id = data["track_id"] #track_id 필수.
+        # try:
+        #     track = Track.objects.get(id=track_id)
+        # except Track.DoesNotExist:
+        #     return Response({"error": "해당 트랙은 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+        
+        if request.method == 'POST':
+            return self._add(service)
+        else:
+            return self._remove(service)
+
+
+    def _add(self, service):
+        status, data = service.create()
+
+        # if set.set_tracks.filter(track=track).exists():
+        #     return Response({"error": "이미 셋에 추가되어 있습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # set.tracks.add(track)
+        # set.save()
+        return Response(status=status, data=data)
+        #return Response({"added to playlist."}, status=status.HTTP_200_OK) 
+
+    def _remove(self, service):
+        #set.tracks.remove(track)
+        status, data = service.delete()
+        return Response(status=status, data=data)
+        #return Response({"removed from playlist"}, status=status.HTTP_200_OK)
+
+
+
 

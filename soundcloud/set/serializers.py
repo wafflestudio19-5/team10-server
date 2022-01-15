@@ -1,7 +1,7 @@
 from re import T
 from set.models import Set, SetTrack
 from track.models import Track
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.validators import UniqueTogetherValidator
 from user.serializers import SimpleUserSerializer
@@ -11,7 +11,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from rest_framework.serializers import ValidationError
-from track.serializers import SetTrackSerializer, TrackMediaUploadSerializer
+from track.serializers import TrackInSetSerializer, TrackMediaUploadSerializer
 
 class SetSerializer(serializers.ModelSerializer):
     creator = SimpleUserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
@@ -77,7 +77,7 @@ class SetSerializer(serializers.ModelSerializer):
             tracks.append(set_track.track)
         if not set_tracks.count():
             return None
-        return SetTrackSerializer(tracks, many=True, context=self.context).data
+        return TrackInSetSerializer(tracks, many=True, context=self.context).data
 
     def validate_permalink(self, value):
         if not any(c.isalpha() for c in value):
@@ -111,5 +111,31 @@ class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put�
         data = self.filenames_to_urls(data)
 
         return data
+
+class SetTrackService(serializers.Serializer):
+
+    set = SetSerializer()
+    track = serializers.PrimaryKeyRelatedField(queryset=Track.objects.all(), required=True)
+
+    def create(self):
+        #set = self.set
+        #track = self.track
+        set = self.context.get('set')
+        if set.tracks.filter(id=track.id).exists():
+            return status.HTTP_400_BAD_REQUEST, {"error": "이미 셋에 추가되어 있습니다."}
+
+        set.tracks.add(track)
+        set.save()
+        return status.HTTP_200_OK, {"added to playlist."}
+    
+    def delete(self):
+        set = self.set
+        track = self.track
+        if set.tracks.filter(id=track.id).exists():
+            set.tracks.remove(track)
+            return status.HTTP_204_NO_CONTENT, {}
+    
+        return status.HTTP_400_BAD_REQUEST, {"error": "셋에 없는 트랙입니다."}
+
 
 
