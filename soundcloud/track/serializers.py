@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from rest_framework.serializers import ValidationError
 from soundcloud.utils import get_presigned_url, MediaUploadMixin
+from tag.models import Tag
 from tag.serializers import TagSerializer
 from track.models import Track
 from user.serializers import UserSerializer, SimpleUserSerializer
@@ -12,6 +13,7 @@ from reaction.models import Like, Repost
 from soundcloud.utils import assign_object_perms, get_presigned_url, MediaUploadMixin
 from django.contrib.contenttypes.models import ContentType
 
+
 class TrackSerializer(serializers.ModelSerializer):
 
     artist = UserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
@@ -19,6 +21,8 @@ class TrackSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
+    genre_input = serializers.CharField(max_length=20, required=False)
+    tags_input = serializers.ListField(child=serializers.CharField(max_length=20), required=False)
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
@@ -40,6 +44,8 @@ class TrackSerializer(serializers.ModelSerializer):
             'count',
             'genre',
             'tags',
+            'genre_input',
+            'tags_input',
             'is_private',
         )
         extra_kwargs = {
@@ -51,6 +57,8 @@ class TrackSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'created_at',
             'count',
+            'genre_input',
+            'tags_input',
         )
 
         # Since 'artist' is read-only field, ModelSerializer wouldn't generate UniqueTogetherValidator automatically.
@@ -91,6 +99,16 @@ class TrackSerializer(serializers.ModelSerializer):
         # Although it has default value, should manually include 'artist' to the data because it is read-only field.
         if self.instance is None:
             data['artist'] = self.context['request'].user
+
+        if 'genre_input' in data:
+            genre_input = data.pop('genre_input')
+            data['genre'] = Tag.objects.get_or_create(name=genre_input)[0]
+
+        if 'tags_input' in data:
+            genre = data.get('genre') or self.instance.genre
+            genre_name = genre.name if genre else ""
+            tags_input = data.pop('tags_input')
+            data['tags'] = [Tag.objects.get_or_create(name=tag)[0] for tag in tags_input if tag != genre_name]
 
         return data
 
