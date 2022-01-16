@@ -121,10 +121,10 @@ class MediaUploadMixin:
 
     def extensions_to_urls(self, data):
         instance = getattr(self, 'instance', None)
-        permalink = getattr(instance, 'permalink', None)
+        permalink = data.get('permalink') or getattr(instance, 'permalink', None)
 
         if permalink is None:
-            return data
+            raise ValidationError("permalink is required.")
 
         new_data = data.copy()
 
@@ -136,7 +136,7 @@ class MediaUploadMixin:
     
             if isinstance(old_url, str) and old_url.endswith('.'+extension):
                 url = old_url
-            else:  
+            else:
                 url = self._get_unique_url(permalink + '.' + extension, self.Meta.model._meta.model_name, field_name)
 
             new_data.pop(key)
@@ -177,11 +177,6 @@ class MediaUploadMixin:
             raise ValueError(f"media_type choices: {MEDIA_TYPES}")
 
         return extension in valid_extensions
-
-    # @staticmethod
-    # def check_filename(filename):
-
-    #     return re.search(FILENAME_PATTERN, filename)
 
 
 class CustomPagination(PageNumberPagination):
