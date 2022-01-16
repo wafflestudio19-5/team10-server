@@ -56,8 +56,7 @@ class CommentViewSet(mixins.CreateModelMixin,
             queryset = Comment.objects\
                 .select_related('writer')\
                 .prefetch_related('writer__followers', 'writer__owned_tracks')\
-                .filter(track=self.track)\
-                .annotate(group_created_at=F('group__created_at'))
+                .filter(track=self.track)
         else:
             queryset = Comment.objects.filter(track=self.track)
 
