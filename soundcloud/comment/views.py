@@ -47,7 +47,7 @@ class CommentViewSet(mixins.CreateModelMixin,
     # pagination_class = CommentPagination
     filter_backends = (OrderingFilter, )
     ordering_fields = []
-    ordering = ['-group_created_at', 'created_at']
+    ordering = ['-group__created_at', 'created_at']
 
     def get_queryset(self):
         self.track = getattr(self, 'track', None) or get_object_or_404(Track, id=self.kwargs['track_id'])
