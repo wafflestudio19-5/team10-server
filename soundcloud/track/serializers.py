@@ -101,13 +101,14 @@ class TrackSerializer(serializers.ModelSerializer):
             data['artist'] = self.context['request'].user
 
         if 'genre_input' in data:
-            genre, status = Tag.objects.get_or_create(name=data.pop('genre_input'))
-            data['genre'] = genre
+            genre_input = data.pop('genre_input')
+            data['genre'] = Tag.objects.get_or_create(name=genre_input)[0]
 
         if 'tags_input' in data:
+            genre = data.get('genre') or self.instance.genre
+            genre_name = genre.name if genre else ""
             tags_input = data.pop('tags_input')
-            tags = [Tag.objects.get_or_create(name=tag)[0] for tag in tags_input]
-            data['tags'] = tags
+            data['tags'] = [Tag.objects.get_or_create(name=tag)[0] for tag in tags_input if tag != genre_name]
 
         return data
 
