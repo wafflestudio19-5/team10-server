@@ -209,7 +209,7 @@ class CommentTrackSerializer(serializers.ModelSerializer):
             'is_private'
         )
         
-class SetTrackSerializer(serializers.ModelSerializer):
+class TrackInSetSerializer(serializers.ModelSerializer):
     audio = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField(read_only=True)

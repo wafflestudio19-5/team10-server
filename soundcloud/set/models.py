@@ -42,6 +42,7 @@ class Set(models.Model):
     likes = GenericRelation(Like, related_query_name="set") 
     reposts = GenericRelation(Repost, related_query_name="set") 
     image = models.URLField(null=True, unique=True)
+    tracks = models.ManyToManyField(Track, through='SetTrack', related_name='sets')
 
     objects = CustomSetManager()
 
