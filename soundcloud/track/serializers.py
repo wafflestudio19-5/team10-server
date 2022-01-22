@@ -240,6 +240,7 @@ class TrackInSetSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'title',
+            'artist',
             'artist_permalink',
             'artist_display_name',
             'permalink',
