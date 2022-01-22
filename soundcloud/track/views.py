@@ -1,13 +1,14 @@
 from django.db.models import Q
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
-from rest_framework import viewsets
+from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
+from rest_framework.response import Response
 from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
-from track.serializers import SimpleTrackSerializer, TrackSerializer, TrackMediaUploadSerializer
+from track.serializers import SimpleTrackSerializer, TrackHitService, TrackSerializer, TrackMediaUploadSerializer
 from user.models import User
 from user.serializers import SimpleUserSerializer
 
@@ -83,6 +84,12 @@ from user.serializers import SimpleUserSerializer
             '200': OpenApiResponse(response=SimpleUserSerializer(many=True), description='OK'),
             '404': OpenApiResponse(description='Not Found'),
         }
+    ),
+    hit=extend_schema(
+        summary="Hit Track",
+        responses={
+            '201': OpenApiResponse(description='Created'),
+        }
     )
 )
 class TrackViewSet(viewsets.ModelViewSet):
@@ -103,6 +110,8 @@ class TrackViewSet(viewsets.ModelViewSet):
             return SimpleTrackSerializer
         if self.action in ['likers', 'reposters']:
             return SimpleUserSerializer
+        if self.action in  ['hit']:
+            return TrackHitService
         else:
             return super().get_serializer_class()
 
@@ -115,12 +124,12 @@ class TrackViewSet(viewsets.ModelViewSet):
             if self.action == 'reposters':
                 return User.objects.prefetch_related('followers', 'owned_tracks').filter(reposts__track=self.track)
         if self.action in ['create', 'retrieve', 'update', 'partial_update']:
-            return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
+            return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks')
         if self.action in ['list']:
             if self.request.user.is_authenticated:
-                return Track.objects.exclude(~Q(artist=self.request.user), is_private=True).select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
+                return Track.objects.exclude(~Q(artist=self.request.user), is_private=True).prefetch_related('artist__followers', 'artist__owned_tracks')
             else:
-                return Track.objects.exclude(is_private=True).select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks')
+                return Track.objects.exclude(is_private=True).prefetch_related('artist__followers', 'artist__owned_tracks')
         else:
             return super().get_queryset()
 
@@ -131,3 +140,11 @@ class TrackViewSet(viewsets.ModelViewSet):
     @action(detail=True)
     def reposters(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    @action(detail=True, methods=['POST'], permission_classes=(permissions.AllowAny, ))
+    def hit(self, request, *args, **kwargs):
+        track = self.get_object()
+        service = self.get_serializer(track)
+        status, data = service.create()
+
+        return Response(status=status, data=data)

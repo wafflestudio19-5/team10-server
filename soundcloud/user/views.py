@@ -184,13 +184,13 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 return User.objects.prefetch_related('followers', 'owned_tracks').filter(followers__follower=self.user)
             if self.action == 'tracks':
                 if self.request.user.is_authenticated and self.request.user == self.user:
-                    return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments').filter(artist=self.user)
+                    return Track.objects.filter(artist=self.user)
                 else:
-                    return Track.objects.exclude(is_private=True).select_related('artist').prefetch_related('likes', 'reposts', 'comments').filter(artist=self.user)
+                    return Track.objects.exclude(is_private=True).filter(artist=self.user)
             if self.action == 'likes_tracks':
-                return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks').filter(likes__user=self.user)
+                return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks').filter(likes__user=self.user)
             if self.action == 'reposts_tracks':
-                return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks').filter(reposts__user=self.user)
+                return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks').filter(reposts__user=self.user)
             if self.action == 'comments':
                 return Comment.objects.select_related('track').filter(writer=self.user)
 

@@ -14,6 +14,10 @@ class CustomTrackManager(models.Manager):
 
         return instance
 
+    def get_queryset(self):
+
+        return super().get_queryset().select_related('artist', 'genre').prefetch_related('hits', 'likes', 'reposts', 'comments', 'tags')
+
 
 class Track(models.Model):
     title = models.CharField(max_length=100)
@@ -23,7 +27,6 @@ class Track(models.Model):
     image = models.URLField(null=True, unique=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    count = models.PositiveIntegerField(default=0)
     genre = models.ForeignKey(Tag, related_name="genre_tracks", null=True, on_delete=models.SET_NULL)
     tags = models.ManyToManyField(Tag, related_name="tag_tracks")
     is_private = models.BooleanField(default=False)
@@ -39,3 +42,11 @@ class Track(models.Model):
                 name='track_permalink_unique',
             ),
         ]
+
+class TrackHit(models.Model):
+    user = models.ForeignKey(get_user_model(), related_name='play_history', on_delete=models.CASCADE, null=True)
+    track = models.ForeignKey(Track, related_name='hits', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('-created_at', )
