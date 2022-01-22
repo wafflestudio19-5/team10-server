@@ -230,6 +230,8 @@ class CommentTrackSerializer(serializers.ModelSerializer):
 class TrackInSetSerializer(serializers.ModelSerializer):
     audio = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
+    artist_permalink = serializers.CharField(source='artist.permalink')
+    artist_display_name = serializers.CharField(source='artist.display_name')
     is_liked = serializers.SerializerMethodField(read_only=True)
     is_reposted = serializers.SerializerMethodField(read_only=True)
 
@@ -238,7 +240,8 @@ class TrackInSetSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'title',
-            'artist',
+            'artist_permalink',
+            'artist_display_name',
             'permalink',
             'audio',
             'image',
@@ -271,4 +274,4 @@ class TrackInSetSerializer(serializers.ModelSerializer):
             except Repost.DoesNotExist:
                 return False
         else: 
-            return False 
+            return False
