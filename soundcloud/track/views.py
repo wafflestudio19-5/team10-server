@@ -120,9 +120,9 @@ class TrackViewSet(viewsets.ModelViewSet):
             self.track = getattr(self, 'track', None) or get_object_or_404(Track, id=self.kwargs[self.lookup_url_kwarg])
 
             if self.action == 'likers':
-                return User.objects.prefetch_related('followers', 'owned_tracks').filter(likes__track=self.track)
+                return User.objects.filter(likes__track=self.track)
             if self.action == 'reposters':
-                return User.objects.prefetch_related('followers', 'owned_tracks').filter(reposts__track=self.track)
+                return User.objects.filter(reposts__track=self.track)
         if self.action in ['create', 'retrieve', 'update', 'partial_update']:
             return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks')
         if self.action in ['list']:

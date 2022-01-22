@@ -122,7 +122,7 @@ class TrackMediaUploadSerializer(MediaUploadMixin, TrackSerializer):
 
 class SimpleTrackSerializer(serializers.ModelSerializer):
     
-    artist = SimpleUserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
+    artist = SimpleUserSerializer(read_only=True)
     audio = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     play_count = serializers.IntegerField(read_only=True)

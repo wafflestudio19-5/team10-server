@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import Sum, Count
+from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericRelation
 from reaction.models import Like, Repost
@@ -17,7 +18,12 @@ class CustomTrackManager(models.Manager):
 
     def get_queryset(self):
 
-        return super().get_queryset().select_related('artist', 'genre').annotate(play_count=Sum('trackhit__count'), like_count=Count('likes'), repost_count=Count('reposts'), comment_count=Count('comments'))
+        return super().get_queryset().select_related('artist', 'genre').annotate(
+            play_count=Coalesce(Sum('trackhit__count', distinct=True), 0),          #  https://stackoverflow.com/a/35413920/14971231
+            like_count=Count('likes', distinct=True),
+            repost_count=Count('reposts', distinct=True),
+            comment_count=Count('comments', distinct=True),
+        )
 
 
 class Track(models.Model):

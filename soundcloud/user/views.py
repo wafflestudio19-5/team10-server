@@ -185,9 +185,9 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             self.user = getattr(self, 'user', None) or get_object_or_404(User, id=self.kwargs[self.lookup_url_kwarg])
 
             if self.action == 'followers':
-                return User.objects.prefetch_related('followers', 'owned_tracks').filter(followings__followee=self.user)
+                return User.objects.filter(followings__followee=self.user)
             if self.action == 'followings':
-                return User.objects.prefetch_related('followers', 'owned_tracks').filter(followers__follower=self.user)
+                return User.objects.filter(followers__follower=self.user)
             if self.action == 'tracks':
                 if self.request.user.is_authenticated and self.request.user == self.user:
                     return Track.objects.filter(artist=self.user)
@@ -201,10 +201,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             if self.action == 'comments':
                 return Comment.objects.select_related('track').filter(writer=self.user)
 
-        if self.action in ['list']:
-            return User.objects.prefetch_related('followers', 'owned_tracks')
-        else:
-            return super().get_queryset()
+        return super().get_queryset()
 
     @action(detail=True)
     def followers(self, request, *args, **kwargs):
@@ -263,7 +260,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 class UserSelfView(RetrieveUpdateAPIView):
 
     serializer_class = UserSerializer
-    queryset = User.objects.prefetch_related('followers', 'followings', 'owned_tracks', 'comments')
+    queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated, )
 
     def get_serializer_class(self):
