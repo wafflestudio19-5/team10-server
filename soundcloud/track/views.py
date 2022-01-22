@@ -89,7 +89,6 @@ from user.serializers import SimpleUserSerializer
         summary="Hit Track",
         responses={
             '200': OpenApiResponse(description='OK'),
-            '201': OpenApiResponse(description='Created'),
         }
     )
 )
@@ -142,7 +141,7 @@ class TrackViewSet(viewsets.ModelViewSet):
     def reposters(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @action(detail=True, methods=['POST'], permission_classes=(permissions.AllowAny, ))
+    @action(detail=True, methods=['PUT'], permission_classes=(permissions.AllowAny, ))
     def hit(self, request, *args, **kwargs):
         track = self.get_object()
         service = self.get_serializer(track)

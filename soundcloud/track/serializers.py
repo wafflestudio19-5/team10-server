@@ -259,4 +259,4 @@ class TrackHitService(serializers.Serializer):
         obj.count = F('count') + 1
         obj.save()
 
-        return status.HTTP_201_CREATED if created else status.HTTP_200_OK, "track hit success"
+        return status.HTTP_200_OK, "track hit success"
