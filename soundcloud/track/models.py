@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Sum, Count
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericRelation
 from reaction.models import Like, Repost
@@ -16,7 +17,7 @@ class CustomTrackManager(models.Manager):
 
     def get_queryset(self):
 
-        return super().get_queryset().select_related('artist', 'genre').prefetch_related('hits', 'likes', 'reposts', 'comments', 'tags')
+        return super().get_queryset().select_related('artist', 'genre').annotate(play_count=Sum('trackhit__count'), like_count=Count('likes'), repost_count=Count('reposts'), comment_count=Count('comments'))
 
 
 class Track(models.Model):
@@ -30,6 +31,7 @@ class Track(models.Model):
     genre = models.ForeignKey(Tag, related_name="genre_tracks", null=True, on_delete=models.SET_NULL)
     tags = models.ManyToManyField(Tag, related_name="tag_tracks")
     is_private = models.BooleanField(default=False)
+    players = models.ManyToManyField(get_user_model(), related_name="played_tracks", through='TrackHit')
     likes = GenericRelation(Like, related_query_name="track")
     reposts = GenericRelation(Repost, related_query_name="track")
 
@@ -43,10 +45,18 @@ class Track(models.Model):
             ),
         ]
 
+
 class TrackHit(models.Model):
-    user = models.ForeignKey(get_user_model(), related_name='play_history', on_delete=models.CASCADE, null=True)
-    track = models.ForeignKey(Track, related_name='hits', on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, null=True)
+    track = models.ForeignKey(Track, on_delete=models.CASCADE)
+    count = models.BigIntegerField(default=0)
+    last_hit = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ('-created_at', )
+        ordering = ('-last_hit', )
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'track'],
+                name='track_hit_unique',
+            ),
+        ]

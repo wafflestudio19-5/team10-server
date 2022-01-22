@@ -88,6 +88,7 @@ from user.serializers import SimpleUserSerializer
     hit=extend_schema(
         summary="Hit Track",
         responses={
+            '200': OpenApiResponse(description='OK'),
             '201': OpenApiResponse(description='Created'),
         }
     )
@@ -145,6 +146,6 @@ class TrackViewSet(viewsets.ModelViewSet):
     def hit(self, request, *args, **kwargs):
         track = self.get_object()
         service = self.get_serializer(track)
-        status, data = service.create()
+        status, data = service.execute()
 
         return Response(status=status, data=data)

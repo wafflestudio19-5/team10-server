@@ -1,3 +1,4 @@
+from django.db.models import F
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
@@ -19,12 +20,12 @@ class TrackSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
-    genre_input = serializers.CharField(max_length=20, required=False)
-    tags_input = serializers.ListField(child=serializers.CharField(max_length=20), required=False)
-    play_count = serializers.SerializerMethodField()
-    like_count = serializers.SerializerMethodField()
-    repost_count = serializers.SerializerMethodField()
-    comment_count = serializers.SerializerMethodField()
+    genre_input = serializers.CharField(max_length=20, required=False, write_only=True)
+    tags_input = serializers.ListField(child=serializers.CharField(max_length=20), required=False, write_only=True)
+    play_count = serializers.IntegerField(read_only=True)
+    like_count = serializers.IntegerField(read_only=True)
+    repost_count = serializers.IntegerField(read_only=True)
+    comment_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Track
@@ -55,8 +56,6 @@ class TrackSerializer(serializers.ModelSerializer):
         }
         read_only_fields = (
             'created_at',
-            'genre_input',
-            'tags_input',
         )
 
         # Since 'artist' is read-only field, ModelSerializer wouldn't generate UniqueTogetherValidator automatically.
@@ -73,22 +72,6 @@ class TrackSerializer(serializers.ModelSerializer):
 
     def get_image(self, track):
         return get_presigned_url(track.image, 'get_object')
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_play_count(self, track):
-        return track.hits.count()
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_like_count(self, track):
-        return track.likes.count()
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_repost_count(self, track):
-        return track.reposts.count()
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_comment_count(self, track):
-        return track.comments.count()
 
     def validate_permalink(self, value):
         if not any(c.isalpha() for c in value):
@@ -142,10 +125,10 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
     artist = SimpleUserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
     audio = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
-    play_count = serializers.SerializerMethodField()
-    like_count = serializers.SerializerMethodField()
-    repost_count = serializers.SerializerMethodField()
-    comment_count = serializers.SerializerMethodField()
+    play_count = serializers.IntegerField(read_only=True)
+    like_count = serializers.IntegerField(read_only=True)
+    repost_count = serializers.IntegerField(read_only=True)
+    comment_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Track
@@ -170,31 +153,15 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
     def get_image(self, track):
         return get_presigned_url(track.image, 'get_object')
 
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_play_count(self, track):
-        return track.hits.count()
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_like_count(self, track):
-        return track.likes.count()
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_repost_count(self, track):
-        return track.reposts.count()
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_comment_count(self, track):
-        return track.comments.count()
-
 
 class UserTrackSerializer(serializers.ModelSerializer):
 
     audio = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
-    play_count = serializers.SerializerMethodField()
-    like_count = serializers.SerializerMethodField()
-    repost_count = serializers.SerializerMethodField()
-    comment_count = serializers.SerializerMethodField()
+    play_count = serializers.IntegerField(read_only=True)
+    like_count = serializers.IntegerField(read_only=True)
+    repost_count = serializers.IntegerField(read_only=True)
+    comment_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Track
@@ -217,22 +184,6 @@ class UserTrackSerializer(serializers.ModelSerializer):
 
     def get_image(self, track):
         return get_presigned_url(track.image, 'get_object')
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_play_count(self, track):
-        return track.hits.count()
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_like_count(self, track):
-        return track.likes.count()
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_repost_count(self, track):
-        return track.reposts.count()
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_comment_count(self, track):
-        return track.comments.count()
 
 
 class CommentTrackSerializer(serializers.ModelSerializer):
@@ -252,7 +203,7 @@ class TrackInSetSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField(read_only=True)
     is_reposted = serializers.SerializerMethodField(read_only=True)
-    play_count = serializers.SerializerMethodField()
+    play_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Track
@@ -265,6 +216,7 @@ class TrackInSetSerializer(serializers.ModelSerializer):
             'image',
             'is_liked',
             'is_reposted',
+            'play_count',
         )
 
     def get_audio(self, track):
@@ -295,16 +247,16 @@ class TrackInSetSerializer(serializers.ModelSerializer):
         else: 
             return False 
 
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_play_count(self, track):
-        return track.hits.count()
-
 
 class TrackHitService(serializers.Serializer):
 
-    def create(self):
+    def execute(self):
         user = self.context.get('request').user
         user = user if user.is_authenticated else None
-        TrackHit.objects.create(user=user, track=self.instance)
+        obj, created = TrackHit.objects.get_or_create(user=user, track=self.instance)
 
-        return status.HTTP_201_CREATED, "track hit created"
+        # update track's hit count and last play datetime
+        obj.count = F('count') + 1
+        obj.save()
+
+        return status.HTTP_201_CREATED if created else status.HTTP_200_OK, "track hit success"
