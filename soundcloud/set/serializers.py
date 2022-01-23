@@ -88,6 +88,10 @@ class SimpleSetSerializer(serializers.ModelSerializer):
     track_count = serializers.IntegerField()
     like_count = serializers.IntegerField()
     repost_count = serializers.IntegerField()
+    is_liked = serializers.SerializerMethodField(read_only=True)
+    is_reposted = serializers.SerializerMethodField(read_only=True)
+    
+    
     
     class Meta:
         model = Set
@@ -104,6 +108,8 @@ class SimpleSetSerializer(serializers.ModelSerializer):
             'repost_count',
             'image',
             'tracks',
+            'is_liked',
+            'is_reposted',
         )
 
     def get_image(self, set):
@@ -114,6 +120,26 @@ class SimpleSetSerializer(serializers.ModelSerializer):
         tracks = set.tracks.all().order_by('set_tracks__created_at')[:5]
 
         return TrackInSetSerializer(tracks, many=True, context=self.context).data
+    
+    def get_is_liked(self, set):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Like.objects.get(user=self.context['request'].user, set=set)
+                return True
+            except Like.DoesNotExist:
+                return False
+        else: 
+            return False 
+
+    def get_is_reposted(self, set):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Repost.objects.get(user=self.context['request'].user, set=set)
+                return True
+            except Repost.DoesNotExist:
+                return False
+        else: 
+            return False
 
 
 class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서만 쓰기. 이미지 수정용 
