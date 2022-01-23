@@ -94,7 +94,8 @@ class TrackSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.INT)
     def get_comment_count(self, track):
         return track.comments.count()
-
+    
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_liked(self, track):
         if self.context['request'].user.is_authenticated:
             try:                	
@@ -105,6 +106,7 @@ class TrackSerializer(serializers.ModelSerializer):
         else: 
             return False 
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_reposted(self, track):
         if self.context['request'].user.is_authenticated:
             try:                	
@@ -115,6 +117,7 @@ class TrackSerializer(serializers.ModelSerializer):
         else: 
             return False
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_followed(self, track):
         if self.context['request'].user.is_authenticated:
             follower = self.context['request'].user
@@ -219,6 +222,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
     def get_comment_count(self, track):
         return track.comments.count()
     
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_liked(self, track):
         if self.context['request'].user.is_authenticated:
             try:                	
@@ -229,6 +233,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
         else: 
             return False 
     
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_followed(self, track):
         if self.context['request'].user.is_authenticated:
             follower = self.context['request'].user
@@ -322,6 +327,7 @@ class TrackInSetSerializer(serializers.ModelSerializer):
     def get_image(self, track):
         return get_presigned_url(track.image, 'get_object')
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_liked(self, track):
         if self.context['request'].user.is_authenticated:
             try:                	
@@ -332,6 +338,7 @@ class TrackInSetSerializer(serializers.ModelSerializer):
         else: 
             return False 
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_reposted(self, track):
         if self.context['request'].user.is_authenticated:
             try:                	
