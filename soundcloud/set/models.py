@@ -21,7 +21,7 @@ class CustomSetManager(models.Manager):
             track_count=Count('tracks', distinct=True),
             like_count=Count('likes', distinct=True),
             repost_count=Count('reposts', distinct=True),
-        ).prefetch_related('creator__followers', 'creator__owned_tracks')
+        ).prefetch_related('creator__followers', 'creator__owned_tracks').select_related('creator')
 
 
 class Set(models.Model):

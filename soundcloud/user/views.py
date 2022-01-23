@@ -9,6 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from comment.models import Comment
 from comment.serializers import UserCommentSerializer
+from set.serializers import SimpleSetSerializer
 from track.serializers import SimpleTrackSerializer, UserTrackSerializer
 from user.serializers import *
 
@@ -126,6 +127,13 @@ class UserLogoutView(APIView):
             404: OpenApiResponse(description='Not Found'),
         }
     ),
+    history_sets=extend_schema(
+        summary="Get User's Set History",
+        responses={
+            200: OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
     likes_tracks=extend_schema(
         summary="Get User's Liked Tracks",
         parameters=[
@@ -177,12 +185,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return UserTrackSerializer
         if self.action in [ 'likes_tracks', 'reposts_tracks', 'history_tracks' ]:
             return SimpleTrackSerializer
+        if self.action in  [ 'history_sets' ]:
+            return SimpleSetSerializer
         if self.action in [ 'comments' ]:
             return UserCommentSerializer
         return super().get_serializer_class()
 
     def get_queryset(self):
-        if self.action in ['followers', 'followings', 'tracks', 'likes_tracks', 'reposts_tracks', 'history_tracks', 'comments']:
+        if self.action in ['followers', 'followings', 'tracks', 'likes_tracks', 'reposts_tracks', 'history_tracks', 'history_sets', 'comments']:
             self.user = getattr(self, 'user', None) or get_object_or_404(User, id=self.kwargs[self.lookup_url_kwarg])
 
             if self.action == 'followers':
@@ -199,6 +209,8 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks').filter(reposts__user=self.user)
             if self.action == 'history_tracks':
                 return self.user.played_tracks.prefetch_related('artist__followers', 'artist__owned_tracks')
+            if self.action == 'history_sets':
+                return self.user.played_sets
             if self.action == 'comments':
                 return Comment.objects.select_related('track').filter(writer=self.user)
 
@@ -218,6 +230,10 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, url_path='history/tracks', ordering_fields=['trackhit__last_hit'], ordering=['-trackhit__last_hit'])
     def history_tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=True, url_path='history/sets', ordering_fields=['sethit__last_hit'], ordering=['-sethit__last_hit'])
+    def history_sets(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
     @action(detail=True, url_path='likes/tracks')
