@@ -126,6 +126,7 @@ class UserSerializer(serializers.ModelSerializer):
     track_count = serializers.SerializerMethodField()
     like_track_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
+    is_followed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
@@ -154,6 +155,7 @@ class UserSerializer(serializers.ModelSerializer):
             'country',
             'bio',
             'path', #add
+            'is_followed',
         )
         extra_kwargs = {
             'permalink': {
@@ -200,6 +202,18 @@ class UserSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.INT)
     def get_comment_count(self, user):
         return user.comments.count()
+
+    def get_is_followed(self, user):
+        if self.context['request'].user.is_authenticated:
+            follower = self.context['request'].user
+            followee = user
+            try:
+                Follow.objects.get(follower=follower, followee=followee)
+                return True
+            except Follow.DoesNotExist:
+                return False
+        else:
+            return False
 
     def validate_password(self, value):
 

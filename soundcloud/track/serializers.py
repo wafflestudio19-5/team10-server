@@ -183,6 +183,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
     repost_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField(read_only=True)
+    is_followed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Track
@@ -200,6 +201,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
             'count',
             'is_private',
             'is_liked',
+            'is_followed',
         )
 
     def get_audio(self, track):
@@ -226,6 +228,18 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
                 return False
         else: 
             return False 
+    
+    def get_is_followed(self, track):
+        if self.context['request'].user.is_authenticated:
+            follower = self.context['request'].user
+            followee = track.artist
+            try:
+                Follow.objects.get(follower=follower, followee=followee)
+                return True
+            except Follow.DoesNotExist:
+                return False
+        else:
+            return False
 
 
 class UserTrackSerializer(serializers.ModelSerializer):
