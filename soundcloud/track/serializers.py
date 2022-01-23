@@ -184,6 +184,8 @@ class UserTrackSerializer(serializers.ModelSerializer):
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
+    genre = TagSerializer(read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
 
     class Meta:
         model = Track
@@ -197,6 +199,7 @@ class UserTrackSerializer(serializers.ModelSerializer):
             'repost_count',
             'comment_count',
             'genre',
+            'tags',
             'count',
             'is_private',
         )
