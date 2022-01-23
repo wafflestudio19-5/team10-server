@@ -87,6 +87,9 @@ from user.serializers import SimpleUserSerializer
     ),
     hit=extend_schema(
         summary="Hit Track",
+        parameters=[
+            OpenApiParameter("set_id", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A set id containing the track.'),
+        ],
         responses={
             '200': OpenApiResponse(description='OK'),
         }

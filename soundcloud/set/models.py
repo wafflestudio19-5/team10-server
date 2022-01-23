@@ -58,3 +58,18 @@ class SetTrack(models.Model):
     set = models.ForeignKey(Set, related_name='set_tracks', on_delete=models.CASCADE)
     track = models.ForeignKey(Track, related_name='set_tracks', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class SetHit(models.Model):
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, null=True)
+    set = models.ForeignKey(Set, on_delete=models.CASCADE)
+    last_hit = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ('-last_hit', )
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'set'],
+                name='set_hit_unique',
+            ),
+        ]

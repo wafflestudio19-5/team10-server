@@ -1,10 +1,13 @@
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import F
+from django.shortcuts import get_object_or_404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
 from rest_framework.validators import UniqueTogetherValidator
 from rest_framework.serializers import ValidationError
+from set.models import SetHit
 from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from tag.models import Tag
 from tag.serializers import TagSerializer
@@ -258,11 +261,12 @@ class TrackHitService(serializers.Serializer):
 
         return ip, bool(xff)
 
+    @transaction.atomic
     def execute(self):
         request_user = self.context.get('request').user
         user = request_user if request_user.is_authenticated else None
         track = self.instance
-        obj, _ = TrackHit.objects.get_or_create(user=user, track=track)
+        track_hit, _ = TrackHit.objects.get_or_create(user=user, track=track)
 
         # cache key consists of (1) client's ip address (2) user id (3) track id
         client_ip, xff = self.get_client_ip()
@@ -270,8 +274,15 @@ class TrackHitService(serializers.Serializer):
 
         # update the track hit count only when the user didn't hit the track for last {timeout} seconds
         if not cache.get(key):
-            obj.count = F('count') + 1
+            track_hit.count = F('count') + 1
             cache.set(key, True, timeout=300)
-        obj.save()
+        track_hit.save()
+
+        # update the set hit if specified
+        set_id = self.context.get('request').query_params.get('set_id')
+        if set_id is not None:
+            set = get_object_or_404(track.sets, pk=set_id)
+            set_hit, _ = SetHit.objects.get_or_create(user=user, set=set)
+            set_hit.save()
 
         return status.HTTP_200_OK, { 'client_ip': client_ip, 'xff': xff }
