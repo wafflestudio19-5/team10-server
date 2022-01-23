@@ -8,6 +8,8 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from comment.models import Comment
 from comment.serializers import UserCommentSerializer
+from set.models import Set
+from set.serializers import SetSerializer
 from track.serializers import SimpleTrackSerializer, UserTrackSerializer
 from user.serializers import *
 
@@ -140,6 +142,28 @@ class UserLogoutView(APIView):
             404: OpenApiResponse(description='Not Found'),
         }
     ),
+    likes_sets=extend_schema(
+        summary="Get User's Liked Sets",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
+        responses={
+            200: OpenApiResponse(response=SetSerializer(many=True), description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
+    reposts_sets=extend_schema(
+        summary="Get User's Reposted Sets",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
+        responses={
+            200: OpenApiResponse(response=SetSerializer(many=True), description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
     comments=extend_schema(
         summary="Get User's Comments",
         parameters=[
@@ -169,6 +193,8 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return UserTrackSerializer
         elif self.action in [ 'likes_tracks', 'reposts_tracks' ]:
             return SimpleTrackSerializer
+        elif self.action in [ 'likes_sets', 'reposts_sets']:
+            return SetSerializer
         elif self.action in [ 'comments' ]:
             return UserCommentSerializer
         else:
@@ -191,6 +217,11 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks').filter(likes__user=self.user)
             if self.action == 'reposts_tracks':
                 return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks').filter(reposts__user=self.user)
+            if self.action == 'likes_sets':
+                return Set.objects.select_related('creator').prefetch_related('likes', 'reposts', 'tracks', 'tags', 'creator__followers', 'creator__owned_tracks').filter(likes__user=self.user)
+            if self.action == 'reposts_sets':
+                return Set.objects.select_related('creator').prefetch_related('likes', 'reposts', 'tracks', 'tags', 'creator__followers', 'creator__owned_tracks').filter(reposts__user=self.user)
+
             if self.action == 'comments':
                 return Comment.objects.select_related('track').filter(writer=self.user)
 
@@ -218,6 +249,15 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, url_path='reposts/tracks')
     def reposts_tracks(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    @action(detail=True, url_path='likes/sets')
+    def likes_sets(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=True, url_path='reposts/sets')
+    def reposts_sets(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
 
     @action(detail=True)
     def comments(self, request, *args, **kwargs):
