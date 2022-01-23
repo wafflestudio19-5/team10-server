@@ -123,6 +123,7 @@ class UserLogoutView(APIView):
         summary="Get User's Track History",
         responses={
             200: OpenApiResponse(response=SimpleTrackSerializer(many=True), description='OK'),
+            404: OpenApiResponse(description='Not Found'),
         }
     ),
     likes_tracks=extend_schema(
