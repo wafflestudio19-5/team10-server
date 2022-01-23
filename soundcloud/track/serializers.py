@@ -53,6 +53,7 @@ class TrackSerializer(serializers.ModelSerializer):
             'is_private',
             'is_liked',
             'is_reposted',
+            'is_followed',
         )
         extra_kwargs = {
             'permalink': {

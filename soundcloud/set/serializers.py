@@ -3,8 +3,8 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
 from rest_framework.serializers import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
-from set.models import Set
-from set.models import SetTrack
+from set.models import Set, SetTrack
+from user.models import Follow
 from track.models import Track
 from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from tag.serializers import TagSerializer
@@ -60,6 +60,10 @@ class SetSerializer(serializers.ModelSerializer):
     tracks = serializers.SerializerMethodField()
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField(read_only=True)
+    is_reposted = serializers.SerializerMethodField(read_only=True)
+    is_followed = serializers.SerializerMethodField(read_only=True)
+
     
     class Meta:
         model = Set
@@ -78,6 +82,9 @@ class SetSerializer(serializers.ModelSerializer):
             'image',
             'tracks', #tracks in set
             'created_at',
+            'is_liked',
+            'is_reposted',
+            'is_followed', #for creator
         )        
         extra_kwargs = {
             'permalink': {
@@ -114,6 +121,39 @@ class SetSerializer(serializers.ModelSerializer):
         if not tracks:
             return None
         return TrackInSetSerializer(tracks, many=True, context=self.context).data
+
+    def get_is_liked(self, set):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Like.objects.get(user=self.context['request'].user, set=set)
+                return True
+            except Like.DoesNotExist:
+                return False
+        else: 
+            return False 
+
+    def get_is_reposted(self, set):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Repost.objects.get(user=self.context['request'].user, set=set)
+                return True
+            except Repost.DoesNotExist:
+                return False
+        else: 
+            return False
+
+    def get_is_followed(self, set):
+        if self.context['request'].user.is_authenticated:
+            follower = self.context['request'].user
+            followee = set.creator
+            try:
+                Follow.objects.get(follower=follower, followee=followee)
+                return True
+            except Follow.DoesNotExist:
+                return False
+        else:
+            return False
+
 
     def validate_permalink(self, value):
         if not any(c.isalpha() for c in value):
