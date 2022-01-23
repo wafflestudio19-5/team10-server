@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.db.models import F
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
@@ -250,13 +251,27 @@ class TrackInSetSerializer(serializers.ModelSerializer):
 
 class TrackHitService(serializers.Serializer):
 
-    def execute(self):
-        user = self.context.get('request').user
-        user = user if user.is_authenticated else None
-        obj, created = TrackHit.objects.get_or_create(user=user, track=self.instance)
+    def get_client_ip(self):
+        '''get client's ip address from X_FORWARDED_FOR header'''
+        xff = self.context.get('request').META.get('HTTP_X_FORWARDED_FOR')
+        ip = xff.split(',')[0] if xff else self.context.get('request').META.get('REMOTE_ADDR')
 
-        # update track's hit count and last play datetime
-        obj.count = F('count') + 1
+        return ip, bool(xff)
+
+    def execute(self):
+        request_user = self.context.get('request').user
+        user = request_user if request_user.is_authenticated else None
+        track = self.instance
+        obj, _ = TrackHit.objects.get_or_create(user=user, track=track)
+
+        # cache key consists of (1) client's ip address (2) user id (3) track id
+        client_ip, xff = self.get_client_ip()
+        key = f"{client_ip}_user_{getattr(user, 'id', None)}_track_{track.id}"
+
+        # update the track hit count only when the user didn't hit the track for last {timeout} seconds
+        if not cache.get(key):
+            obj.count = F('count') + 1
+            cache.set(key, True, timeout=300)
         obj.save()
 
-        return status.HTTP_200_OK, "track hit success"
+        return status.HTTP_200_OK, { 'client_ip': client_ip, 'xff': xff }
