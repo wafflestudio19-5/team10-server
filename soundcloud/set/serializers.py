@@ -12,45 +12,6 @@ from track.serializers import TrackInSetSerializer
 from user.serializers import SimpleUserSerializer
 from reaction.models import Like, Repost
 
-class SimpleSetSerializer(serializers.ModelSerializer):
-    creator = SimpleUserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
-    image = serializers.SerializerMethodField()
-    is_liked = serializers.SerializerMethodField(read_only=True)
-    is_reposted = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = Set
-        fields = (
-            'id',
-            'title',
-            'creator',
-            'permalink',
-            'image',
-            'is_liked',
-            'is_reposted',
-        )
-    def get_image(self, set):
-        return get_presigned_url(set.image, 'get_object')
-
-    def get_is_liked(self, set):
-        if self.context['request'].user.is_authenticated:
-            try:                	
-                Like.objects.get(user=self.context['request'].user, set=set)
-                return True
-            except Like.DoesNotExist:
-                return False
-        else: 
-            return False 
-
-    def get_is_reposted(self, set):
-        if self.context['request'].user.is_authenticated:
-            try:                	
-                Repost.objects.get(user=self.context['request'].user, set=set)
-                return True
-            except Repost.DoesNotExist:
-                return False
-        else: 
-            return False 
 
 class SetSerializer(serializers.ModelSerializer):
     creator = SimpleUserSerializer(default=serializers.CurrentUserDefault(), read_only=True)

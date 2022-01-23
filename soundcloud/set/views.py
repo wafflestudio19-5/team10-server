@@ -15,7 +15,7 @@ from user.models import User
     list=extend_schema(
         summary="List of Sets",
         responses={
-            200: OpenApiResponse(response=SimpleSetSerializer, description='OK'),
+            200: OpenApiResponse(response=SetSerializer, description='OK'),
             404: OpenApiResponse(description='Not Found'),
         }
     ),
@@ -97,8 +97,6 @@ class SetViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ['update', 'partial_update']:
             return SetMediaUploadSerializer
-        if self.action in ['list']:
-            return SimpleSetSerializer
         if self.action in ['likers', 'reposters']:
             return SimpleUserSerializer
         else:
