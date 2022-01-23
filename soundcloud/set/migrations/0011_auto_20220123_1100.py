@@ -10,6 +10,7 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ('set', '0010_auto_20220113_0753'),
+        ('tag', '0001_initial'),
     ]
 
     operations = [
@@ -28,5 +29,20 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name='sethit',
             constraint=models.UniqueConstraint(fields=('user', 'set'), name='set_hit_unique'),
+        ),
+        migrations.AddField(
+            model_name='set',
+            name='players',
+            field=models.ManyToManyField(related_name='played_sets', through='set.SetHit', to=settings.AUTH_USER_MODEL),
+        ),
+        migrations.AddField(
+            model_name='set',
+            name='genre',
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='genre_sets', to='tag.tag'),
+        ),
+        migrations.AlterField(
+            model_name='set',
+            name='tags',
+            field=models.ManyToManyField(related_name='tag_sets', to='tag.Tag'),
         ),
     ]
