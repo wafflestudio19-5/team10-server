@@ -7,6 +7,7 @@ from set.models import Set
 from set.models import SetTrack
 from track.models import Track
 from soundcloud.utils import get_presigned_url, MediaUploadMixin
+from tag.models import Tag
 from tag.serializers import TagSerializer
 from track.serializers import TrackInSetSerializer
 from user.serializers import SimpleUserSerializer
@@ -17,6 +18,8 @@ class SetSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
+    genre_input = serializers.CharField(max_length=20, required=False)
+    tags_input = serializers.ListField(child=serializers.CharField(max_length=20), required=False)
     tracks = serializers.SerializerMethodField()
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
@@ -32,6 +35,8 @@ class SetSerializer(serializers.ModelSerializer):
             'description',
             'genre',
             'tags',
+            'genre_input',
+            'tags_input',
             'is_private',
             'like_count',
             'repost_count',
@@ -44,9 +49,12 @@ class SetSerializer(serializers.ModelSerializer):
                 'max_length': 255,
                 'min_length': 3,
             },
-            'created_at': {'read_only': True},
-        
         }
+        read_only_fields = (
+            'created_at',
+            'genre_input',
+            'tags_input',
+        )
 
         # Since 'creator' is read-only field, ModelSerializer wouldn't generate UniqueTogetherValidator automatically.
         validators = [
@@ -85,6 +93,17 @@ class SetSerializer(serializers.ModelSerializer):
         # Although it has default value, should manually include 'creator' to the data because it is read-only field.
         if self.instance is None:
             data['creator'] = self.context['request'].user
+
+        if 'genre_input' in data:
+            genre_input = data.pop('genre_input')
+            data['genre'] = Tag.objects.get_or_create(name=genre_input)[0]
+
+        if 'tags_input' in data:
+            genre = data.get('genre') or self.instance.genre
+            genre_name = genre.name if genre else ""
+            tags_input = data.pop('tags_input')
+            data['tags'] = [Tag.objects.get_or_create(name=tag)[0] for tag in tags_input if tag != genre_name]
+
 
         return data
 
