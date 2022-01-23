@@ -121,6 +121,7 @@ class SimpleSetSerializer(serializers.ModelSerializer):
 
         return TrackInSetSerializer(tracks, many=True, context=self.context).data
     
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_liked(self, set):
         if self.context['request'].user.is_authenticated:
             try:                	
@@ -131,6 +132,7 @@ class SimpleSetSerializer(serializers.ModelSerializer):
         else: 
             return False 
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_reposted(self, set):
         if self.context['request'].user.is_authenticated:
             try:                	
