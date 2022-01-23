@@ -110,7 +110,7 @@ class SetViewSet(viewsets.ModelViewSet):
             if self.action == 'reposters':
                 return User.objects.prefetch_related('followers', 'owned_tracks').filter(reposts__set=self.set)
         else:
-            return Set.objects.all()
+            return Set.objects.all().prefetch_related('tracks__artist')
     
     # 1. POST /sets/ - 빈 playlist 생성 - mixin 이용
     # 2. PUT /sets/{set_id} - mixin 이용
@@ -156,8 +156,8 @@ class SetTrackViewSet(viewsets.GenericViewSet):
         context['track'] = get_object_or_404(Track, id=track_id)
         return context
     
-    # 7. POST /sets/{set_id}/track/ (add track to playlist)
-    # 8. DELETE /sets/{set_id}/track/ (remove track from playlist)
+    # 7. POST /sets/{set_id}/tracks (add track to playlist)
+    # 8. DELETE /sets/{set_id}/tracks (remove track from playlist)
     @action(methods=['POST', 'DELETE'], detail=True)
     def tracks(self, request, *args, **kwargs):
         service = self.get_serializer()
