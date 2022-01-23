@@ -26,6 +26,8 @@ class TrackSerializer(serializers.ModelSerializer):
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField(read_only=True)
+    is_reposted = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Track
@@ -47,6 +49,8 @@ class TrackSerializer(serializers.ModelSerializer):
             'genre_input',
             'tags_input',
             'is_private',
+            'is_liked',
+            'is_reposted',
         )
         extra_kwargs = {
             'permalink': {
@@ -87,6 +91,26 @@ class TrackSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.INT)
     def get_comment_count(self, track):
         return track.comments.count()
+
+    def get_is_liked(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Like.objects.get(user=self.context['request'].user, track=track)
+                return True
+            except Like.DoesNotExist:
+                return False
+        else: 
+            return False 
+
+    def get_is_reposted(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Repost.objects.get(user=self.context['request'].user, track=track)
+                return True
+            except Repost.DoesNotExist:
+                return False
+        else: 
+            return False
 
     def validate_permalink(self, value):
         if not any(c.isalpha() for c in value):
@@ -143,6 +167,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Track
@@ -159,6 +184,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
             'genre',
             'count',
             'is_private',
+            'is_liked',
         )
 
     def get_audio(self, track):
@@ -175,6 +201,16 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
 
     def get_comment_count(self, track):
         return track.comments.count()
+    
+    def get_is_liked(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Like.objects.get(user=self.context['request'].user, track=track)
+                return True
+            except Like.DoesNotExist:
+                return False
+        else: 
+            return False 
 
 
 class UserTrackSerializer(serializers.ModelSerializer):
