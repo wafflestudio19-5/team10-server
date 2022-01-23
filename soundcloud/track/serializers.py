@@ -7,6 +7,7 @@ from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from tag.models import Tag
 from tag.serializers import TagSerializer
 from track.models import Track
+from user.models import Follow
 from user.serializers import UserSerializer, SimpleUserSerializer
 from reaction.serializers import LikeService, RepostService
 from reaction.models import Like, Repost
@@ -28,6 +29,7 @@ class TrackSerializer(serializers.ModelSerializer):
     comment_count = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField(read_only=True)
     is_reposted = serializers.SerializerMethodField(read_only=True)
+    is_followed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Track
@@ -110,6 +112,18 @@ class TrackSerializer(serializers.ModelSerializer):
             except Repost.DoesNotExist:
                 return False
         else: 
+            return False
+
+    def get_is_followed(self, track):
+        if self.context['request'].user.is_authenticated:
+            follower = self.context['request'].user
+            followee = track.artist
+            try:
+                Follow.objects.get(follower=follower, followee=followee)
+                return True
+            except Follow.DoesNotExist:
+                return False
+        else:
             return False
 
     def validate_permalink(self, value):
