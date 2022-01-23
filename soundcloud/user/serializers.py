@@ -59,6 +59,7 @@ class UserCreateSerializer(serializers.Serializer):
 
         return user
 
+
 class UserSocialLoginSerializer(serializers.Serializer):
     # Read-only fields
     id = serializers.IntegerField(read_only=True)
@@ -83,7 +84,6 @@ class UserSocialLoginSerializer(serializers.Serializer):
 
     def execute(self):
         update_last_login(None, self.instance)
-
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -126,6 +126,7 @@ class UserSerializer(serializers.ModelSerializer):
     track_count = serializers.SerializerMethodField()
     like_track_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
+    is_followed = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -154,6 +155,7 @@ class UserSerializer(serializers.ModelSerializer):
             'country',
             'bio',
             'path', #add
+            'is_followed',
         )
         extra_kwargs = {
             'permalink': {
@@ -201,6 +203,10 @@ class UserSerializer(serializers.ModelSerializer):
     def get_comment_count(self, user):
         return user.comments.count()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_followed(self, user):
+        return bool(Follow.objects.filter(follower=self.context['request'].user, followee=user))
+
     def validate_password(self, value):
 
         return make_password(value)
@@ -246,6 +252,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
     image_profile = serializers.SerializerMethodField()
     follower_count = serializers.SerializerMethodField()
     track_count = serializers.SerializerMethodField()
+    is_followed = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -259,6 +266,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
             'track_count',
             'first_name',
             'last_name',
+            'is_followed',
         )
 
     def get_image_profile(self, user):
@@ -271,6 +279,10 @@ class SimpleUserSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.INT)
     def get_track_count(self, user):
         return user.owned_tracks.count()
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_followed(self, user):
+        return bool(Follow.objects.filter(follower=self.context['request'].user, followee=user))
 
       
 class UserFollowService(serializers.Serializer):
