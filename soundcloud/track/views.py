@@ -1,6 +1,8 @@
 from django.db.models import Q
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
+from drf_haystack.viewsets import HaystackGenericAPIView, HaystackViewSet
+from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
@@ -8,7 +10,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
-from track.serializers import SimpleTrackSerializer, TrackHitService, TrackSerializer, TrackMediaUploadSerializer
+from track.serializers import SimpleTrackSerializer, TrackHitService, TrackSerializer, TrackMediaUploadSerializer, TrackSearchSerializer
 from user.models import User
 from user.serializers import SimpleUserSerializer
 
@@ -151,3 +153,12 @@ class TrackViewSet(viewsets.ModelViewSet):
         status, data = service.execute()
 
         return Response(status=status, data=data)
+
+
+class TrackSearchAPIView(ListModelMixin, HaystackGenericAPIView):
+    index_models = [Track]
+    serializer_class = TrackSearchSerializer
+    pagination_class = None
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
