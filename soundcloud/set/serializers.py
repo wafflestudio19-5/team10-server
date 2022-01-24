@@ -18,8 +18,8 @@ class SetSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
-    genre_input = serializers.CharField(max_length=20, required=False)
-    tags_input = serializers.ListField(child=serializers.CharField(max_length=20), required=False)
+    genre_input = serializers.CharField(max_length=20, required=False, write_only=True)
+    tags_input = serializers.ListField(child=serializers.CharField(max_length=20), required=False, write_only=True)
     tracks = serializers.SerializerMethodField()
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
@@ -52,8 +52,6 @@ class SetSerializer(serializers.ModelSerializer):
         }
         read_only_fields = (
             'created_at',
-            'genre_input',
-            'tags_input',
         )
 
         # Since 'creator' is read-only field, ModelSerializer wouldn't generate UniqueTogetherValidator automatically.
