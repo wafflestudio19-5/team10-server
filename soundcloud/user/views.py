@@ -168,6 +168,28 @@ class UserLogoutView(APIView):
             404: OpenApiResponse(description='Not Found'),
         }
     ),
+    likes_sets=extend_schema(
+        summary="Get User's Liked Sets",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
+        responses={
+            200: OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
+    reposts_sets=extend_schema(
+        summary="Get User's Reposted Sets",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
+        responses={
+            200: OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
     comments=extend_schema(
         summary="Get User's Comments",
         parameters=[
@@ -197,14 +219,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return UserTrackSerializer
         if self.action in [ 'likes_tracks', 'reposts_tracks', 'history_tracks' ]:
             return SimpleTrackSerializer
-        if self.action in  [ 'history_sets', 'sets' ]:
+        if self.action in [ 'likes_sets', 'reposts_sets', 'history_sets', 'sets' ]:
             return SimpleSetSerializer
         if self.action in [ 'comments' ]:
             return UserCommentSerializer
         return super().get_serializer_class()
 
     def get_queryset(self):
-        if self.action in ['followers', 'followings', 'tracks', 'sets', 'likes_tracks', 'reposts_tracks', 'history_tracks', 'history_sets', 'comments']:
+        if self.action in ['followers', 'followings', 'tracks', 'sets', 'likes_tracks', 'reposts_tracks', 'likes_sets', 'reposts_sets', 'history_tracks', 'history_sets', 'comments']:
             self.user = getattr(self, 'user', None) or get_object_or_404(User, id=self.kwargs[self.lookup_url_kwarg])
 
             if self.action == 'followers':
@@ -223,6 +245,10 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks').filter(likes__user=self.user)
             if self.action == 'reposts_tracks':
                 return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks').filter(reposts__user=self.user)
+            if self.action == 'likes_sets':
+                return Set.objects.select_related('creator').prefetch_related('likes', 'reposts', 'tracks', 'tags', 'creator__followers', 'creator__owned_tracks').filter(likes__user=self.user)
+            if self.action == 'reposts_sets':
+                return Set.objects.select_related('creator').prefetch_related('likes', 'reposts', 'tracks', 'tags', 'creator__followers', 'creator__owned_tracks').filter(reposts__user=self.user)
             if self.action == 'history_tracks':
                 return self.user.played_tracks.prefetch_related('artist__followers', 'artist__owned_tracks')
             if self.action == 'history_sets':
@@ -262,6 +288,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, url_path='reposts/tracks')
     def reposts_tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=True, url_path='likes/sets')
+    def likes_sets(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=True, url_path='reposts/sets')
+    def reposts_sets(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
     @action(detail=True)
