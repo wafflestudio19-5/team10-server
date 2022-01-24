@@ -9,6 +9,7 @@ source venv/bin/activate
 pip3 install -r requirements.txt --quiet
 
 python3 manage.py migrate --settings=soundcloud.settings.prod
+python3 manage.py update_index --age=2 --settings=soundcloud.settings.prod
 python3 manage.py check --deploy --settings=soundcloud.settings.prod
 
 pkill -f gunicorn
