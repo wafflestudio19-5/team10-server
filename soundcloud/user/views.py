@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from comment.models import Comment
 from comment.serializers import UserCommentSerializer
 from set.models import Set
-from set.serializers import SetSerializer, SimpleSetSerializer
+from set.serializers import SimpleSetSerializer
 from track.serializers import SimpleTrackSerializer, UserTrackSerializer
 from user.serializers import *
 
@@ -164,7 +164,7 @@ class UserLogoutView(APIView):
             OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
         ],
         responses={
-            200: OpenApiResponse(response=SetSerializer(many=True), description='OK'),
+            200: OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
             404: OpenApiResponse(description='Not Found'),
         }
     ),
@@ -175,7 +175,7 @@ class UserLogoutView(APIView):
             OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
         ],
         responses={
-            200: OpenApiResponse(response=SetSerializer(many=True), description='OK'),
+            200: OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
             404: OpenApiResponse(description='Not Found'),
         }
     ),
@@ -208,16 +208,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return UserTrackSerializer
         if self.action in [ 'likes_tracks', 'reposts_tracks', 'history_tracks' ]:
             return SimpleTrackSerializer
-        if self.action in [ 'likes_sets', 'reposts_sets']:
-            return SetSerializer
-        if self.action in  [ 'history_sets' ]:
+        if self.action in [ 'likes_sets', 'reposts_sets', 'history_sets' ]:
             return SimpleSetSerializer
         if self.action in [ 'comments' ]:
             return UserCommentSerializer
         return super().get_serializer_class()
 
     def get_queryset(self):
-        if self.action in ['followers', 'followings', 'tracks', 'likes_tracks', 'reposts_tracks', 'history_tracks', 'history_sets', 'comments']:
+        if self.action in ['followers', 'followings', 'tracks', 'likes_tracks', 'reposts_tracks', 'likes_sets', 'reposts_sets', 'history_tracks', 'history_sets', 'comments']:
             self.user = getattr(self, 'user', None) or get_object_or_404(User, id=self.kwargs[self.lookup_url_kwarg])
 
             if self.action == 'followers':
@@ -280,7 +278,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, url_path='reposts/sets')
     def reposts_sets(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
-
 
     @action(detail=True)
     def comments(self, request, *args, **kwargs):
