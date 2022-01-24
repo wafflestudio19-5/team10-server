@@ -15,8 +15,7 @@ from user.models import User
     list=extend_schema(
         summary="List of Sets",
         responses={
-            200: OpenApiResponse(response=SetSerializer, description='OK'),
-            404: OpenApiResponse(description='Not Found'),
+            200: OpenApiResponse(response=SimpleSetSerializer, description='OK'),
         }
     ),
     create=extend_schema(
@@ -54,12 +53,6 @@ from user.models import User
             '404': OpenApiResponse(description='Not Found')
         }
     ),
-    list=extend_schema(
-        summary="List Sets",
-        responses={
-            '200': OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
-        }
-    ), 
     destroy=extend_schema(
         summary="Delete Set",
         responses={
@@ -117,7 +110,7 @@ class SetViewSet(viewsets.ModelViewSet):
             if self.action == 'reposters':
                 return User.objects.prefetch_related('followers', 'owned_tracks').filter(reposts__set=self.set)
         else:
-            return Set.objects.all().prefetch_related('tracks__artist')
+            return Set.objects.all()
     
     # 1. POST /sets/ - 빈 playlist 생성 - mixin 이용
     # 2. PUT /sets/{set_id} - mixin 이용

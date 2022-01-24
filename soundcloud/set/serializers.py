@@ -1,10 +1,9 @@
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 from rest_framework import serializers, status
 from rest_framework.serializers import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
-from set.models import Set, SetTrack
+from set.models import Set
 from user.models import Follow
-from track.models import Track
 from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from tag.serializers import TagSerializer
 from track.serializers import TrackInSetSerializer
