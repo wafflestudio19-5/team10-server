@@ -157,17 +157,14 @@ class SetTrackService(serializers.Serializer):
         set = self.context['set']
         track_ids = self.context['track_ids']
 
-        if track_ids is None:
+        if track_ids is None or track_ids == []:
             return status.HTTP_400_BAD_REQUEST, {"error": "track_ids 는 필수입니다."}
 
         tracks_num = len(track_ids)
         tracks_id = []
         for d in track_ids:
             tracks_id.append(d["id"])
-        print(tracks_id)
         tracks = Track.objects.filter(id__in=tracks_id)
-        print(tracks_num)
-        print(tracks.count())
 
         if tracks.count() != tracks_num:
             return status.HTTP_400_BAD_REQUEST, {"error": "track_ids 가 유효하지 않습니다."}
@@ -184,7 +181,7 @@ class SetTrackService(serializers.Serializer):
         set = self.context['set']
         track_ids = self.context['track_ids']
 
-        if track_ids is None:
+        if track_ids is None or track_ids == []:
             return status.HTTP_400_BAD_REQUEST, {"error": "track_ids 는 필수입니다."}
 
         tracks_num = len(track_ids)
