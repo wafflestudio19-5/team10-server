@@ -15,3 +15,5 @@ drf-spectacular
 django-guardian
 requests
 django-redis
+drf-haystack
+whoosh
