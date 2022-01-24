@@ -1,4 +1,3 @@
-from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
 from rest_framework.serializers import ValidationError
@@ -19,12 +18,12 @@ class SetSerializer(serializers.ModelSerializer):
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     tracks = serializers.SerializerMethodField()
-    like_count = serializers.SerializerMethodField()
-    repost_count = serializers.SerializerMethodField()
+    track_count = serializers.IntegerField(read_only=True)
+    like_count = serializers.IntegerField(read_only=True)
+    repost_count = serializers.IntegerField(read_only=True)
     is_liked = serializers.SerializerMethodField(read_only=True)
     is_reposted = serializers.SerializerMethodField(read_only=True)
     is_followed = serializers.SerializerMethodField(read_only=True)
-
     
     class Meta:
         model = Set
@@ -38,6 +37,7 @@ class SetSerializer(serializers.ModelSerializer):
             'genre',
             'tags',
             'is_private',
+            'track_count',
             'like_count',
             'repost_count',
             'image',
@@ -68,17 +68,8 @@ class SetSerializer(serializers.ModelSerializer):
     def get_image(self, set):
         return get_presigned_url(set.image, 'get_object')
 
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_like_count(self, set):
-        return set.likes.count()
-
-    @extend_schema_field(OpenApiTypes.INT)
-    def get_repost_count(self, set):
-        return set.reposts.count()
-
     def get_tracks(self, set):
-        tracks = set.tracks.all()
+        tracks = set.tracks.order_by('set_tracks__created_at')
         if not tracks:
             return None
         return TrackInSetSerializer(tracks, many=True, context=self.context).data
@@ -133,6 +124,71 @@ class SetSerializer(serializers.ModelSerializer):
         return data
 
 
+class SimpleSetSerializer(serializers.ModelSerializer):
+    '''returns only first 5 tracks in the set'''
+    creator = SimpleUserSerializer()
+    image = serializers.SerializerMethodField()
+    genre = TagSerializer()
+    tracks = serializers.SerializerMethodField()
+    track_count = serializers.IntegerField()
+    like_count = serializers.IntegerField()
+    repost_count = serializers.IntegerField()
+    is_liked = serializers.SerializerMethodField(read_only=True)
+    is_reposted = serializers.SerializerMethodField(read_only=True)
+    
+    
+    
+    class Meta:
+        model = Set
+        fields = (
+            'id',
+            'title',
+            'creator',
+            'permalink',
+            'type',
+            'genre',
+            'is_private',
+            'track_count',
+            'like_count',
+            'repost_count',
+            'image',
+            'tracks',
+            'is_liked',
+            'is_reposted',
+        )
+
+    def get_image(self, set):
+        return get_presigned_url(set.image, 'get_object')
+
+    @extend_schema_field(TrackInSetSerializer(many=True))
+    def get_tracks(self, set):
+        tracks = set.tracks.all().order_by('set_tracks__created_at')[:5]
+
+        return TrackInSetSerializer(tracks, many=True, context=self.context).data
+    
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_liked(self, set):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Like.objects.get(user=self.context['request'].user, set=set)
+                return True
+            except Like.DoesNotExist:
+                return False
+        else: 
+            return False 
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_reposted(self, set):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Repost.objects.get(user=self.context['request'].user, set=set)
+                return True
+            except Repost.DoesNotExist:
+                return False
+        else: 
+            return False
+
+
 class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서만 쓰기. 이미지 수정용 
     image_extension = serializers.CharField(write_only=True, required=False)
     image_presigned_url = serializers.SerializerMethodField()
@@ -149,6 +205,7 @@ class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put�
         data = self.extensions_to_urls(data)
 
         return data
+
 
 class SetTrackService(serializers.Serializer):
     track_id = serializers.IntegerField(write_only=True)

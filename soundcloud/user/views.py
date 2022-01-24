@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model, logout
+from django.db.models import F
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status, permissions, viewsets
 from rest_framework.filters import OrderingFilter
@@ -8,6 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from comment.models import Comment
 from comment.serializers import UserCommentSerializer
+from set.serializers import SimpleSetSerializer
 from track.serializers import SimpleTrackSerializer, UserTrackSerializer
 from user.serializers import *
 
@@ -118,6 +120,20 @@ class UserLogoutView(APIView):
             404: OpenApiResponse(description='Not Found'),
         }
     ),
+    history_tracks=extend_schema(
+        summary="Get User's Track History",
+        responses={
+            200: OpenApiResponse(response=SimpleTrackSerializer(many=True), description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
+    history_sets=extend_schema(
+        summary="Get User's Set History",
+        responses={
+            200: OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
     likes_tracks=extend_schema(
         summary="Get User's Liked Tracks",
         parameters=[
@@ -165,39 +181,40 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     def get_serializer_class(self):
         if self.action in [ 'list', 'followers', 'followings' ]:
             return SimpleUserSerializer
-        elif self.action in [ 'tracks' ]:
+        if self.action in [ 'tracks' ]:
             return UserTrackSerializer
-        elif self.action in [ 'likes_tracks', 'reposts_tracks' ]:
+        if self.action in [ 'likes_tracks', 'reposts_tracks', 'history_tracks' ]:
             return SimpleTrackSerializer
-        elif self.action in [ 'comments' ]:
+        if self.action in  [ 'history_sets' ]:
+            return SimpleSetSerializer
+        if self.action in [ 'comments' ]:
             return UserCommentSerializer
-        else:
-            return super().get_serializer_class()
+        return super().get_serializer_class()
 
     def get_queryset(self):
-        if self.action in ['followers', 'followings', 'tracks', 'likes_tracks', 'reposts_tracks', 'comments']:
+        if self.action in ['followers', 'followings', 'tracks', 'likes_tracks', 'reposts_tracks', 'history_tracks', 'history_sets', 'comments']:
             self.user = getattr(self, 'user', None) or get_object_or_404(User, id=self.kwargs[self.lookup_url_kwarg])
 
             if self.action == 'followers':
-                return User.objects.prefetch_related('followers', 'owned_tracks').filter(followings__followee=self.user)
+                return User.objects.filter(followings__followee=self.user)
             if self.action == 'followings':
-                return User.objects.prefetch_related('followers', 'owned_tracks').filter(followers__follower=self.user)
+                return User.objects.filter(followers__follower=self.user)
             if self.action == 'tracks':
                 if self.request.user.is_authenticated and self.request.user == self.user:
-                    return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments').filter(artist=self.user)
-                else:
-                    return Track.objects.exclude(is_private=True).select_related('artist').prefetch_related('likes', 'reposts', 'comments').filter(artist=self.user)
+                    return Track.objects.filter(artist=self.user)
+                return Track.objects.exclude(is_private=True).filter(artist=self.user)
             if self.action == 'likes_tracks':
-                return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks').filter(likes__user=self.user)
+                return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks').filter(likes__user=self.user)
             if self.action == 'reposts_tracks':
-                return Track.objects.select_related('artist').prefetch_related('likes', 'reposts', 'comments', 'artist__followers', 'artist__owned_tracks').filter(reposts__user=self.user)
+                return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks').filter(reposts__user=self.user)
+            if self.action == 'history_tracks':
+                return self.user.played_tracks.prefetch_related('artist__followers', 'artist__owned_tracks')
+            if self.action == 'history_sets':
+                return self.user.played_sets
             if self.action == 'comments':
                 return Comment.objects.select_related('track').filter(writer=self.user)
 
-        if self.action in ['list']:
-            return User.objects.prefetch_related('followers', 'owned_tracks')
-        else:
-            return super().get_queryset()
+        return super().get_queryset()
 
     @action(detail=True)
     def followers(self, request, *args, **kwargs):
@@ -209,6 +226,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True)
     def tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=True, url_path='history/tracks', ordering_fields=['trackhit__last_hit'], ordering=['-trackhit__last_hit'])
+    def history_tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=True, url_path='history/sets', ordering_fields=['sethit__last_hit'], ordering=['-sethit__last_hit'])
+    def history_sets(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
     @action(detail=True, url_path='likes/tracks')
@@ -252,7 +277,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 class UserSelfView(RetrieveUpdateAPIView):
 
     serializer_class = UserSerializer
-    queryset = User.objects.prefetch_related('followers', 'followings', 'owned_tracks', 'comments')
+    queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated, )
 
     def get_serializer_class(self):
