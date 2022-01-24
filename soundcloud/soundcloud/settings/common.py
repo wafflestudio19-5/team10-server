@@ -178,7 +178,7 @@ REST_FRAMEWORK = {
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend', # this is default
     'guardian.backends.ObjectPermissionBackend',
-    # 'user.googleapi.GoogleBackend',   
+    # 'user.socialaccount.GoogleBackend',   
 )
 
 # JWT Authorization
@@ -225,4 +225,4 @@ SPECTACULAR_SETTINGS = {
 
 
 # for Sociallogin
-GOOGLE_PASSWORD = "googlepassword"
+SOCIAL_PASSWORD = "socialpassword"

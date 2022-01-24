@@ -7,6 +7,7 @@ from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from tag.models import Tag
 from tag.serializers import TagSerializer
 from track.models import Track
+from user.models import Follow
 from user.serializers import UserSerializer, SimpleUserSerializer
 from reaction.serializers import LikeService, RepostService
 from reaction.models import Like, Repost
@@ -26,6 +27,9 @@ class TrackSerializer(serializers.ModelSerializer):
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField(read_only=True)
+    is_reposted = serializers.SerializerMethodField(read_only=True)
+    is_followed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Track
@@ -47,6 +51,9 @@ class TrackSerializer(serializers.ModelSerializer):
             'genre_input',
             'tags_input',
             'is_private',
+            'is_liked',
+            'is_reposted',
+            'is_followed',
         )
         extra_kwargs = {
             'permalink': {
@@ -87,6 +94,41 @@ class TrackSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.INT)
     def get_comment_count(self, track):
         return track.comments.count()
+    
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_liked(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Like.objects.get(user=self.context['request'].user, track=track)
+                return True
+            except Like.DoesNotExist:
+                return False
+        else: 
+            return False 
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_reposted(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Repost.objects.get(user=self.context['request'].user, track=track)
+                return True
+            except Repost.DoesNotExist:
+                return False
+        else: 
+            return False
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_followed(self, track):
+        if self.context['request'].user.is_authenticated:
+            follower = self.context['request'].user
+            followee = track.artist
+            try:
+                Follow.objects.get(follower=follower, followee=followee)
+                return True
+            except Follow.DoesNotExist:
+                return False
+        else:
+            return False
 
     def validate_permalink(self, value):
         if not any(c.isalpha() for c in value):
@@ -143,6 +185,8 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
     like_count = serializers.SerializerMethodField()
     repost_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField(read_only=True)
+    is_followed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Track
@@ -159,6 +203,8 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
             'genre',
             'count',
             'is_private',
+            'is_liked',
+            'is_followed',
         )
 
     def get_audio(self, track):
@@ -175,6 +221,30 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
 
     def get_comment_count(self, track):
         return track.comments.count()
+    
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_liked(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:                	
+                Like.objects.get(user=self.context['request'].user, track=track)
+                return True
+            except Like.DoesNotExist:
+                return False
+        else: 
+            return False 
+    
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_followed(self, track):
+        if self.context['request'].user.is_authenticated:
+            follower = self.context['request'].user
+            followee = track.artist
+            try:
+                Follow.objects.get(follower=follower, followee=followee)
+                return True
+            except Follow.DoesNotExist:
+                return False
+        else:
+            return False
 
 
 class UserTrackSerializer(serializers.ModelSerializer):
@@ -257,6 +327,7 @@ class TrackInSetSerializer(serializers.ModelSerializer):
     def get_image(self, track):
         return get_presigned_url(track.image, 'get_object')
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_liked(self, track):
         if self.context['request'].user.is_authenticated:
             try:                	
@@ -267,6 +338,7 @@ class TrackInSetSerializer(serializers.ModelSerializer):
         else: 
             return False 
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_reposted(self, track):
         if self.context['request'].user.is_authenticated:
             try:                	

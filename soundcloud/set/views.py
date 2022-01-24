@@ -12,6 +12,13 @@ from user.models import User
 
 
 @extend_schema_view( 
+    list=extend_schema(
+        summary="List of Sets",
+        responses={
+            200: OpenApiResponse(response=SetSerializer, description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
     create=extend_schema(
         summary="Create Set",
         responses={

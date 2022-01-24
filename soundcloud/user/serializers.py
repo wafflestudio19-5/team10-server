@@ -126,6 +126,7 @@ class UserSerializer(serializers.ModelSerializer):
     track_count = serializers.SerializerMethodField()
     like_track_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
+    is_followed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
@@ -154,6 +155,7 @@ class UserSerializer(serializers.ModelSerializer):
             'country',
             'bio',
             'path', #add
+            'is_followed',
         )
         extra_kwargs = {
             'permalink': {
@@ -201,6 +203,19 @@ class UserSerializer(serializers.ModelSerializer):
     def get_comment_count(self, user):
         return user.comments.count()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_followed(self, user):
+        if self.context['request'].user.is_authenticated:
+            follower = self.context['request'].user
+            followee = user
+            try:
+                Follow.objects.get(follower=follower, followee=followee)
+                return True
+            except Follow.DoesNotExist:
+                return False
+        else:
+            return False
+
     def validate_password(self, value):
 
         return make_password(value)
@@ -246,6 +261,8 @@ class SimpleUserSerializer(serializers.ModelSerializer):
     image_profile = serializers.SerializerMethodField()
     follower_count = serializers.SerializerMethodField()
     track_count = serializers.SerializerMethodField()
+    is_followed = serializers.SerializerMethodField(read_only=True)
+
 
     class Meta:
         model = User
@@ -259,10 +276,24 @@ class SimpleUserSerializer(serializers.ModelSerializer):
             'track_count',
             'first_name',
             'last_name',
+            'is_followed',
         )
 
     def get_image_profile(self, user):
         return get_presigned_url(user.image_profile, 'get_object')
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_followed(self, user):
+        if self.context['request'].user.is_authenticated:
+            follower = self.context['request'].user
+            followee = user
+            try:
+                Follow.objects.get(follower=follower, followee=followee)
+                return True
+            except Follow.DoesNotExist:
+                return False
+        else:
+            return False
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_follower_count(self, user):
