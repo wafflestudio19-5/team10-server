@@ -21,7 +21,7 @@ from user.models import User
     create=extend_schema(
         summary="Create Set",
         responses={
-            201: OpenApiResponse(response=SetSerializer, description='Created'),
+            201: OpenApiResponse(response=SetMediaUploadSerializer, description='Created'),
             400: OpenApiResponse(description='Bad Request'),
             401: OpenApiResponse(description='Unauthorized'),
         }
@@ -94,7 +94,7 @@ class SetViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = 'set_id'
 
     def get_serializer_class(self):
-        if self.action in ['update', 'partial_update']:
+        if self.action in ['create', 'update', 'partial_update']:
             return SetMediaUploadSerializer
         if self.action in ['likers', 'reposters']:
             return SimpleUserSerializer

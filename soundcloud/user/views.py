@@ -204,7 +204,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         return super().get_serializer_class()
 
     def get_queryset(self):
-        if self.action in ['followers', 'followings', 'tracks', 'likes_tracks', 'reposts_tracks', 'history_tracks', 'history_sets', 'comments']:
+        if self.action in ['followers', 'followings', 'tracks', 'sets', 'likes_tracks', 'reposts_tracks', 'history_tracks', 'history_sets', 'comments']:
             self.user = getattr(self, 'user', None) or get_object_or_404(User, id=self.kwargs[self.lookup_url_kwarg])
 
             if self.action == 'followers':
