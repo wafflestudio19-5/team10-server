@@ -121,6 +121,17 @@ class UserLogoutView(APIView):
             404: OpenApiResponse(description='Not Found'),
         }
     ),
+    sets=extend_schema(
+        summary="Get User's sets",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
+        responses={
+            200: OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
     history_tracks=extend_schema(
         summary="Get User's Track History",
         responses={
@@ -208,14 +219,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return UserTrackSerializer
         if self.action in [ 'likes_tracks', 'reposts_tracks', 'history_tracks' ]:
             return SimpleTrackSerializer
-        if self.action in [ 'likes_sets', 'reposts_sets', 'history_sets' ]:
+        if self.action in [ 'likes_sets', 'reposts_sets', 'history_sets', 'sets' ]:
             return SimpleSetSerializer
         if self.action in [ 'comments' ]:
             return UserCommentSerializer
         return super().get_serializer_class()
 
     def get_queryset(self):
-        if self.action in ['followers', 'followings', 'tracks', 'likes_tracks', 'reposts_tracks', 'likes_sets', 'reposts_sets', 'history_tracks', 'history_sets', 'comments']:
+        if self.action in ['followers', 'followings', 'tracks', 'sets', 'likes_tracks', 'reposts_tracks', 'likes_sets', 'reposts_sets', 'history_tracks', 'history_sets', 'comments']:
             self.user = getattr(self, 'user', None) or get_object_or_404(User, id=self.kwargs[self.lookup_url_kwarg])
 
             if self.action == 'followers':
@@ -226,6 +237,10 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 if self.request.user.is_authenticated and self.request.user == self.user:
                     return Track.objects.filter(artist=self.user)
                 return Track.objects.exclude(is_private=True).filter(artist=self.user)
+            if self.action == 'sets':
+                if self.request.user.is_authenticated and self.request.user == self.user:
+                    return Set.objects.filter(creator=self.user)
+                return Set.objects.exclude(is_private=True).filter(creator=self.user)
             if self.action == 'likes_tracks':
                 return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks').filter(likes__user=self.user)
             if self.action == 'reposts_tracks':
@@ -253,6 +268,10 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True)
     def tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=True)
+    def sets(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
     @action(detail=True, url_path='history/tracks', ordering_fields=['trackhit__last_hit'], ordering=['-trackhit__last_hit'])
