@@ -9,6 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from comment.models import Comment
 from comment.serializers import UserCommentSerializer
+from set.models import Set
 from set.serializers import SimpleSetSerializer
 from track.serializers import SimpleTrackSerializer, UserTrackSerializer
 from user.serializers import *
@@ -120,6 +121,17 @@ class UserLogoutView(APIView):
             404: OpenApiResponse(description='Not Found'),
         }
     ),
+    sets=extend_schema(
+        summary="Get User's sets",
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
+            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
+        ],
+        responses={
+            200: OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
+            404: OpenApiResponse(description='Not Found'),
+        }
+    ),
     history_tracks=extend_schema(
         summary="Get User's Track History",
         responses={
@@ -185,7 +197,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return UserTrackSerializer
         if self.action in [ 'likes_tracks', 'reposts_tracks', 'history_tracks' ]:
             return SimpleTrackSerializer
-        if self.action in  [ 'history_sets' ]:
+        if self.action in  [ 'history_sets', 'sets' ]:
             return SimpleSetSerializer
         if self.action in [ 'comments' ]:
             return UserCommentSerializer
@@ -203,6 +215,10 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 if self.request.user.is_authenticated and self.request.user == self.user:
                     return Track.objects.filter(artist=self.user)
                 return Track.objects.exclude(is_private=True).filter(artist=self.user)
+            if self.action == 'sets':
+                if self.request.user.is_authenticated and self.request.user == self.user:
+                    return Set.objects.filter(creator=self.user)
+                return Set.objects.exclude(is_private=True).filter(creator=self.user)
             if self.action == 'likes_tracks':
                 return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks').filter(likes__user=self.user)
             if self.action == 'reposts_tracks':
@@ -226,6 +242,10 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True)
     def tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=True)
+    def sets(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
     @action(detail=True, url_path='history/tracks', ordering_fields=['trackhit__last_hit'], ordering=['-trackhit__last_hit'])

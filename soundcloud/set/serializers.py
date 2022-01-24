@@ -154,6 +154,7 @@ class SimpleSetSerializer(serializers.ModelSerializer):
             'tracks',
             'is_liked',
             'is_reposted',
+            'created_at'
         )
 
     def get_image(self, set):
