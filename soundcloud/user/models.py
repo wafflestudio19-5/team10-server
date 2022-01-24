@@ -1,7 +1,7 @@
 from django.db import models
-from django.db.models import Count
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
+from datetime import date
 from django.conf import settings
 
 
@@ -49,11 +49,6 @@ class CustomUserManager(BaseUserManager):
                 return permalink
 
 
-    def get_queryset(self):
-
-        return super().get_queryset().prefetch_related('followers', 'followings', 'owned_tracks', 'comments')
-
-
 class User(AbstractBaseUser, PermissionsMixin):
 
     permalink = models.SlugField(max_length=25, unique=True)
@@ -72,6 +67,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     country = models.CharField(max_length=20, blank=True)
     bio = models.TextField(blank=True)
     path = models.TextField(blank=True) #add for sociallogin
+    #is_staff field err
 
     objects = CustomUserManager()
 

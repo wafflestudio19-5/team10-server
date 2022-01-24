@@ -1,6 +1,4 @@
 from django.db import models
-from django.db.models import Sum, Count
-from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericRelation
 from reaction.models import Like, Repost
@@ -16,15 +14,6 @@ class CustomTrackManager(models.Manager):
 
         return instance
 
-    def get_queryset(self):
-
-        return super().get_queryset().select_related('artist', 'genre').annotate(
-            play_count=Coalesce(Sum('trackhit__count', distinct=True), 0),          #  https://stackoverflow.com/a/35413920/14971231
-            like_count=Count('likes', distinct=True),
-            repost_count=Count('reposts', distinct=True),
-            comment_count=Count('comments', distinct=True),
-        )
-
 
 class Track(models.Model):
     title = models.CharField(max_length=100)
@@ -34,10 +23,10 @@ class Track(models.Model):
     image = models.URLField(null=True, unique=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    count = models.PositiveIntegerField(default=0)
     genre = models.ForeignKey(Tag, related_name="genre_tracks", null=True, on_delete=models.SET_NULL)
     tags = models.ManyToManyField(Tag, related_name="tag_tracks")
     is_private = models.BooleanField(default=False)
-    players = models.ManyToManyField(get_user_model(), related_name="played_tracks", through='TrackHit')
     likes = GenericRelation(Like, related_query_name="track")
     reposts = GenericRelation(Repost, related_query_name="track")
 
@@ -48,21 +37,5 @@ class Track(models.Model):
             models.UniqueConstraint(
                 fields=['artist', 'permalink'],
                 name='track_permalink_unique',
-            ),
-        ]
-
-
-class TrackHit(models.Model):
-    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, null=True)
-    track = models.ForeignKey(Track, on_delete=models.CASCADE)
-    count = models.BigIntegerField(default=0)
-    last_hit = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ('-last_hit', )
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'track'],
-                name='track_hit_unique',
             ),
         ]

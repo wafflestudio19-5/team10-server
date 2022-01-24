@@ -14,4 +14,3 @@ boto3
 drf-spectacular
 django-guardian
 requests
-django-redis

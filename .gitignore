@@ -358,6 +358,3 @@ Temporary Items
 
 # Secret Key JSON File
 secrets.json
-
-# Redis Dump File
-dump.rdb

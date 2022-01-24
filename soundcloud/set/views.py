@@ -1,10 +1,10 @@
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view, OpenApiTypes
-from rest_framework import viewsets
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from set.models import Set
+from set.models import Set, SetTrack
 from set.serializers import *
 from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
@@ -54,12 +54,6 @@ from user.models import User
             '404': OpenApiResponse(description='Not Found')
         }
     ),
-    list=extend_schema(
-        summary="List Sets",
-        responses={
-            '200': OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
-        }
-    ), 
     destroy=extend_schema(
         summary="Delete Set",
         responses={
@@ -105,17 +99,16 @@ class SetViewSet(viewsets.ModelViewSet):
             return SetMediaUploadSerializer
         if self.action in ['likers', 'reposters']:
             return SimpleUserSerializer
-        if self.action in ['list']:
-            return SimpleSetSerializer
-        return SetSerializer
+        else:
+            return SetSerializer
 
     def get_queryset(self):
         if self.action in ['likers', 'reposters']:
             self.set = getattr(self, 'set', None) or get_object_or_404(Set, id=self.kwargs[self.lookup_url_kwarg])
             if self.action == 'likers':
-                return User.objects.prefetch_related('followers', 'owned_tracks').filter(likes__set=self.set)
+                return User.objects.prefetch_related('followers', 'owned_sets').filter(likes__set=self.set)
             if self.action == 'reposters':
-                return User.objects.prefetch_related('followers', 'owned_tracks').filter(reposts__set=self.set)
+                return User.objects.prefetch_related('followers', 'owned_sets').filter(reposts__set=self.set)
         else:
             return Set.objects.all().prefetch_related('tracks__artist')
     

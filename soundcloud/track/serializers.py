@@ -1,21 +1,18 @@
-from django.core.cache import cache
-from django.db import transaction
-from django.db.models import F
-from django.shortcuts import get_object_or_404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
-from rest_framework import serializers, status
+from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from rest_framework.serializers import ValidationError
-from set.models import SetHit
 from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from tag.models import Tag
 from tag.serializers import TagSerializer
-from track.models import Track, TrackHit
+from track.models import Track
 from user.models import Follow
 from user.serializers import UserSerializer, SimpleUserSerializer
+from reaction.serializers import LikeService, RepostService
 from reaction.models import Like, Repost
-from soundcloud.utils import get_presigned_url, MediaUploadMixin
+from soundcloud.utils import assign_object_perms, get_presigned_url, MediaUploadMixin
+from django.contrib.contenttypes.models import ContentType
 
 
 class TrackSerializer(serializers.ModelSerializer):
@@ -25,12 +22,11 @@ class TrackSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
-    genre_input = serializers.CharField(max_length=20, required=False, write_only=True)
-    tags_input = serializers.ListField(child=serializers.CharField(max_length=20), required=False, write_only=True)
-    play_count = serializers.IntegerField(read_only=True)
-    like_count = serializers.IntegerField(read_only=True)
-    repost_count = serializers.IntegerField(read_only=True)
-    comment_count = serializers.IntegerField(read_only=True)
+    genre_input = serializers.CharField(max_length=20, required=False)
+    tags_input = serializers.ListField(child=serializers.CharField(max_length=20), required=False)
+    like_count = serializers.SerializerMethodField()
+    repost_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField(read_only=True)
     is_reposted = serializers.SerializerMethodField(read_only=True)
     is_followed = serializers.SerializerMethodField(read_only=True)
@@ -44,12 +40,12 @@ class TrackSerializer(serializers.ModelSerializer):
             'permalink',
             'audio',
             'image',
-            'play_count',
             'like_count',
             'repost_count',
             'comment_count',
             'description',
             'created_at',
+            'count',
             'genre',
             'tags',
             'genre_input',
@@ -67,6 +63,9 @@ class TrackSerializer(serializers.ModelSerializer):
         }
         read_only_fields = (
             'created_at',
+            'count',
+            'genre_input',
+            'tags_input',
         )
 
         # Since 'artist' is read-only field, ModelSerializer wouldn't generate UniqueTogetherValidator automatically.
@@ -83,6 +82,18 @@ class TrackSerializer(serializers.ModelSerializer):
 
     def get_image(self, track):
         return get_presigned_url(track.image, 'get_object')
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_like_count(self, track):
+        return track.likes.count()
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_repost_count(self, track):
+        return track.reposts.count()
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_comment_count(self, track):
+        return track.comments.count()
     
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_liked(self, track):
@@ -168,13 +179,12 @@ class TrackMediaUploadSerializer(MediaUploadMixin, TrackSerializer):
 
 class SimpleTrackSerializer(serializers.ModelSerializer):
     
-    artist = SimpleUserSerializer(read_only=True)
+    artist = SimpleUserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
     audio = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
-    play_count = serializers.IntegerField(read_only=True)
-    like_count = serializers.IntegerField(read_only=True)
-    repost_count = serializers.IntegerField(read_only=True)
-    comment_count = serializers.IntegerField(read_only=True)
+    like_count = serializers.SerializerMethodField()
+    repost_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField(read_only=True)
     is_followed = serializers.SerializerMethodField(read_only=True)
 
@@ -187,11 +197,11 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
             'permalink',
             'audio',
             'image',
-            'play_count',
             'like_count',
             'repost_count',
             'comment_count',
             'genre',
+            'count',
             'is_private',
             'is_liked',
             'is_followed',
@@ -202,7 +212,16 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
 
     def get_image(self, track):
         return get_presigned_url(track.image, 'get_object')
-  
+
+    def get_like_count(self, track):
+        return track.likes.count()
+
+    def get_repost_count(self, track):
+        return track.reposts.count()
+
+    def get_comment_count(self, track):
+        return track.comments.count()
+    
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_liked(self, track):
         if self.context['request'].user.is_authenticated:
@@ -226,16 +245,15 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
                 return False
         else:
             return False
-          
+
 
 class UserTrackSerializer(serializers.ModelSerializer):
 
     audio = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
-    play_count = serializers.IntegerField(read_only=True)
-    like_count = serializers.IntegerField(read_only=True)
-    repost_count = serializers.IntegerField(read_only=True)
-    comment_count = serializers.IntegerField(read_only=True)
+    like_count = serializers.SerializerMethodField()
+    repost_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Track
@@ -245,11 +263,11 @@ class UserTrackSerializer(serializers.ModelSerializer):
             'permalink',
             'audio',
             'image',
-            'play_count',
             'like_count',
             'repost_count',
             'comment_count',
             'genre',
+            'count',
             'is_private',
         )
 
@@ -259,6 +277,14 @@ class UserTrackSerializer(serializers.ModelSerializer):
     def get_image(self, track):
         return get_presigned_url(track.image, 'get_object')
 
+    def get_like_count(self, track):
+        return track.likes.count()
+
+    def get_repost_count(self, track):
+        return track.reposts.count()
+
+    def get_comment_count(self, track):
+        return track.comments.count()
 
 class CommentTrackSerializer(serializers.ModelSerializer):
 
@@ -270,8 +296,7 @@ class CommentTrackSerializer(serializers.ModelSerializer):
             'permalink',
             'is_private'
         )
-
-
+        
 class TrackInSetSerializer(serializers.ModelSerializer):
     audio = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
@@ -279,7 +304,6 @@ class TrackInSetSerializer(serializers.ModelSerializer):
     artist_display_name = serializers.CharField(source='artist.display_name')
     is_liked = serializers.SerializerMethodField(read_only=True)
     is_reposted = serializers.SerializerMethodField(read_only=True)
-    play_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Track
@@ -292,9 +316,9 @@ class TrackInSetSerializer(serializers.ModelSerializer):
             'permalink',
             'audio',
             'image',
+            'count',
             'is_liked',
             'is_reposted',
-            'play_count',
         )
 
     def get_audio(self, track):
@@ -323,40 +347,4 @@ class TrackInSetSerializer(serializers.ModelSerializer):
             except Repost.DoesNotExist:
                 return False
         else: 
-            return False 
-
-
-class TrackHitService(serializers.Serializer):
-
-    def get_client_ip(self):
-        '''get client's ip address from X_FORWARDED_FOR header'''
-        xff = self.context.get('request').META.get('HTTP_X_FORWARDED_FOR')
-        ip = xff.split(',')[0] if xff else self.context.get('request').META.get('REMOTE_ADDR')
-
-        return ip, bool(xff)
-
-    @transaction.atomic
-    def execute(self):
-        request_user = self.context.get('request').user
-        user = request_user if request_user.is_authenticated else None
-        track = self.instance
-        track_hit, _ = TrackHit.objects.get_or_create(user=user, track=track)
-
-        # cache key consists of (1) client's ip address (2) user id (3) track id
-        client_ip, xff = self.get_client_ip()
-        key = f"{client_ip}_user_{getattr(user, 'id', None)}_track_{track.id}"
-
-        # update the track hit count only when the user didn't hit the track for last {timeout} seconds
-        if not cache.get(key):
-            track_hit.count = F('count') + 1
-            cache.set(key, True, timeout=300)
-        track_hit.save()
-
-        # update the set hit if specified
-        set_id = self.context.get('request').query_params.get('set_id')
-        if set_id is not None:
-            set = get_object_or_404(track.sets, pk=set_id)
-            set_hit, _ = SetHit.objects.get_or_create(user=user, set=set)
-            set_hit.save()
-
-        return status.HTTP_200_OK, { 'client_ip': client_ip, 'xff': xff }
+            return False
