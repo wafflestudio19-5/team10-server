@@ -155,28 +155,56 @@ class SetTrackService(serializers.Serializer):
     
     def create(self):
         set = self.context['set']
-        track = self.context['track']
-        if track is None:
-            return status.HTTP_400_BAD_REQUEST, {"error": "track_id 는 필수입니다."}
-        if set.tracks.filter(id=track.id).exists():
-            return status.HTTP_400_BAD_REQUEST, {"error": "이미 셋에 추가되어 있습니다."}
+        track_ids = self.context['track_ids']
 
-        set.tracks.add(track)
+        if track_ids is None:
+            return status.HTTP_400_BAD_REQUEST, {"error": "track_ids 는 필수입니다."}
+
+        tracks_num = len(track_ids)
+        tracks_id = []
+        for d in track_ids:
+            tracks_id.append(d["id"])
+        print(tracks_id)
+        tracks = Track.objects.filter(id__in=tracks_id)
+        print(tracks_num)
+        print(tracks.count())
+
+        if tracks.count() != tracks_num:
+            return status.HTTP_400_BAD_REQUEST, {"error": "track_ids 가 유효하지 않습니다."}
+
+        if set.tracks.filter(id__in=tracks_id).exists():
+            return status.HTTP_400_BAD_REQUEST, {"error": "이미 셋에 추가된 트랙이 있습니다."}
+
+        set.tracks.add(*tracks)
         set.save()
 
-        return status.HTTP_200_OK, {"added to playlist."}
+        return status.HTTP_200_OK, {"all added to playlist."}
     
     def delete(self):
         set = self.context['set']
-        track = self.context['track']
-        if track is None:
-            return status.HTTP_400_BAD_REQUEST, {"error": "track_id 는 필수입니다."}
+        track_ids = self.context['track_ids']
 
-        if set.tracks.filter(id=track.id).exists():
-            set.tracks.remove(track)
-            return status.HTTP_204_NO_CONTENT, None
+        if track_ids is None:
+            return status.HTTP_400_BAD_REQUEST, {"error": "track_ids 는 필수입니다."}
+
+        tracks_num = len(track_ids)
+        tracks_id = []
+        for d in track_ids:
+            tracks_id.append(d["id"])
+        tracks = Track.objects.filter(id__in=tracks_id)
+
+        if tracks.count() != tracks_num:
+            return status.HTTP_400_BAD_REQUEST, {"error": "track_ids 가 유효하지 않습니다."}
+
+        if set.tracks.filter(id__in=tracks_id).count() != tracks_num:
+            return status.HTTP_400_BAD_REQUEST, {"error": "셋에 없는 트랙이 포함되어 있습니다."}
+
+        set.tracks.remove(*tracks)
+        set.save()
+        
+        return status.HTTP_204_NO_CONTENT, None
     
-        return status.HTTP_400_BAD_REQUEST, {"error": "셋에 없는 트랙입니다."}
+        
 
 
 
