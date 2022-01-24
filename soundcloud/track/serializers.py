@@ -175,6 +175,8 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
     like_count = serializers.IntegerField(read_only=True)
     repost_count = serializers.IntegerField(read_only=True)
     comment_count = serializers.IntegerField(read_only=True)
+    genre = TagSerializer(read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
     is_liked = serializers.SerializerMethodField(read_only=True)
     is_followed = serializers.SerializerMethodField(read_only=True)
 
@@ -192,6 +194,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
             'repost_count',
             'comment_count',
             'genre',
+            'tags',
             'is_private',
             'is_liked',
             'is_followed',
