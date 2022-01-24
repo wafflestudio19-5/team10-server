@@ -149,12 +149,10 @@ class SetTrackViewSet(viewsets.GenericViewSet):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['set'] = self.get_object()
-        track_id=self.request.data.get('track_id')
-        if track_id is None:
-            context['track'] = None
-            return context
-        context['track'] = get_object_or_404(Track, id=track_id)
+        track_ids = self.request.data.get('track_ids')
+        context['track_ids'] = track_ids
         return context
+
     
     # 7. POST /sets/{set_id}/tracks (add track to playlist)
     # 8. DELETE /sets/{set_id}/tracks (remove track from playlist)
