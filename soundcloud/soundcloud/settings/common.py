@@ -178,7 +178,7 @@ REST_FRAMEWORK = {
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend', # this is default
     'guardian.backends.ObjectPermissionBackend',
-    # 'user.googleapi.GoogleBackend',   
+    # 'user.socialaccount.GoogleBackend',   
 )
 
 # JWT Authorization
@@ -223,6 +223,17 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': False,
 }
 
+# redis cache
+# ex) sudo yum install redis / sudo systemctl start redis
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
 
 # for Sociallogin
-GOOGLE_PASSWORD = "googlepassword"
+SOCIAL_PASSWORD = "socialpassword"

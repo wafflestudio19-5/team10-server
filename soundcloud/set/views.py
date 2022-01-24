@@ -1,10 +1,10 @@
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
-from rest_framework import status, viewsets
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view, OpenApiTypes
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from set.models import Set, SetTrack
+from set.models import Set
 from set.serializers import *
 from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
@@ -12,6 +12,12 @@ from user.models import User
 
 
 @extend_schema_view( 
+    list=extend_schema(
+        summary="List of Sets",
+        responses={
+            200: OpenApiResponse(response=SimpleSetSerializer, description='OK'),
+        }
+    ),
     create=extend_schema(
         summary="Create Set",
         responses={
@@ -92,18 +98,19 @@ class SetViewSet(viewsets.ModelViewSet):
             return SetMediaUploadSerializer
         if self.action in ['likers', 'reposters']:
             return SimpleUserSerializer
-        else:
-            return SetSerializer
+        if self.action in ['list']:
+            return SimpleSetSerializer
+        return SetSerializer
 
     def get_queryset(self):
         if self.action in ['likers', 'reposters']:
             self.set = getattr(self, 'set', None) or get_object_or_404(Set, id=self.kwargs[self.lookup_url_kwarg])
             if self.action == 'likers':
-                return User.objects.prefetch_related('followers', 'owned_sets').filter(likes__set=self.set)
+                return User.objects.prefetch_related('followers', 'owned_tracks').filter(likes__set=self.set)
             if self.action == 'reposters':
-                return User.objects.prefetch_related('followers', 'owned_sets').filter(reposts__set=self.set)
+                return User.objects.prefetch_related('followers', 'owned_tracks').filter(reposts__set=self.set)
         else:
-            return Set.objects.all().prefetch_related('tracks__artist')
+            return Set.objects.all()
     
     # 1. POST /sets/ - 빈 playlist 생성 - mixin 이용
     # 2. PUT /sets/{set_id} - mixin 이용
@@ -142,12 +149,10 @@ class SetTrackViewSet(viewsets.GenericViewSet):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['set'] = self.get_object()
-        track_id=self.request.data.get('track_id')
-        if track_id is None:
-            context['track'] = None
-            return context
-        context['track'] = get_object_or_404(Track, id=track_id)
+        track_ids = self.request.data.get('track_ids')
+        context['track_ids'] = track_ids
         return context
+
     
     # 7. POST /sets/{set_id}/tracks (add track to playlist)
     # 8. DELETE /sets/{set_id}/tracks (remove track from playlist)
