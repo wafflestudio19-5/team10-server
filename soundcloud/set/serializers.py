@@ -2,6 +2,7 @@ from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 from rest_framework import serializers, status
 from rest_framework.serializers import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
+from track.models import Track
 from set.models import Set
 from user.models import Follow
 from soundcloud.utils import get_presigned_url, MediaUploadMixin
@@ -224,8 +225,7 @@ class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer):
 
 
 class SetTrackService(serializers.Serializer):
-    track_id = serializers.IntegerField(write_only=True)
-    
+
     def create(self):
         set = self.context['set']
         track_ids = self.context['track_ids']
