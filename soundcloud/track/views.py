@@ -97,13 +97,10 @@ from user.serializers import SimpleUserSerializer
 )
 class TrackViewSet(viewsets.ModelViewSet):
 
-    serializer_class = TrackSerializer
-    queryset = Track.objects.all()
     permission_classes = (CustomObjectPermissions, )
     filter_backends = (OrderingFilter, )
     ordering_fields = ['created_at']
     ordering = ['-created_at']
-    lookup_field = 'id'
     lookup_url_kwarg = 'track_id'
 
     def get_serializer_class(self):
@@ -115,26 +112,26 @@ class TrackViewSet(viewsets.ModelViewSet):
             return SimpleUserSerializer
         if self.action in  ['hit']:
             return TrackHitService
-        else:
-            return super().get_serializer_class()
+
+        return TrackSerializer
 
     def get_queryset(self):
+
+        # hide private tracks in the queryset
+        user = self.request.user if self.request.user.is_authenticated else None
+        queryset = Track.objects \
+            .exclude(~Q(artist=user) & Q(is_private=True)) \
+            .prefetch_related('artist__followers', 'artist__owned_tracks')
+
         if self.action in ['likers', 'reposters']:
-            self.track = getattr(self, 'track', None) or get_object_or_404(Track, id=self.kwargs[self.lookup_url_kwarg])
+            self.track = getattr(self, 'track', None) or get_object_or_404(queryset, pk=self.kwargs[self.lookup_url_kwarg])
 
             if self.action == 'likers':
                 return User.objects.filter(likes__track=self.track)
             if self.action == 'reposters':
                 return User.objects.filter(reposts__track=self.track)
-        if self.action in ['create', 'retrieve', 'update', 'partial_update']:
-            return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks')
-        if self.action in ['list']:
-            if self.request.user.is_authenticated:
-                return Track.objects.exclude(~Q(artist=self.request.user), is_private=True).prefetch_related('artist__followers', 'artist__owned_tracks')
-            else:
-                return Track.objects.exclude(is_private=True).prefetch_related('artist__followers', 'artist__owned_tracks')
-        else:
-            return super().get_queryset()
+
+        return queryset
 
     @action(detail=True)
     def likers(self, request, *args, **kwargs):
