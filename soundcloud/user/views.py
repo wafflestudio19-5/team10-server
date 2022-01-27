@@ -86,7 +86,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         set_queryset = Set.objects \
             .exclude(~Q(creator=request_user) & Q(is_private=True)) \
 
-        # hide commnets of the private tracks in the queryset
+        # hide comments of the private tracks in the queryset
         comment_queryset = Comment.objects \
             .exclude(~Q(track__artist=request_user) & Q(track__is_private=True))
 
@@ -104,7 +104,10 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             'comments': comment_queryset.filter(writer=self.user),
         }
 
-        return querysets.get(self.action) or User.objects.all()
+        if self.action in querysets:
+            return querysets.get(self.action)
+        else:
+            return User.objects.all()
 
     @action(detail=True)
     def followers(self, request, *args, **kwargs):
