@@ -1,6 +1,4 @@
 from django.contrib.auth import get_user_model, logout
-from django.db.models import F
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status, permissions, viewsets
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import GenericAPIView, CreateAPIView, RetrieveUpdateAPIView, get_object_or_404
@@ -12,22 +10,12 @@ from comment.serializers import UserCommentSerializer
 from set.models import Set
 from set.serializers import SimpleSetSerializer
 from track.serializers import SimpleTrackSerializer, UserTrackSerializer
+from user.schemas import *
 from user.serializers import *
 
 User = get_user_model()
 
-
-@extend_schema_view(
-    post=extend_schema(
-        summary="Signup",
-        tags=['auth', ],
-        responses={
-            201: OpenApiResponse(response=UserCreateSerializer, description='Created'),
-            400: OpenApiResponse(description='Bad Request'),
-            409: OpenApiResponse(description='Conflict'),
-        }
-    )
-)
+@auth_signup_schema
 class UserSignUpView(CreateAPIView):
 
     serializer_class = UserCreateSerializer
@@ -35,20 +23,13 @@ class UserSignUpView(CreateAPIView):
     permission_classes = (permissions.AllowAny, )
 
 
+@auth_login_schema
 class UserLoginView(GenericAPIView):
 
     serializer_class = UserLoginSerializer
     queryset = User.objects.all()
     permission_classes = (permissions.AllowAny, )
 
-    @extend_schema(
-        summary="Login",
-        tags=['auth', ],
-        responses={
-            200: OpenApiResponse(response=UserLoginSerializer, description='OK'),
-            400: OpenApiResponse(description='Bad Request'),
-        }
-    )
     def put(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -57,173 +38,37 @@ class UserLoginView(GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@auth_logout_schema
 class UserLogoutView(APIView):
 
-    @extend_schema(
-        summary="Logout",
-        tags=['auth', ],
-        description="Do nothing, actually.",
-        responses={
-            200: OpenApiResponse(description='OK'),
-            401: OpenApiResponse(description='Unauthorized'),
-        }
-    )
     def post(self, request):
         logout(request)
         
         return Response({"You\'ve been logged out"}, status=status.HTTP_200_OK)
 
-      
-@extend_schema_view(
-    retrieve=extend_schema(
-        summary="Retrieve User",
-        responses={
-            200: OpenApiResponse(response=UserSerializer, description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    list=extend_schema(
-        summary="List Users",
-        responses={
-            200: OpenApiResponse(response=SimpleUserSerializer, description='OK'),
-        }
-    ),
-    followers=extend_schema(
-        summary="Get User's Followers",
-        parameters=[
-            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
-            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
-        ],
-        responses={
-            200: OpenApiResponse(response=SimpleUserSerializer(many=True), description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    followings=extend_schema(
-        summary="Get User's Followings",
-        parameters=[
-            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
-            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
-        ],
-        responses={
-            200: OpenApiResponse(response=SimpleUserSerializer(many=True), description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    tracks=extend_schema(
-        summary="Get User's Tracks",
-        parameters=[
-            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
-            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
-        ],
-        responses={
-            200: OpenApiResponse(response=UserTrackSerializer(many=True), description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    sets=extend_schema(
-        summary="Get User's sets",
-        parameters=[
-            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
-            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
-        ],
-        responses={
-            200: OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    history_tracks=extend_schema(
-        summary="Get User's Track History",
-        responses={
-            200: OpenApiResponse(response=SimpleTrackSerializer(many=True), description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    history_sets=extend_schema(
-        summary="Get User's Set History",
-        responses={
-            200: OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    likes_tracks=extend_schema(
-        summary="Get User's Liked Tracks",
-        parameters=[
-            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
-            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
-        ],
-        responses={
-            200: OpenApiResponse(response=SimpleTrackSerializer(many=True), description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    reposts_tracks=extend_schema(
-        summary="Get User's Reposted Tracks",
-        parameters=[
-            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
-            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
-        ],
-        responses={
-            200: OpenApiResponse(response=SimpleTrackSerializer(many=True), description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    likes_sets=extend_schema(
-        summary="Get User's Liked Sets",
-        parameters=[
-            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
-            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
-        ],
-        responses={
-            200: OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    reposts_sets=extend_schema(
-        summary="Get User's Reposted Sets",
-        parameters=[
-            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
-            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
-        ],
-        responses={
-            200: OpenApiResponse(response=SimpleSetSerializer(many=True), description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    comments=extend_schema(
-        summary="Get User's Comments",
-        parameters=[
-            OpenApiParameter("page", OpenApiTypes.INT, OpenApiParameter.QUERY, description='A page number within the paginated result set.'),
-            OpenApiParameter("page_size", OpenApiTypes.INT, OpenApiParameter.QUERY, description='Number of results to return per page.'),
-        ],
-        responses={
-            200: OpenApiResponse(response=UserCommentSerializer(many=True), description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-)
+
+@users_viewset_schema
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
-    serializer_class = UserSerializer
     queryset = User.objects.all()
-    lookup_field = 'id'
     lookup_url_kwarg = 'user_id'
     filter_backends = (OrderingFilter, )
     ordering_fields = ['created_at']
     ordering = ['-created_at']
 
     def get_serializer_class(self):
-        if self.action in [ 'list', 'followers', 'followings' ]:
+        if self.action in ['list', 'followers', 'followings']:
             return SimpleUserSerializer
-        if self.action in [ 'tracks' ]:
+        if self.action in ['tracks']:
             return UserTrackSerializer
-        if self.action in [ 'likes_tracks', 'reposts_tracks', 'history_tracks' ]:
+        if self.action in ['likes_tracks', 'reposts_tracks', 'history_tracks']:
             return SimpleTrackSerializer
-        if self.action in [ 'likes_sets', 'reposts_sets', 'history_sets', 'sets' ]:
+        if self.action in ['likes_sets', 'reposts_sets', 'history_sets', 'sets']:
             return SimpleSetSerializer
-        if self.action in [ 'comments' ]:
+        if self.action in ['comments']:
             return UserCommentSerializer
-        return super().get_serializer_class()
+
+        return UserSerializer
 
     def get_queryset(self):
         if self.action in ['followers', 'followings', 'tracks', 'sets', 'likes_tracks', 'reposts_tracks', 'likes_sets', 'reposts_sets', 'history_tracks', 'history_sets', 'comments']:
@@ -303,31 +148,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         return super().list(request, *args, **kwargs)
 
 
-@extend_schema_view(
-    get=extend_schema(
-        summary="Retrieve Me",
-        responses={
-            200: OpenApiResponse(response=UserSerializer, description='OK'),
-            401: OpenApiResponse(description='Unauthorized'),
-        }
-    ),
-    put=extend_schema(
-        summary="Update Me",
-        responses={
-            200: OpenApiResponse(response=UserMediaUploadSerializer, description='OK'),
-            400: OpenApiResponse(description='Bad Request'),
-            401: OpenApiResponse(description='Unauthorized'),
-        }
-    ),
-    patch=extend_schema(
-        summary="Partial Update Me",
-        responses={
-            200: OpenApiResponse(response=UserMediaUploadSerializer, description='OK'),
-            400: OpenApiResponse(description='Bad Request'),
-            401: OpenApiResponse(description='Unauthorized'),
-        }
-    ),
-)
+@users_self_schema
 class UserSelfView(RetrieveUpdateAPIView):
 
     serializer_class = UserSerializer
@@ -345,6 +166,7 @@ class UserSelfView(RetrieveUpdateAPIView):
         return get_object_or_404(self.get_queryset(), id=self.request.user.id)
 
 
+@users_follow_schema
 class UserFollowView(GenericAPIView):
 
     serializer_class = UserFollowService
@@ -358,30 +180,12 @@ class UserFollowView(GenericAPIView):
 
         return context
 
-    @extend_schema(
-        summary="Follow User",
-        responses={
-            201: OpenApiResponse(description='Created'),
-            400: OpenApiResponse(description='Bad Request'),
-            401: OpenApiResponse(description='Unauthorized'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    )
     def post(self, request, *args, **kwargs):
         service = self.get_serializer()
         status, data = service.create()
 
         return Response(status=status, data=data)
 
-    @extend_schema(
-        summary="Unfollow User",
-        responses={
-            204: OpenApiResponse(description='No Content'),
-            400: OpenApiResponse(description='Bad Request'),
-            401: OpenApiResponse(description='Unauthorized'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    )
     def delete(self, request, *args, **kwargs):
         service = self.get_serializer()
         status, data = service.delete()

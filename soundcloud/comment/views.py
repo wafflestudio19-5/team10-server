@@ -1,40 +1,14 @@
-from django.db.models import F
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import viewsets, mixins
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from comment.models import Comment
+from comment.schemas import *
 from comment.serializers import TrackCommentSerializer
-from soundcloud.utils import CommentPagination, CustomObjectPermissions
+from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
 
-@extend_schema_view(
-    create=extend_schema(
-        summary="Create Comment",
-        responses={
-            201: OpenApiResponse(response=TrackCommentSerializer, description='Created'),
-            400: OpenApiResponse(description='Bad Request'),
-            401: OpenApiResponse(description='Unauthorized'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    list=extend_schema(
-        summary="Get Comments on Track",
-        responses={
-            200: OpenApiResponse(response=TrackCommentSerializer, description='OK'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-    destroy=extend_schema(
-        summary="Delete Comment",
-        responses={
-            204: OpenApiResponse(description='No Content'),
-            401: OpenApiResponse(description='Unauthorized'),
-            403: OpenApiResponse(description='Permission Denied'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    ),
-)
+
+@comments_viewset_schema
 class CommentViewSet(mixins.CreateModelMixin,
                      mixins.ListModelMixin,
                      mixins.DestroyModelMixin,
@@ -44,7 +18,6 @@ class CommentViewSet(mixins.CreateModelMixin,
     permission_classes = (CustomObjectPermissions, )
     lookup_field = 'id'
     lookup_url_kwarg = 'comment_id'
-    # pagination_class = CommentPagination
     filter_backends = (OrderingFilter, )
     ordering_fields = []
     ordering = ['-group__created_at', 'created_at']
