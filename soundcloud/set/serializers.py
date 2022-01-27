@@ -1,3 +1,4 @@
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 from rest_framework import serializers, status
 from rest_framework.serializers import ValidationError
@@ -75,9 +76,11 @@ class SetSerializer(serializers.ModelSerializer):
         return get_presigned_url(set.image, 'get_object')
 
     def get_tracks(self, set):
-        tracks = set.tracks.order_by('set_tracks__created_at')
-        if not tracks:
-            return None
+
+        # hide private tracks in the queryset
+        user = self.context['request'].user if self.context['request'].user.is_authenticated else None
+        tracks = set.tracks.exclude(~Q(artist=user) & Q(is_private=True)).order_by('set_tracks__created_at')
+
         return TrackInSetSerializer(tracks, many=True, context=self.context).data
 
     @extend_schema_field(OpenApiTypes.BOOL)
@@ -141,6 +144,23 @@ class SetSerializer(serializers.ModelSerializer):
         return data
 
 
+class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): 
+    image_extension = serializers.CharField(write_only=True, required=False)
+    image_presigned_url = serializers.SerializerMethodField()
+
+    class Meta(SetSerializer.Meta):
+        fields = SetSerializer.Meta.fields + (
+            'image_extension',
+            'image_presigned_url',
+        )
+
+    def validate(self, data):
+        data = super().validate(data)
+        data = self.extensions_to_urls(data)
+
+        return data
+
+
 class SimpleSetSerializer(serializers.ModelSerializer):
     '''returns only first 5 tracks in the set'''
     creator = SimpleUserSerializer()
@@ -152,7 +172,6 @@ class SimpleSetSerializer(serializers.ModelSerializer):
     repost_count = serializers.IntegerField()
     is_liked = serializers.SerializerMethodField(read_only=True)
     is_reposted = serializers.SerializerMethodField(read_only=True)
-    
     
     
     class Meta:
@@ -180,7 +199,10 @@ class SimpleSetSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(TrackInSetSerializer(many=True))
     def get_tracks(self, set):
-        tracks = set.tracks.all().order_by('set_tracks__created_at')[:5]
+
+        # hide private tracks in the queryset
+        user = self.context['request'].user if self.context['request'].user.is_authenticated else None
+        tracks = set.tracks.exclude(~Q(artist=user) & Q(is_private=True)).order_by('set_tracks__created_at')[:5]
 
         return TrackInSetSerializer(tracks, many=True, context=self.context).data
     
@@ -205,23 +227,6 @@ class SimpleSetSerializer(serializers.ModelSerializer):
                 return False
         else: 
             return False
-
-
-class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): 
-    image_extension = serializers.CharField(write_only=True, required=False)
-    image_presigned_url = serializers.SerializerMethodField()
-
-    class Meta(SetSerializer.Meta):
-        fields = SetSerializer.Meta.fields + (
-            'image_extension',
-            'image_presigned_url',
-        )
-
-    def validate(self, data):
-        data = super().validate(data)
-        data = self.extensions_to_urls(data)
-
-        return data
 
 
 class SetTrackService(serializers.Serializer):
@@ -273,10 +278,3 @@ class SetTrackService(serializers.Serializer):
         set.save()
         
         return status.HTTP_204_NO_CONTENT, None
-    
-        
-
-
-
-
-

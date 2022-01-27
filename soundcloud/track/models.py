@@ -18,11 +18,11 @@ class CustomTrackManager(models.Manager):
 
     def get_queryset(self):
 
-        return super().get_queryset().select_related('artist', 'genre').annotate(
-            play_count=Coalesce(Sum('trackhit__count', distinct=True), 0),          #  https://stackoverflow.com/a/35413920/14971231
-            like_count=Count('likes', distinct=True),
-            repost_count=Count('reposts', distinct=True),
-            comment_count=Count('comments', distinct=True),
+        return super().get_queryset().select_related('artist', 'genre').prefetch_related('tags').annotate(
+                play_count=Coalesce(Sum('trackhit__count', distinct=True), 0),                              #  https://stackoverflow.com/a/35413920/14971231
+                like_count=Count('likes', distinct=True),
+                repost_count=Count('reposts', distinct=True),
+                comment_count=Count('comments', distinct=True),
         )
 
 

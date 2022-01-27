@@ -1,33 +1,16 @@
 from django.contrib.auth import get_user_model
-from django.shortcuts import redirect
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from drf_spectacular.utils import OpenApiResponse, OpenApiParameter, extend_schema
+from utility.schemas import *
 from utility.serializers import ResolveService
 
 User = get_user_model()
 
 
+@resolve_schema
 class ResolveView(APIView):
 
-    @extend_schema(
-        summary="Resolves soundwaffle.com URLs to Resource URLs to use with the API.",
-        parameters=[
-            OpenApiParameter(
-                name="url",
-                type=str,
-                location=OpenApiParameter.QUERY,
-                description="soundwaffle.com URL",
-                required=True,
-            )
-        ],
-        responses={
-            302: OpenApiResponse(description='Found'),
-            400: OpenApiResponse(description='Bad Request'),
-            404: OpenApiResponse(description='Not Found'),
-        }
-    )
     def get(self, request, *args, **kwargs):
         """
         User  : https%3A%2F%2Fsoundwaffle.com%2F{user_permalink} \n
