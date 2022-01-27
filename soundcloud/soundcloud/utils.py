@@ -38,6 +38,8 @@ def get_presigned_url(url, method, full_url=True):
     if full_url:
         key = url.replace(settings.S3_BASE_URL, '')
 
+    expiration_time = 43200 if method in ['get_object'] else 500
+
     presigned_url = boto3.client(
         's3',
         region_name=settings.S3_REGION_NAME,
@@ -49,7 +51,7 @@ def get_presigned_url(url, method, full_url=True):
             'Bucket': settings.S3_BUCKET_NAME,
             'Key': key,
         },
-        ExpiresIn=300
+        ExpiresIn=expiration_time
     )
 
     return presigned_url
