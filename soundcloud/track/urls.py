@@ -7,5 +7,5 @@ router.register('tracks', TrackViewSet, basename='tracks')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('search/track', TrackSearchAPIView.as_view(), name='search-track'),
+    path('search/tracks', TrackSearchAPIView.as_view(), name='search-tracks'),
 ]
