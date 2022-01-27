@@ -311,6 +311,7 @@ class TrackInSetSerializer(serializers.ModelSerializer):
             'permalink',
             'audio',
             'image',
+            'is_private',
             'is_liked',
             'is_reposted',
             'play_count',
