@@ -365,6 +365,7 @@ class TrackHitService(serializers.Serializer):
 
 
 class TrackSearchSerializer(HaystackSerializerMixin, TrackSerializer):
+
     class Meta(TrackSerializer.Meta):
         index_classes = [TrackIndex]
         search_fields = ('text', )

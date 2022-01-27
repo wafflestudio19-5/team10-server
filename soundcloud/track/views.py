@@ -13,6 +13,7 @@ from track.models import Track
 from track.serializers import SimpleTrackSerializer, TrackHitService, TrackSerializer, TrackMediaUploadSerializer, TrackSearchSerializer
 from user.models import User
 from user.serializers import SimpleUserSerializer
+from datetime import datetime
 
 @extend_schema_view(
     create=extend_schema(
@@ -159,6 +160,35 @@ class TrackSearchAPIView(ListModelMixin, HaystackGenericAPIView):
     index_models = [Track]
     serializer_class = TrackSearchSerializer
     pagination_class = None
+
+    def get_queryset(self, index_models=[]):
+        queryset = self.object_class()._clone()
+        queryset = queryset.models(*self.index_models)
+
+        ids = self.request.data.get('ids', None)
+        genres = self.request.data.get('genres', None)
+        created_at = self.request.data.get('created_at', None)
+
+        q = Q()
+
+        if ids:
+            q &= Q(id__in=ids)
+        if genres:
+            q &= Q(genre__in=genres)
+        if created_at:
+            start = created_at.get('from', None)
+            end = created_at.get('to', None)
+            if start:
+                q &= Q(pub_date__gte=datetime.strptime(start, '%Y-%m-%dT%H:%M:%S.%fZ'))
+            if end:
+                q &= Q(pub_date__lte=datetime.strptime(end, '%Y-%m-%dT%H:%M:%S.%fZ'))
+
+        if self.request.user.is_authenticated:
+            queryset = queryset.exclude(~Q(artist=self.request.user), is_private=True)
+        else:
+            queryset = queryset.exclude(is_private=True)
+
+        return queryset.filter(q)
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
