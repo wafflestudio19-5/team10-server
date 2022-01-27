@@ -1,9 +1,11 @@
 from django.contrib.auth import get_user_model, logout
-from django.db.models import F
+from django.db.models import Q
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
+from drf_haystack.viewsets import HaystackGenericAPIView
 from rest_framework import status, permissions, viewsets
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import GenericAPIView, CreateAPIView, RetrieveUpdateAPIView, get_object_or_404
+from rest_framework.mixins import ListModelMixin
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
@@ -12,6 +14,7 @@ from comment.serializers import UserCommentSerializer
 from set.serializers import SimpleSetSerializer
 from track.serializers import SimpleTrackSerializer, UserTrackSerializer
 from user.serializers import *
+from datetime import datetime
 
 User = get_user_model()
 
@@ -333,3 +336,33 @@ class UserFollowView(GenericAPIView):
         status, data = service.delete()
 
         return Response(status=status, data=data)
+
+
+class UserSearchAPIView(ListModelMixin, HaystackGenericAPIView):
+    index_models = [User]
+    serializer_class = UserSearchSerializer
+    pagination_class = None
+
+    def get_queryset(self, index_models=[]):
+        queryset = self.object_class()._clone()
+        queryset = queryset.models(*self.index_models)
+
+        ids = self.request.data.get('ids', None)
+
+        q = Q()
+
+        if ids:
+            q &= Q(id__in=ids)
+
+        return queryset.filter(q)
+
+    @extend_schema(
+        summary="Search",
+        responses={
+            200: OpenApiResponse(response=UserSearchSerializer, description='OK'),
+            400: OpenApiResponse(description='Bad Request'),
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
