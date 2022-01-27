@@ -178,6 +178,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     is_liked = serializers.SerializerMethodField(read_only=True)
+    is_reposted = serializers.SerializerMethodField(read_only=True)
     is_followed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -197,6 +198,7 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
             'tags',
             'is_private',
             'is_liked',
+            'is_reposted',
             'is_followed',
         )
 
@@ -215,7 +217,18 @@ class SimpleTrackSerializer(serializers.ModelSerializer):
             except Like.DoesNotExist:
                 return False
         else: 
-            return False 
+            return False
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_is_reposted(self, track):
+        if self.context['request'].user.is_authenticated:
+            try:
+                Repost.objects.get(user=self.context['request'].user, track=track)
+                return True
+            except Repost.DoesNotExist:
+                return False
+        else:
+            return False
     
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_followed(self, track):
