@@ -31,14 +31,13 @@ class CommentViewSet(mixins.CreateModelMixin,
         self.track = getattr(self, 'track', None) or get_object_or_404(track_queryset, id=self.kwargs['track_id'])
 
         if self.action in ['list']:
-            res = Comment.objects\
+            return Comment.objects\
                 .select_related('writer')\
                 .prefetch_related('writer__followers', 'writer__owned_tracks')\
                 .filter(track=self.track)
-        else:
-            res = Comment.objects.filter(track=self.track)
 
-        return res
+        return Comment.objects.filter(track=self.track)
+
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

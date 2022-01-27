@@ -43,12 +43,12 @@ class TrackViewSet(viewsets.ModelViewSet):
         if self.action in ['likers', 'reposters']:
             self.track = getattr(self, 'track', None) or get_object_or_404(queryset, pk=self.kwargs[self.lookup_url_kwarg])
 
-            if self.action == 'likers':
-                return User.objects.filter(likes__track=self.track)
-            if self.action == 'reposters':
-                return User.objects.filter(reposts__track=self.track)
+        querysets = {
+            'likers': User.objects.filter(likes__track=self.track),
+            'reposters': User.objects.filter(reposts__track=self.track),
+        }
 
-        return queryset
+        return querysets.get(self.action) or queryset
 
     @action(detail=True)
     def likers(self, request, *args, **kwargs):

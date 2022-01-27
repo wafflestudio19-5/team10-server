@@ -39,12 +39,12 @@ class SetViewSet(viewsets.ModelViewSet):
         if self.action in ['likers', 'reposters']:
             self.set = getattr(self, 'set', None) or get_object_or_404(queryset, id=self.kwargs[self.lookup_url_kwarg])
 
-            if self.action == 'likers':
-                return User.objects.prefetch_related('followers', 'owned_tracks').filter(likes__set=self.set)
-            if self.action == 'reposters':
-                return User.objects.prefetch_related('followers', 'owned_tracks').filter(reposts__set=self.set)
-        
-        return queryset
+        querysets = {
+            'likers': User.objects.filter(likes__set=self.set),
+            'reposters': User.objects.filter(reposts__set=self.set),
+        }
+
+        return querysets.get(self.action) or queryset
     
     # 1. POST /sets/ - 빈 playlist 생성 - mixin 이용
     # 2. PUT /sets/{set_id} - mixin 이용

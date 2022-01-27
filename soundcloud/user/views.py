@@ -90,30 +90,21 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         comment_queryset = Comment.objects \
             .exclude(~Q(track__artist=request_user) & Q(track__is_private=True))
 
-        if self.action == 'followers':
-            return User.objects.filter(followings__followee=self.user)
-        if self.action == 'followings':
-            return User.objects.filter(followers__follower=self.user)
-        if self.action == 'tracks':
-            return track_queryset.filter(artist=self.user)
-        if self.action == 'sets':
-            return set_queryset.filter(creator=self.user)
-        if self.action == 'likes_tracks':
-            return track_queryset.filter(likes__user=self.user)
-        if self.action == 'reposts_tracks':
-            return track_queryset.filter(reposts__user=self.user)
-        if self.action == 'likes_sets':
-            return set_queryset.filter(likes__user=self.user)
-        if self.action == 'reposts_sets':
-            return set_queryset.filter(reposts__user=self.user)
-        if self.action == 'history_tracks':
-            return track_queryset.filter(players=self.user)
-        if self.action == 'history_sets':
-            return set_queryset.filter(players=self.user)
-        if self.action == 'comments':
-            return comment_queryset.filter(writer=self.user)
+        querysets = {
+            'followers': User.objects.filter(followings__followee=self.user),
+            'followings': User.objects.filter(followers__follower=self.user),
+            'tracks': track_queryset.filter(artist=self.user),
+            'sets': set_queryset.filter(creator=self.user),
+            'likes_tracks': track_queryset.filter(likes__user=self.user),
+            'reposts_tracks': track_queryset.filter(reposts__user=self.user),
+            'likes_sets': set_queryset.filter(likes__user=self.user),
+            'reposts_sets': set_queryset.filter(reposts__user=self.user),
+            'history_tracks': track_queryset.filter(players=self.user),
+            'history_sets': set_queryset.filter(players=self.user),
+            'comments': comment_queryset.filter(writer=self.user),
+        }
 
-        return User.objects.all()
+        return querysets.get(self.action) or User.objects.all()
 
     @action(detail=True)
     def followers(self, request, *args, **kwargs):
