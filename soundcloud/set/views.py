@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
@@ -12,6 +13,7 @@ from user.models import User
 
 @sets_viewset_schema
 class SetViewSet(viewsets.ModelViewSet):
+
     permission_classes = (CustomObjectPermissions, )
     filter_backends = (OrderingFilter, )
     ordering_fields = ['created_at']
@@ -25,17 +27,24 @@ class SetViewSet(viewsets.ModelViewSet):
             return SimpleUserSerializer
         if self.action in ['list']:
             return SimpleSetSerializer
+
         return SetSerializer
 
     def get_queryset(self):
+
+        # hide private sets in the queryset
+        user = self.request.user if self.request.user.is_authenticated else None
+        queryset = Set.objects.exclude(~Q(creator=user) & Q(is_private=True))
+
         if self.action in ['likers', 'reposters']:
-            self.set = getattr(self, 'set', None) or get_object_or_404(Set, id=self.kwargs[self.lookup_url_kwarg])
+            self.set = getattr(self, 'set', None) or get_object_or_404(queryset, id=self.kwargs[self.lookup_url_kwarg])
+
             if self.action == 'likers':
                 return User.objects.prefetch_related('followers', 'owned_tracks').filter(likes__set=self.set)
             if self.action == 'reposters':
                 return User.objects.prefetch_related('followers', 'owned_tracks').filter(reposts__set=self.set)
-        else:
-            return Set.objects.all()
+        
+        return queryset
     
     # 1. POST /sets/ - 빈 playlist 생성 - mixin 이용
     # 2. PUT /sets/{set_id} - mixin 이용
