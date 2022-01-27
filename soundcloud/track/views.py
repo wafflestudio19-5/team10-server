@@ -190,5 +190,12 @@ class TrackSearchAPIView(ListModelMixin, HaystackGenericAPIView):
 
         return queryset.filter(q)
 
+    @extend_schema(
+        summary="Search",
+        responses={
+            200: OpenApiResponse(response=TrackSearchSerializer, description='OK'),
+            400: OpenApiResponse(description='Bad Request'),
+        }
+    )
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
