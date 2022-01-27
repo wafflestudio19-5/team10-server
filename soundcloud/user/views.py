@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model, logout
+from django.db.models import Q
 from rest_framework import status, permissions, viewsets
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import GenericAPIView, CreateAPIView, RetrieveUpdateAPIView, get_object_or_404
@@ -50,7 +51,6 @@ class UserLogoutView(APIView):
 @users_viewset_schema
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
-    queryset = User.objects.all()
     lookup_url_kwarg = 'user_id'
     filter_backends = (OrderingFilter, )
     ordering_fields = ['created_at']
@@ -71,37 +71,49 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         return UserSerializer
 
     def get_queryset(self):
-        if self.action in ['followers', 'followings', 'tracks', 'sets', 'likes_tracks', 'reposts_tracks', 'likes_sets', 'reposts_sets', 'history_tracks', 'history_sets', 'comments']:
-            self.user = getattr(self, 'user', None) or get_object_or_404(User, id=self.kwargs[self.lookup_url_kwarg])
+        if self.action in ['retrieve', 'list']:
+            return User.objects.all()
 
-            if self.action == 'followers':
-                return User.objects.filter(followings__followee=self.user)
-            if self.action == 'followings':
-                return User.objects.filter(followers__follower=self.user)
-            if self.action == 'tracks':
-                if self.request.user.is_authenticated and self.request.user == self.user:
-                    return Track.objects.filter(artist=self.user)
-                return Track.objects.exclude(is_private=True).filter(artist=self.user)
-            if self.action == 'sets':
-                if self.request.user.is_authenticated and self.request.user == self.user:
-                    return Set.objects.filter(creator=self.user)
-                return Set.objects.exclude(is_private=True).filter(creator=self.user)
-            if self.action == 'likes_tracks':
-                return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks').filter(likes__user=self.user)
-            if self.action == 'reposts_tracks':
-                return Track.objects.prefetch_related('artist__followers', 'artist__owned_tracks').filter(reposts__user=self.user)
-            if self.action == 'likes_sets':
-                return Set.objects.select_related('creator').prefetch_related('likes', 'reposts', 'tracks', 'tags', 'creator__followers', 'creator__owned_tracks').filter(likes__user=self.user)
-            if self.action == 'reposts_sets':
-                return Set.objects.select_related('creator').prefetch_related('likes', 'reposts', 'tracks', 'tags', 'creator__followers', 'creator__owned_tracks').filter(reposts__user=self.user)
-            if self.action == 'history_tracks':
-                return self.user.played_tracks.prefetch_related('artist__followers', 'artist__owned_tracks')
-            if self.action == 'history_sets':
-                return self.user.played_sets
-            if self.action == 'comments':
-                return Comment.objects.select_related('track').filter(writer=self.user)
+        self.user = getattr(self, 'user', None) or get_object_or_404(User, pk=self.kwargs[self.lookup_url_kwarg])
+        
+        # hide private tracks in the queryset
+        request_user = self.request.user if self.request.user.is_authenticated else None
+        track_queryset = Track.objects \
+            .exclude(~Q(artist=request_user) & Q(is_private=True)) \
+            .prefetch_related('artist__followers', 'artist__owned_tracks')
 
-        return super().get_queryset()
+        # hide private sets in the queryset
+        set_queryset = Set.objects \
+            .exclude(~Q(creator=request_user) & Q(is_private=True)) \
+
+        # hide commnets of the private tracks in the queryset
+        comment_queryset = Comment.objects \
+            .exclude(~Q(track__artist=request_user) & Q(track__is_private=True))
+
+        if self.action == 'followers':
+            return User.objects.filter(followings__followee=self.user)
+        if self.action == 'followings':
+            return User.objects.filter(followers__follower=self.user)
+        if self.action == 'tracks':
+            return track_queryset.filter(artist=self.user)
+        if self.action == 'sets':
+            return set_queryset.filter(creator=self.user)
+        if self.action == 'likes_tracks':
+            return track_queryset.filter(likes__user=self.user)
+        if self.action == 'reposts_tracks':
+            return track_queryset.filter(reposts__user=self.user)
+        if self.action == 'likes_sets':
+            return set_queryset.filter(likes__user=self.user)
+        if self.action == 'reposts_sets':
+            return set_queryset.filter(reposts__user=self.user)
+        if self.action == 'history_tracks':
+            return track_queryset.filter(players=self.user)
+        if self.action == 'history_sets':
+            return set_queryset.filter(players=self.user)
+        if self.action == 'comments':
+            return comment_queryset.filter(writer=self.user)
+
+        return User.objects.all()
 
     @action(detail=True)
     def followers(self, request, *args, **kwargs):
@@ -119,14 +131,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     def sets(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @action(detail=True, url_path='history/tracks', ordering_fields=['trackhit__last_hit'], ordering=['-trackhit__last_hit'])
-    def history_tracks(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @action(detail=True, url_path='history/sets', ordering_fields=['sethit__last_hit'], ordering=['-sethit__last_hit'])
-    def history_sets(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
     @action(detail=True, url_path='likes/tracks')
     def likes_tracks(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -141,6 +145,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, url_path='reposts/sets')
     def reposts_sets(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=True, url_path='history/tracks', ordering_fields=['trackhit__last_hit'], ordering=['-trackhit__last_hit'])
+    def history_tracks(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=True, url_path='history/sets', ordering_fields=['sethit__last_hit'], ordering=['-sethit__last_hit'])
+    def history_sets(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
     @action(detail=True)
@@ -163,7 +175,7 @@ class UserSelfView(RetrieveUpdateAPIView):
 
     def get_object(self):
 
-        return get_object_or_404(self.get_queryset(), id=self.request.user.id)
+        return get_object_or_404(self.get_queryset(), pk=self.request.user.id)
 
 
 @users_follow_schema
@@ -171,7 +183,6 @@ class UserFollowView(GenericAPIView):
 
     serializer_class = UserFollowService
     queryset = User.objects.all()
-    lookup_field = 'id'
     lookup_url_kwarg = 'user_id'
 
     def get_serializer_context(self):
