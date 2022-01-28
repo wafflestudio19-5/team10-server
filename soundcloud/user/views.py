@@ -341,7 +341,6 @@ class UserFollowView(GenericAPIView):
 class UserSearchAPIView(ListModelMixin, HaystackGenericAPIView):
     index_models = [User]
     serializer_class = UserSearchSerializer
-    pagination_class = None
 
     def get_queryset(self, index_models=[]):
         queryset = self.object_class()._clone()

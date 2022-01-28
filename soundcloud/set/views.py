@@ -182,7 +182,6 @@ class SetTrackViewSet(viewsets.GenericViewSet):
 class SetSearchAPIView(ListModelMixin, HaystackGenericAPIView):
     index_models = [Set]
     serializer_class = SetSearchSerializer
-    pagination_class = None
 
     def get_queryset(self, index_models=[]):
         queryset = self.object_class()._clone()
