@@ -3,7 +3,7 @@ from track.models import Track
 
 
 class TrackIndex(indexes.SearchIndex, indexes.Indexable):
-    q = indexes.EdgeNgramField(document=True, use_template=True, template_name='search/track_text.txt')
+    text = indexes.EdgeNgramField(document=True, use_template=True, template_name='search/track_text.txt')
     id = indexes.IntegerField(model_attr='id')
     artist = indexes.CharField(model_attr='artist')
     pub_date = indexes.DateTimeField(model_attr='created_at')
