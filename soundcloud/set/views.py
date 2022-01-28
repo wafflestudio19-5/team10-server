@@ -1,9 +1,12 @@
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view, OpenApiTypes
+from drf_haystack.viewsets import HaystackGenericAPIView
 from django.db.models import Q
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
+from rest_framework.mixins import ListModelMixin
 from set.models import Set
 from set.schemas import *
 from set.serializers import *
@@ -37,6 +40,7 @@ class SetViewSet(viewsets.ModelViewSet):
         queryset = Set.objects.exclude(~Q(creator=user) & Q(is_private=True))
 
         if self.action in ['likers', 'reposters']:
+
             self.set = getattr(self, 'set', None) or get_object_or_404(queryset, id=self.kwargs[self.lookup_url_kwarg])
             querysets = {
                 'likers': User.objects.filter(likes__set=self.set),
@@ -45,7 +49,7 @@ class SetViewSet(viewsets.ModelViewSet):
             return querysets.get(self.action)
 
         return queryset
-    
+      
     # 1. POST /sets/ - 빈 playlist 생성 - mixin 이용
     # 2. PUT /sets/{set_id} - mixin 이용
     # 3. GET /sets/{set_id} - mixin 이용
@@ -68,7 +72,7 @@ class SetTrackViewSet(viewsets.GenericViewSet):
     lookup_url_kwarg = 'set_id'
     serializer_class = SetTrackService
     queryset = Set.objects.all()
-    
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['set'] = self.get_object()
@@ -76,7 +80,6 @@ class SetTrackViewSet(viewsets.GenericViewSet):
         context['track_ids'] = track_ids
         return context
 
-    
     # 7. POST /sets/{set_id}/tracks (add track to playlist)
     # 8. DELETE /sets/{set_id}/tracks (remove track from playlist)
     @action(methods=['POST', 'DELETE'], detail=True)
@@ -94,3 +97,30 @@ class SetTrackViewSet(viewsets.GenericViewSet):
     def _remove(self, service):
         status, data = service.delete()
         return Response(status=status, data=data)
+
+
+class SetSearchAPIView(ListModelMixin, HaystackGenericAPIView):
+    index_models = [Set]
+    serializer_class = SetSearchSerializer
+
+    def get_queryset(self, index_models=[]):
+        queryset = self.object_class()._clone()
+        queryset = queryset.models(*self.index_models)
+
+        ids = self.request.data.get('ids', None)
+
+        q = Q()
+
+        if ids:
+            q &= Q(id__in=ids)
+        return queryset.filter(q)
+
+    @extend_schema(
+        summary="Search",
+        responses={
+            200: OpenApiResponse(response=SetSearchSerializer, description='OK'),
+            400: OpenApiResponse(description='Bad Request'),
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)

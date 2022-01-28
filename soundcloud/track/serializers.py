@@ -2,6 +2,7 @@ from django.core.cache import cache
 from django.db import transaction
 from django.db.models import F
 from django.shortcuts import get_object_or_404
+from drf_haystack.serializers import HaystackSerializer, HaystackSerializerMixin
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers, status
@@ -12,6 +13,7 @@ from soundcloud.utils import get_presigned_url, MediaUploadMixin
 from tag.models import Tag
 from tag.serializers import TagSerializer
 from track.models import Track, TrackHit
+from track.search_indexes import TrackIndex
 from user.models import Follow
 from user.serializers import UserSerializer, SimpleUserSerializer
 from reaction.models import Like, Repost
@@ -380,3 +382,10 @@ class TrackHitService(serializers.Serializer):
             set_hit.save()
 
         return status.HTTP_200_OK, { 'client_ip': client_ip, 'xff': xff }
+
+
+class TrackSearchSerializer(HaystackSerializerMixin, TrackSerializer):
+
+    class Meta(TrackSerializer.Meta):
+        index_classes = [TrackIndex]
+        search_fields = ('text', )

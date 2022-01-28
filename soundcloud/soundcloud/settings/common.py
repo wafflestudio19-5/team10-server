@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'tag',
     'reaction',
     'utility',
+    'haystack',
 ]
 
 MIDDLEWARE = [
@@ -237,3 +238,13 @@ CACHES = {
 
 # for Sociallogin
 SOCIAL_PASSWORD = "socialpassword"
+
+
+WHOOSH_INDEX = os.path.join(BASE_DIR, 'whoosh_index')
+
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.whoosh_backend.WhooshEngine',
+        'PATH': WHOOSH_INDEX,
+    },
+}

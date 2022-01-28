@@ -4,11 +4,13 @@ from django.contrib.auth.models import update_last_login
 from django.contrib.contenttypes.models import ContentType
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
+from drf_haystack.serializers import HaystackSerializerMixin
 from rest_framework import serializers, status
 from rest_framework_jwt.settings import api_settings
 from soundcloud.utils import ConflictError, MediaUploadMixin, get_presigned_url
 from datetime import date
 from track.models import Track
+from user.search_indexes import UserIndex
 from user.models import Follow
 
 # 토큰 사용을 위한 기본 세팅
@@ -330,4 +332,11 @@ class UserFollowService(serializers.Serializer):
 
         follow.delete()
         return status.HTTP_204_NO_CONTENT, "Successful"
+
+
+class UserSearchSerializer(HaystackSerializerMixin, UserSerializer):
+
+    class Meta(UserSerializer.Meta):
+        index_classes = [UserIndex]
+        search_fields = ('text', )
 

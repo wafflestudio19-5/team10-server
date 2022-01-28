@@ -361,3 +361,4 @@ secrets.json
 
 # Redis Dump File
 dump.rdb
+/soundcloud/whoosh_index/
