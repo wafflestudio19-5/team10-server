@@ -11,10 +11,11 @@ from rest_framework.response import Response
 from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
 from track.serializers import SimpleTrackSerializer, TrackHitService, TrackSerializer, TrackMediaUploadSerializer, TrackSearchSerializer
-from track.schemas import tracks_viewset_schema
+from track.schemas import tracks_viewset_schema, track_search_schema
 from user.models import User
 from user.serializers import SimpleUserSerializer
 from datetime import datetime
+
 
 @tracks_viewset_schema
 class TrackViewSet(viewsets.ModelViewSet):
@@ -72,6 +73,7 @@ class TrackViewSet(viewsets.ModelViewSet):
         return Response(status=status, data=data)
 
 
+@track_search_schema
 class TrackSearchAPIView(ListModelMixin, HaystackGenericAPIView):
     index_models = [Track]
     serializer_class = TrackSearchSerializer
@@ -103,12 +105,5 @@ class TrackSearchAPIView(ListModelMixin, HaystackGenericAPIView):
 
         return queryset.filter(q)
 
-    @extend_schema(
-        summary="Search",
-        responses={
-            200: OpenApiResponse(response=TrackSearchSerializer, description='OK'),
-            400: OpenApiResponse(description='Bad Request'),
-        }
-    )
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
