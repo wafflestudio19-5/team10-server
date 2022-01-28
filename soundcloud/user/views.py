@@ -348,12 +348,14 @@ class UserSearchAPIView(ListModelMixin, HaystackGenericAPIView):
         queryset = queryset.models(*self.index_models)
 
         ids = self.request.data.get('ids', None)
+        location = self.request.data.get('location', None)
 
         q = Q()
 
         if ids:
             q &= Q(id__in=ids)
-
+        if location:
+            q &= Q(city__in=location) | Q(country__in=location)
         return queryset.filter(q)
 
     @extend_schema(

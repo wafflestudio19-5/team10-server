@@ -10,7 +10,7 @@ from rest_framework_jwt.settings import api_settings
 from soundcloud.utils import ConflictError, MediaUploadMixin, get_presigned_url
 from datetime import date
 from track.models import Track
-from track.search_indexes import UserIndex
+from user.search_indexes import UserIndex
 from user.models import Follow
 
 # 토큰 사용을 위한 기본 세팅
@@ -338,5 +338,5 @@ class UserSearchSerializer(HaystackSerializerMixin, UserSerializer):
 
     class Meta(UserSerializer.Meta):
         index_classes = [UserIndex]
-        search_fields = ('q', )
+        search_fields = ('text', )
 
