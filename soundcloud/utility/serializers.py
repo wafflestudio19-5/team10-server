@@ -21,9 +21,9 @@ class ResolveService(serializers.Serializer):
 
         url_path = url_parsed.path
 
-        pattern_user = re.compile('^/[a-z0-9_-]{3,25}$')
-        pattern_track = re.compile('^/[a-z0-9_-]{3,25}/[a-z0-9_-]{3,255}$')
-        pattern_set = re.compile('^/[a-z0-9_-]{3,25}/sets/[a-z0-9_-]{3,255}$')
+        pattern_user = re.compile('^/[a-zA-Z0-9_-]{3,25}$')
+        pattern_track = re.compile('^/[a-zA-Z0-9_-]{3,25}/[a-zA-Z0-9_-]{3,255}$')
+        pattern_set = re.compile('^/[a-zA-Z0-9_-]{3,25}/sets/[a-zA-Z0-9_-]{3,255}$')
 
         if pattern_user.match(url_path):    # user
             user_permalink = url_path.split('/')[1]
