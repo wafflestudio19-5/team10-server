@@ -27,8 +27,8 @@ class TrackSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
-    genre_input = serializers.CharField(max_length=20, required=False, write_only=True)
-    tags_input = serializers.ListField(child=serializers.CharField(max_length=20), required=False, write_only=True)
+    genre_input = serializers.CharField(max_length=20, required=False, write_only=True, allow_null=True)
+    tags_input = serializers.ListField(child=serializers.CharField(max_length=20), required=False, write_only=True, allow_empty=True)
     play_count = serializers.IntegerField(read_only=True)
     like_count = serializers.IntegerField(read_only=True)
     repost_count = serializers.IntegerField(read_only=True)
@@ -135,7 +135,7 @@ class TrackSerializer(serializers.ModelSerializer):
 
         if 'genre_input' in data:
             genre_input = data.pop('genre_input')
-            data['genre'] = Tag.objects.get_or_create(name=genre_input)[0]
+            data['genre'] = genre_input and Tag.objects.get_or_create(name=genre_input)[0]
 
         if 'tags_input' in data:
             genre = data.get('genre') or self.instance.genre
