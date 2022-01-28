@@ -1,9 +1,12 @@
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view, OpenApiTypes
+from drf_haystack.viewsets import HaystackGenericAPIView
+from django.db.models import Q
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
+from rest_framework.mixins import ListModelMixin
 from set.models import Set
 from set.serializers import *
 from soundcloud.utils import CustomObjectPermissions
@@ -174,3 +177,31 @@ class SetTrackViewSet(viewsets.GenericViewSet):
     def _remove(self, service):
         status, data = service.delete()
         return Response(status=status, data=data)
+
+
+class SetSearchAPIView(ListModelMixin, HaystackGenericAPIView):
+    index_models = [Set]
+    serializer_class = SetSearchSerializer
+    pagination_class = None
+
+    def get_queryset(self, index_models=[]):
+        queryset = self.object_class()._clone()
+        queryset = queryset.models(*self.index_models)
+
+        ids = self.request.data.get('ids', None)
+
+        q = Q()
+
+        if ids:
+            q &= Q(id__in=ids)
+        return queryset.filter(q)
+
+    @extend_schema(
+        summary="Search",
+        responses={
+            200: OpenApiResponse(response=SetSearchSerializer, description='OK'),
+            400: OpenApiResponse(description='Bad Request'),
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)

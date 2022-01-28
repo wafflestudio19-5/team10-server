@@ -1,5 +1,6 @@
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
+from drf_haystack.serializers import HaystackSerializerMixin
 from rest_framework import serializers, status
 from rest_framework.serializers import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
@@ -11,6 +12,7 @@ from tag.serializers import TagSerializer
 from track.serializers import TrackInSetSerializer
 from user.serializers import SimpleUserSerializer
 from reaction.models import Like, Repost
+from set.search_indexes import SetIndex
 
 
 class SetSerializer(serializers.ModelSerializer):
@@ -237,6 +239,10 @@ class SetTrackService(serializers.Serializer):
         return status.HTTP_400_BAD_REQUEST, {"error": "셋에 없는 트랙입니다."}
 
 
+class SetSearchSerializer(HaystackSerializerMixin, SetSerializer):
 
+    class Meta(SetSerializer.Meta):
+        index_classes = [SetIndex]
+        search_fields = ('text', )
 
 
