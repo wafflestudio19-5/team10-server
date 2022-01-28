@@ -1,13 +1,15 @@
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from drf_haystack.serializers import HaystackSerializerMixin
+from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.serializers import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
-from set.models import Set, SetTrack
-from user.models import Follow
 from track.models import Track
+from set.models import Set
+from user.models import Follow
 from soundcloud.utils import get_presigned_url, MediaUploadMixin
+from tag.models import Tag
 from tag.serializers import TagSerializer
 from track.serializers import TrackInSetSerializer
 from user.serializers import SimpleUserSerializer
@@ -20,6 +22,8 @@ class SetSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     genre = TagSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
+    genre_input = serializers.CharField(max_length=20, required=False, write_only=True)
+    tags_input = serializers.ListField(child=serializers.CharField(max_length=20), required=False, write_only=True)
     tracks = serializers.SerializerMethodField()
     track_count = serializers.IntegerField(read_only=True)
     like_count = serializers.IntegerField(read_only=True)
@@ -39,6 +43,8 @@ class SetSerializer(serializers.ModelSerializer):
             'description',
             'genre',
             'tags',
+            'genre_input',
+            'tags_input',
             'is_private',
             'track_count',
             'like_count',
@@ -55,9 +61,10 @@ class SetSerializer(serializers.ModelSerializer):
                 'max_length': 255,
                 'min_length': 3,
             },
-            'created_at': {'read_only': True},
-        
         }
+        read_only_fields = (
+            'created_at',
+        )
 
         # Since 'creator' is read-only field, ModelSerializer wouldn't generate UniqueTogetherValidator automatically.
         validators = [
@@ -72,9 +79,11 @@ class SetSerializer(serializers.ModelSerializer):
         return get_presigned_url(set.image, 'get_object')
 
     def get_tracks(self, set):
-        tracks = set.tracks.order_by('set_tracks__created_at')
-        if not tracks:
-            return None
+
+        # hide private tracks in the queryset
+        user = self.context['request'].user if self.context['request'].user.is_authenticated else None
+        tracks = set.tracks.exclude(~Q(artist=user) & Q(is_private=True)).order_by('set_tracks__created_at')
+
         return TrackInSetSerializer(tracks, many=True, context=self.context).data
 
     @extend_schema_field(OpenApiTypes.BOOL)
@@ -124,6 +133,34 @@ class SetSerializer(serializers.ModelSerializer):
         if self.instance is None:
             data['creator'] = self.context['request'].user
 
+        if 'genre_input' in data:
+            genre_input = data.pop('genre_input')
+            data['genre'] = Tag.objects.get_or_create(name=genre_input)[0]
+
+        if 'tags_input' in data:
+            genre = data.get('genre') or self.instance.genre
+            genre_name = genre.name if genre else ""
+            tags_input = data.pop('tags_input')
+            data['tags'] = [Tag.objects.get_or_create(name=tag)[0] for tag in tags_input if tag != genre_name]
+
+
+        return data
+
+
+class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): 
+    image_extension = serializers.CharField(write_only=True, required=False)
+    image_presigned_url = serializers.SerializerMethodField()
+
+    class Meta(SetSerializer.Meta):
+        fields = SetSerializer.Meta.fields + (
+            'image_extension',
+            'image_presigned_url',
+        )
+
+    def validate(self, data):
+        data = super().validate(data)
+        data = self.extensions_to_urls(data)
+
         return data
 
 
@@ -138,7 +175,6 @@ class SimpleSetSerializer(serializers.ModelSerializer):
     repost_count = serializers.IntegerField()
     is_liked = serializers.SerializerMethodField(read_only=True)
     is_reposted = serializers.SerializerMethodField(read_only=True)
-    
     
     
     class Meta:
@@ -158,6 +194,7 @@ class SimpleSetSerializer(serializers.ModelSerializer):
             'tracks',
             'is_liked',
             'is_reposted',
+            'created_at'
         )
 
     def get_image(self, set):
@@ -165,7 +202,10 @@ class SimpleSetSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(TrackInSetSerializer(many=True))
     def get_tracks(self, set):
-        tracks = set.tracks.all().order_by('set_tracks__created_at')[:5]
+
+        # hide private tracks in the queryset
+        user = self.context['request'].user if self.context['request'].user.is_authenticated else None
+        tracks = set.tracks.exclude(~Q(artist=user) & Q(is_private=True)).order_by('set_tracks__created_at')[:5]
 
         return TrackInSetSerializer(tracks, many=True, context=self.context).data
     
@@ -192,57 +232,58 @@ class SimpleSetSerializer(serializers.ModelSerializer):
             return False
 
 
-class SetMediaUploadSerializer(MediaUploadMixin, SetSerializer): #이거는 put에서만 쓰기. 이미지 수정용 
-    image_extension = serializers.CharField(write_only=True, required=False)
-    image_presigned_url = serializers.SerializerMethodField()
-
-
-    class Meta(SetSerializer.Meta):
-        fields = SetSerializer.Meta.fields + (
-            'image_extension',
-            'image_presigned_url',
-        )
-
-    def validate(self, data):
-        data = super().validate(data)
-        data = self.extensions_to_urls(data)
-
-        return data
-
-
 class SetTrackService(serializers.Serializer):
-    track_id = serializers.IntegerField(write_only=True)
-    
+
     def create(self):
         set = self.context['set']
-        track = self.context['track']
-        if track is None:
-            return status.HTTP_400_BAD_REQUEST, {"error": "track_id 는 필수입니다."}
-        if set.tracks.filter(id=track.id).exists():
-            return status.HTTP_400_BAD_REQUEST, {"error": "이미 셋에 추가되어 있습니다."}
+        track_ids = self.context['track_ids']
 
-        set.tracks.add(track)
+        if track_ids is None or track_ids == []:
+            return status.HTTP_400_BAD_REQUEST, {"error": "track_ids 는 필수입니다."}
+
+        tracks_num = len(track_ids)
+        tracks_id = []
+        for d in track_ids:
+            tracks_id.append(d["id"])
+        tracks = Track.objects.filter(id__in=tracks_id)
+
+        if tracks.count() != tracks_num:
+            return status.HTTP_400_BAD_REQUEST, {"error": "track_ids 가 유효하지 않습니다."}
+
+        if set.tracks.filter(id__in=tracks_id).exists():
+            return status.HTTP_400_BAD_REQUEST, {"error": "이미 셋에 추가된 트랙이 있습니다."}
+
+        set.tracks.add(*tracks)
         set.save()
 
-        return status.HTTP_200_OK, {"added to playlist."}
+        return status.HTTP_200_OK, {"all added to playlist."}
     
     def delete(self):
         set = self.context['set']
-        track = self.context['track']
-        if track is None:
-            return status.HTTP_400_BAD_REQUEST, {"error": "track_id 는 필수입니다."}
+        track_ids = self.context['track_ids']
 
-        if set.tracks.filter(id=track.id).exists():
-            set.tracks.remove(track)
-            return status.HTTP_204_NO_CONTENT, None
-    
-        return status.HTTP_400_BAD_REQUEST, {"error": "셋에 없는 트랙입니다."}
+        if track_ids is None or track_ids == []:
+            return status.HTTP_400_BAD_REQUEST, {"error": "track_ids 는 필수입니다."}
 
+        tracks_num = len(track_ids)
+        tracks_id = []
+        for d in track_ids:
+            tracks_id.append(d["id"])
+        tracks = Track.objects.filter(id__in=tracks_id)
 
+        if tracks.count() != tracks_num:
+            return status.HTTP_400_BAD_REQUEST, {"error": "track_ids 가 유효하지 않습니다."}
+
+        if set.tracks.filter(id__in=tracks_id).count() != tracks_num:
+            return status.HTTP_400_BAD_REQUEST, {"error": "셋에 없는 트랙이 포함되어 있습니다."}
+
+        set.tracks.remove(*tracks)
+        set.save()
+        
+        return status.HTTP_204_NO_CONTENT, None
+      
 class SetSearchSerializer(HaystackSerializerMixin, SetSerializer):
 
     class Meta(SetSerializer.Meta):
         index_classes = [SetIndex]
         search_fields = ('text', )
-
-
