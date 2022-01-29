@@ -90,7 +90,7 @@ class TrackSearchAPIView(ListModelMixin, HaystackGenericAPIView):
         q = Q()
 
         if ids:
-            q &= Q(id__in=ids)
+            q &= Q(track_id__in=ids)
         if genres:
             q &= Q(genre_name__in=genres)
         if start:

@@ -216,7 +216,7 @@ class UserSearchAPIView(ListModelMixin, HaystackGenericAPIView):
         q = Q()
 
         if ids:
-            q &= Q(id__in=ids)
+            q &= Q(user_id__in=ids)
         if location:
             q &= Q(city__in=location) | Q(country__in=location)
         return queryset.filter(q)
