@@ -11,10 +11,11 @@ from rest_framework.response import Response
 from soundcloud.utils import CustomObjectPermissions
 from track.models import Track
 from track.serializers import SimpleTrackSerializer, TrackHitService, TrackSerializer, TrackMediaUploadSerializer, TrackSearchSerializer
-from track.schemas import tracks_viewset_schema
+from track.schemas import tracks_viewset_schema, track_search_schema
 from user.models import User
 from user.serializers import SimpleUserSerializer
 from datetime import datetime
+
 
 @tracks_viewset_schema
 class TrackViewSet(viewsets.ModelViewSet):
@@ -32,7 +33,7 @@ class TrackViewSet(viewsets.ModelViewSet):
             return SimpleTrackSerializer
         if self.action in ['likers', 'reposters']:
             return SimpleUserSerializer
-        if self.action in  ['hit']:
+        if self.action in ['hit']:
             return TrackHitService
 
         return TrackSerializer
@@ -52,7 +53,7 @@ class TrackViewSet(viewsets.ModelViewSet):
                 'reposters': User.objects.filter(reposts__track=self.track),
             }
             return querysets.get(self.action)
-    
+
         return queryset
 
     @action(detail=True)
@@ -72,6 +73,7 @@ class TrackViewSet(viewsets.ModelViewSet):
         return Response(status=status, data=data)
 
 
+@track_search_schema
 class TrackSearchAPIView(ListModelMixin, HaystackGenericAPIView):
     index_models = [Track]
     serializer_class = TrackSearchSerializer
@@ -80,9 +82,10 @@ class TrackSearchAPIView(ListModelMixin, HaystackGenericAPIView):
         queryset = self.object_class()._clone()
         queryset = queryset.models(*self.index_models)
 
-        ids = self.request.data.get('ids', None)
-        genres = self.request.data.get('genres', None)
-        created_at = self.request.data.get('created_at', None)
+        ids = self.request.GET.getlist('ids[]', None)
+        genres = self.request.GET.getlist('genres[]', None)
+        start = self.request.GET.get('created_at[from]', None)
+        end = self.request.GET.get('created_at[to]', None)
 
         q = Q()
 
@@ -90,13 +93,10 @@ class TrackSearchAPIView(ListModelMixin, HaystackGenericAPIView):
             q &= Q(id__in=ids)
         if genres:
             q &= Q(genre_name__in=genres)
-        if created_at:
-            start = created_at.get('from', None)
-            end = created_at.get('to', None)
-            if start:
-                q &= Q(pub_date__gte=datetime.strptime(start, '%Y-%m-%dT%H:%M:%S.%fZ'))
-            if end:
-                q &= Q(pub_date__lte=datetime.strptime(end, '%Y-%m-%dT%H:%M:%S.%fZ'))
+        if start:
+            q &= Q(pub_date__gte=datetime.strptime(start, '%Y-%m-%dT%H:%M:%S.%fZ'))
+        if end:
+            q &= Q(pub_date__lte=datetime.strptime(end, '%Y-%m-%dT%H:%M:%S.%fZ'))
 
         if self.request.user.is_authenticated:
             queryset = queryset.exclude(~Q(artist=self.request.user), is_private=True)
@@ -105,12 +105,5 @@ class TrackSearchAPIView(ListModelMixin, HaystackGenericAPIView):
 
         return queryset.filter(q)
 
-    @extend_schema(
-        summary="Search",
-        responses={
-            200: OpenApiResponse(response=TrackSearchSerializer, description='OK'),
-            400: OpenApiResponse(description='Bad Request'),
-        }
-    )
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)

@@ -1,5 +1,5 @@
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, OpenApiExample, extend_schema, extend_schema_view
 from track.serializers import SimpleTrackSerializer, TrackSerializer, TrackMediaUploadSerializer
 from user.serializers import SimpleUserSerializer
 
@@ -86,4 +86,44 @@ tracks_viewset_schema = extend_schema_view(
             '200': OpenApiResponse(description='OK'),
         }
     )
+)
+
+track_search_schema=extend_schema_view(
+    get=extend_schema(
+        summary="Search Track",
+        parameters=[
+            OpenApiParameter("text", OpenApiTypes.STR, OpenApiParameter.QUERY, description='Search text'),
+            OpenApiParameter("ids[]", OpenApiTypes.OBJECT, OpenApiParameter.QUERY, description='A list of track ids to filter on',
+                                 examples=[
+                                    OpenApiExample(
+                                        'Example',
+                                        value=["1", "2", "3"]
+                                    )
+                                 ]
+                             ),
+            OpenApiParameter("genres[]", OpenApiTypes.OBJECT, OpenApiParameter.QUERY, description='A list of genres to filter on',
+                                 examples=[
+                                    OpenApiExample(
+                                        'Example',
+                                        value=["Pop", "House"]
+                                    )
+                                 ]
+                             ),
+            OpenApiParameter("created_at", OpenApiTypes.OBJECT, OpenApiParameter.QUERY, description='Return tracks created within the specified dates',
+                                 examples=[
+                                    OpenApiExample(
+                                        'Example',
+                                        value={
+                                                  "from": "2020-12-24T00:00:00.000Z",
+                                                  "to": "2022-12-24T00:00:00.000Z"
+                                              }
+                                    )
+                                 ]
+                             ),
+        ],
+        responses={
+            '200': OpenApiResponse(response=SimpleUserSerializer(many=True), description='OK'),
+            '404': OpenApiResponse(description='Not Found'),
+        }
+    ),
 )
