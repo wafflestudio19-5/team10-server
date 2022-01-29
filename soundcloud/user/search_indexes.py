@@ -4,7 +4,7 @@ from user.models import User
 
 class UserIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.EdgeNgramField(document=True, use_template=True, template_name='search/user_text.txt')
-    id = indexes.IntegerField(model_attr='id')
+    user_id = indexes.IntegerField(model_attr='id')
     city = indexes.CharField(model_attr='city')
     country = indexes.CharField(model_attr='country')
 

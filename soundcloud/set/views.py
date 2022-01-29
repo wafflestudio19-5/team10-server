@@ -112,7 +112,7 @@ class SetSearchAPIView(ListModelMixin, HaystackGenericAPIView):
         q = Q()
 
         if ids:
-            q &= Q(id__in=ids)
+            q &= Q(set_id__in=ids)
         return queryset.filter(q)
 
     @extend_schema(
